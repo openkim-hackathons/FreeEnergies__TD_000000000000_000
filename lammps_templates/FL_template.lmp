@@ -21,7 +21,7 @@ variable Tdamp_converted equal ${temperature_damping}*${_u_time}
 velocity      all create ${temp_converted} 17 mom yes rot yes
 
 # Frenkel-Ladd fix
-fix           FL all ti/spring {{rpls_springconst}} ${t_switch} ${t_equil} function 2
+fix           FL all ti/spring ${spring_constant} ${t_switch} ${t_equil} function 2
 
 # set NVT ensemble for all atoms
 fix           ensemble all nvt temp ${temp_converted} ${temp_converted} ${Tdamp_converted}

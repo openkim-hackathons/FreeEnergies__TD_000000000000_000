@@ -66,7 +66,7 @@ variable      msd_metal equal c_MSD[4]/${_u_distance}
 
 # Temperature may be off because of rigid bodies or SHAKE constraints. See https://docs.lammps.org/velocity.html
 run 0
-velocity all scale $(${temperature}*${_u_temperature})
+velocity all scale $(v_temperature*v__u_temperature)
 
 # Set up convergence check with kim-convergence.
 # Alternative is to set a safe general equilibration time
@@ -89,15 +89,15 @@ fix           AVG all ave/time 100 500 50000 v_lx_metal v_ly_metal v_lz_metal &
 run 50000
 
 # compute spring constant
-variable      kB equal 8.617333262e-5*(${_u_energy}/${_u_temperature}) # eV/K unless converted
+variable      kB equal 8.617333262e-5*(v__u_energy/v__u_temperature) # eV/K unless converted
 variable      MSD equal f_AVG[10]
 variable      spring_constant equal $(3*kB*${temp_converted}/(${MSD})^2)
 
 # Write final averages and spring constant
 #print "# xx | xy | xz | yx | yy | yz | zx | zy | zz | spring constant [eV/Ang^2]" file ${output_filename}
 #print "${f_AVG[1]} f_AVG[2] f_AVG[3] f_AVG[4] f_AVG[5] f_AVG[6] f_AVG[7] f_AVG[8] f_AVG[9] ${spring_constant}" screen no append ${output_filename}
-print "# lx | ly | lz | spring constant [eV/Ang^2]" file ${output_filename}
-print "${f_AVG[1]} f_AVG[2] f_AVG[3] ${spring_constant}" screen no append ${output_filename}
+print "# lx | ly | lz [Ang] | vol [Ang^3] | spring constant [eV/Ang^2]" file ${output_filename}
+print "${f_AVG[1]} f_AVG[2] f_AVG[3] $(vol) ${spring_constant}" screen no append ${output_filename}
 
 # Reset.
 unfix ensemble

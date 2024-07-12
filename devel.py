@@ -156,6 +156,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
             "temperature_damping": 0.01,
             "t_equil": 50000,
             "timestep": 0.001,  # ps
+            "spring_constant": self.spring_constant,
             "output_filename": "output/lammps_FL.dat",
             "write_restart_filename": "output/lammps_FL.restart",
             "switch1_output_file": "output/FL_switch1.dat",
