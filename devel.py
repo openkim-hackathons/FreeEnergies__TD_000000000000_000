@@ -86,7 +86,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
             os.path.dirname(os.path.realpath(__file__)), filename
         )
         atoms_new.write(structure_file, format="lammps-data", masses=True)
-        breakpoint()
+    
 
         return atoms_new
 
