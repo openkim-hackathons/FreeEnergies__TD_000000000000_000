@@ -32,37 +32,22 @@ variable      Pdamp_converted equal ${pressure_damping}*${_u_time}
 velocity      all create ${temp_converted} ${temperature_seed}
 
 # set NVT ensemble
-# if need to print dime, use NPT with aniso barostat
+# if need to compute new dimensions, use NPT with aniso barostat
 fix           NVT all nvt temp ${temp_converted} ${temp_converted} ${Tdamp_converted}
 
-# compute the time average mean squared displacement and dimension
-# ignore the first 5000 timesteps
+# compute box dimensions
 variable      lx_metal equal lx/${_u_distance}
 variable      ly_metal equal ly/${_u_distance}
 variable      lz_metal equal lz/${_u_distance}
-variable      kB equal 8.617333262e-5 # eV/K
+variable      xy_metal equal xy
+variable      ly_metal equal yz
+variable      lz_metal equal xz
+
+# compute mean squared displacement
 compute       MSD all msd com yes
 variable      msd_metal equal c_MSD[4]/${_u_distance}
-fix           MSD_AVG all ave/time 5 20 100 v_msd_metal ave running start 5000
 
-# extract fix quantities into variables so they can be used in if-else logic later.
-variable      MSD equal f_MSD_AVG
-
-variable      spring_constant equal $(3*kB*f_MSD_AVG/(f_MSD_AVG)^2)
-
-# set error bounds for temperature and pressure in original metal units (K and bar)
-variable      T_low equal  "{rpls_temp} - 1.0"
-variable      T_up  equal  "{rpls_temp} + 1.0"
-variable      P_low equal  "{rpls_press} - 5.0"
-variable      P_up  equal  "{rpls_press} + 5.0"
-
-# print to logfile every 1000 timesteps
-thermo_style  custom step etotal v_etotal_metal pe v_pe_metal &
-              temp v_T_metal lx v_lx_metal press v_P_metal c_c1[4] v_msd_metal
-thermo        1000
-
-# Temperature may be off because of rigid bodies or SHAKE constraints.
-# See https://docs.lammps.org/velocity.html
+# Temperature may be off because of rigid bodies or SHAKE constraints. See https://docs.lammps.org/velocity.html
 run 0
 velocity all scale $(v_temperature*v__u_temperature)
 
@@ -72,27 +57,28 @@ python run_length_control input 6 SELF 1 variable vol_metal variable temp_metal 
 # Run until converged.
 python run_length_control invoke
 
-# Run a simulation for at most 2000*1000 timesteps. At each 1000th time step, check
-# whether the temperature and pressure have converged. If yes, break.
-label top
-variable a loop 2000
-run 1000
-if "${{lx_metal}}>${{lx0_metal_times1000}}" then "jump SELF unstable"
-if "${{T}}>${{T_low}} && ${{T}}<${{T_up}} && ${{P}}>${{P_low}} && ${{P}}<${{P_up}}" then "jump SELF break"
-print "flag: Temp = ${{T}}, Press = ${{P}}"
-next a
-jump SELF top
-label break
+# compute averages of above variables
+fix           AVG all ave/time 100 500 50000 v_lx_metal v_ly_metal v_lz_metal v_xy_metal v_yz_metal v_xz_metal v_msd_metal ave running
 
-# Write final averaged volume to file if temperature and volume have converged; otherwise write a
-# flag to indicate non-convergence.
-variable      myStep equal step
-if "${{myStep}} < 2000000" then "print '${{LX}} ${{MSD}}' file {rpls_output_file}"
-else  "print 'not_converged' file {rpls_output_file}"
+# Run steps in the converged regime.
+run 50000
 
-print "LAMMPS calculation completed"
-quit 0
+# compute spring constant
+variable      kB equal 8.617333262e-5 # eV/K
+variable      MSD equal f_AVG[...]
+variable      spring_constant equal $(3*kB*${temperature}/(MSD)^2)
 
-# unstable
-label unstable
-print "ERROR: System volume ${{lx_metal}} A has become larger than ${{lx0_metal_times1000}} A. Aborting calculation."
+# Write final averages and spring constant
+print "# xx | xy | xz | yx | yy | yz | zx | zy | zz | spring constant [eV/Ang^2]" file ${output_filename}
+print "${f_AVG[0]} f_AVG[1] f_AVG[2] f_AVG[3] f_AVG[4] f_AVG[5] f_AVG[6] f_AVG[7] f_AVG[8] ${spring_constant}" screen no append ${output_filename}
+
+# Reset.
+unfix NVT
+unfix avePos
+unfix aveCell
+unfix cr_fix  # From run_length_control.py
+undump avePosDump
+reset_timestep 0
+
+# Write the initial starting file for a true simulation.
+write_restart ${write_restart_filename}

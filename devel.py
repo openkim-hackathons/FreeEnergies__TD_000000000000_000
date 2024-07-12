@@ -31,12 +31,14 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
 
         # preFL computes the equilibrium lattice parameter and spring constants for a given temperature and pressure.
         # TODO: This should probably be replaced with its own test driver, which compute equilibrium lattice constants, and which can handles arbitrary crystal structures. Then we can get spring constants.
-        equilibrium_lattice_parameters, spring_constants = self._preFL(
+        equilibrium_cell, spring_constants = self._preFL(
             pressurs=pressure, temperature=temperature
         )
 
         # Rescaling 0K supercell to have equilibrium lattice constant.
-        breakpoint()
+        # equilibrium_cell is 3x3 matrix. 
+        # TODO: Divide cell by system size? 
+        supercell.set_cell(equilibrium_cell, scale_atoms=True)
         supercell.write(
             os.path.join(
                 os.path.dirname(os.path.realpath(__file__)),
@@ -56,7 +58,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
 
         print(r"$G_{FL} =$" + f" {free_energy:.5f} (eV/atom)")
 
-        # I have to do this or KIM tries to save some coordinate file
+        # KIM tries to save some coordinate file, disabling it.
         self.poscar = None
 
         # Write property
@@ -104,9 +106,8 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
             "timestep": timestep,
             "number_sampling_timesteps": number_sampling_timesteps,
             "species": " ".join(self.species),
-            "average_position_filename": "output/average_position_equilibration.dump.*",
-            "average_cell_filename": "output/average_cell_equilibration.dump",
-            "write_restart_filename": "output/final_configuration_equilibration.restart",
+            "output_filename": "output/lammps_preFL.dat",
+            "write_restart_filename": "output/lammps_preFL_restart.restart",
         }
         # TODO: Possibly run MPI version of Lammps if available.
         command = (
@@ -119,13 +120,12 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
 
         # Analyse lammps outputs
         data = np.loadtxt("output/lammps_preFL.log", unpack=True)
-        _, equilibrium_lattice_parameters, spring_constants = (
-            data[:, 0],
-            data[:, 1],
-            data[:, 2],
+        xx, xy, xz, yx, yy, yz, zx, zy, zz, spring_constants = data
+        equilibrium_cell = np.array(
+            [[xx, xy, xz], [yx, yy, yz], [zx, zy, zz]]
         )
 
-        return equilibrium_lattice_parameters, spring_constants
+        return equilibrium_cell, spring_constants
 
     def _FL(self, pressure: float, temperature: float):
 

@@ -1,10 +1,18 @@
-kim init {rpls_modelname} metal unit_conversion_mode
-
-# Set logfile
-log output/lammps_FL.log
+kim init ${modelname} metal unit_conversion_mode
 
 # periodic boundary conditions along all three dimensions
 boundary p p p
+
+# Read crystal equilibrium crystal.
+read_data output/equuilibrium_crystal.dump
+
+# Interatomic potential and neighbor settings
+kim           interactions ${species}
+
+
+
+
+
 
 # Set neighbor skin
 variable neigh_skin equal 2.0*${{_u_distance}}
@@ -20,7 +28,6 @@ create_atoms  1 box
 
 variable mass_converted equal {rpls_mass}*${{_u_mass}}
 
-kim interactions {rpls_species}
 
 mass          1 ${{mass_converted}}
 
