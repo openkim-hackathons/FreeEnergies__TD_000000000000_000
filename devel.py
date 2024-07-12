@@ -59,7 +59,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         # FL computes the free energy at a given pressure and temperature.
         free_energy = self._FL()
 
-        # Print Result
+        # Print results
         print("####################################")
         print("# Frenkel Ladd Free Energy Results #")
         print("####################################")
@@ -172,7 +172,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
 
         return self.compute_free_energy()
 
-    # TODO: Analyse lammps outputs
+    
     def compute_free_energy(self) -> float:
 
         # compute free energy via integration of FL path
@@ -182,7 +182,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         )
         W_forw = np.trapz(Hf_f - Hi_f, lamb_f)
 
-        Hf_b, Hi_b, lamb_b = np.loadtxt("FL_switch2.dat.", unpack=True, skiprows=1)
+        Hf_b, Hi_b, lamb_b = np.loadtxt("output/FL_switch2.dat.", unpack=True, skiprows=1)
         W_back = np.trapz(Hf_b - Hi_b, 1 - lamb_b)
 
         Work = (W_forw - W_back) / 2
