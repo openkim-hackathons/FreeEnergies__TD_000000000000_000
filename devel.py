@@ -118,7 +118,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
             "pressure_damping": 1.0,
             "species": " ".join(self.species),
             "output_filename": "output/lammps_preFL.dat",
-            "write_restart_filename": "output/lammps_preFL_restart.restart",
+            "write_restart_filename": "output/lammps_preFL.restart",
         }
         # TODO: Possibly run MPI version of Lammps if available.
         command = (
@@ -148,8 +148,12 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
             "temperature": self.temperature,
             "pressure": self.pressure,
             "species": " ".join(self.species),
+            "tswitch":100000, 
+            "temperature_damping": 0.01,
+            't_equil' : 50000,
+            "timestep": 0.001, #ps
             "output_filename": "output/lammps_FL.dat",
-            "write_restart_filename": "output/lammps_FL_restart.restart",
+            "write_restart_filename": "output/lammps_FL.restart",
         }
         # TODO: Possibly run MPI version of Lammps if available.
         command = (

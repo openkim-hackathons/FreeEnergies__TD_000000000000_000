@@ -4,46 +4,23 @@ kim init ${modelname} metal unit_conversion_mode
 boundary p p p
 
 # Read crystal equilibrium crystal.
-read_data output/equuilibrium_crystal.dump
+read_data output/equilibrium_crystal.dump
 
 # Interatomic potential and neighbor settings
 kim           interactions ${species}
 
 
-
-
-
-
-# Set neighbor skin
-variable neigh_skin equal 2.0*${{_u_distance}}
-neighbor ${{neigh_skin}} bin
-
-# create a supercell with cubic lattice (fcc, bcc, sc, or diamond)
-# using 10*10*10 conventional (orthogonal) unit cells
-variable latticeconst_converted equal {rpls_latticeconst}*${{_u_distance}}
-lattice       {rpls_latticetype}  ${{latticeconst_converted}}
-region        simbox  block 0 10 0 10 0 10 units lattice
-create_box    1 simbox
-create_atoms  1 box
-
-variable mass_converted equal {rpls_mass}*${{_u_mass}}
-
-
-mass          1 ${{mass_converted}}
-
 # set the time step to 0.001 picoseconds
-variable timestep_converted equal 0.001*${{_u_time}}
-timestep ${{timestep_converted}}
+variable timestep_converted equal ${timestep}*${_u_time}
+timestep ${timestep_converted}
 
-variable temp_converted equal 100*${{_u_temperature}}
-variable Tdamp_converted equal 0.01*${{_u_time}}
+variable temp_converted equal ${temperature}*${{_u_temperature}}
+variable Tdamp_converted equal ${temperature_damping}*${{_u_time}}
 
 # create initial velocities consistent with the chosen temperature
 velocity      all create ${{temp_converted}} 17 mom yes rot yes
 
 # Frenkel-Ladd fix
-variable      t_switch equal 100000
-variable      t_equil equal 50000
 fix           FL all ti/spring {{rpls_springconst}} ${t_switch} ${t_equil} function 2
 
 # set NVT ensemble for all atoms
