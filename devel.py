@@ -154,6 +154,8 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
             "timestep": 0.001, #ps
             "output_filename": "output/lammps_FL.dat",
             "write_restart_filename": "output/lammps_FL.restart",
+            "switch1_output_file":".dat"
+            "switch2_output_file":""
         }
         # TODO: Possibly run MPI version of Lammps if available.
         command = (

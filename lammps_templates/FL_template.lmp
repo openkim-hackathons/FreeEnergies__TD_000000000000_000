@@ -46,7 +46,7 @@ run ${t_equil}
 # run switch 1
 fix           record all print 1 "$(pe/atoms) $(f_FL/atoms) $(f_FL[1])" &
               title "# PE_potential [eV/atom] | PE_FL [eV/atom] | lambda" &
-              screen no file {rpls_FL_file1}
+              screen no file ${switch1_output_file}
 run ${t_switch}
 unfix record
 
@@ -56,7 +56,7 @@ run ${t_equil}
 # run switch 2
 fix           record all print 1 "$(pe/atoms) $(f_FL/atoms) $(f_FL[1])" &
               title "# PE_potential [eV/atom] | PE_FL [eV/atom] | lambda" &
-              screen no file {rpls_FL_file2}
+              screen no file ${switch2_output_file}
 run ${t_switch}
 unfix record
 
