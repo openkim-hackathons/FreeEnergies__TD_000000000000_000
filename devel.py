@@ -4,7 +4,7 @@ from typing import List, Dict, Tuple
 from ase.build import bulk
 from ase import Atoms
 import numpy as np
-
+from ase.data import atomic_masses, atomic_numbers
 from kim_tools import CrystalGenomeTestDriver
 import scipy.constants as sc
 
@@ -12,8 +12,6 @@ EV = sc.value("electron volt")
 MU = sc.value("atomic mass constant")
 HBAR = sc.value("Planck constant in eV/Hz") / (2 * np.pi)
 KB = sc.value("Boltzmann constant in eV/K")
-
-from ase.data import atomic_masses, atomic_numbers
 
 
 class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
