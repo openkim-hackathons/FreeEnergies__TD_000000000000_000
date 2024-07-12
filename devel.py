@@ -174,9 +174,9 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
 
     
     def compute_free_energy(self) -> float:
-
-        # compute free energy via integration of FL path
-
+        """Compute free energy via integration of FL path
+        """
+        
         Hi_f, Hf_f, lamb_f = np.loadtxt(
             "output/FL_switch1.dat", unpack=True, skiprows=1
         )
