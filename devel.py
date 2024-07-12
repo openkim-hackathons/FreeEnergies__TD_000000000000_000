@@ -1,8 +1,8 @@
 import os
 import subprocess
-from typing import List, Dict
+from typing import List, Dict, Tuple
 from ase.build import bulk
-import matplotlib.pyplot as plt
+from ase import Atoms
 import numpy as np
 
 from kim_tools import CrystalGenomeTestDriver
@@ -16,7 +16,9 @@ class FreeEnergies(CrystalGenomeTestDriver):
         lammps_args: Dict[str],
         **kwargs,
     ) -> None:
-        """ """
+        """ "
+        # TODO: Docstring
+        """
         # Check arguments
         if not np.all(temperatures > 0.0):
             raise ValueError("Temperature has to be larger than zero.")
@@ -38,25 +40,27 @@ class FreeEnergies(CrystalGenomeTestDriver):
         )
 
         # RS computes the free energy at each pressure over a mesh of temperatures.
-        # free_energies_vs_??? = self._RS(pressures=pressures, temperature=np.min(temperatures))
-
-        # Run first NPT simulation at higher temperature.
+        free_energies_vs_pressure_vs_temperature = self._RS(
+            pressures=pressures, temperature=np.min(temperatures)
+        )
 
         # Print Result
         print("####################################")
         print("# Frenkel Ladd Free Energy Results #")
         print("####################################")
 
+        # TODO
         print()
 
         # I have to do this or KIM tries to save some coordinate file
         self.poscar = None
 
         # Write property
+        # TODO
 
     def _write_initial_structure(
         self, filename: str = "output/zero_temperature_crystal.lmp"
-    ):
+    ) -> Atoms:
 
         # Copy original atoms so that their information does not get lost when the new atoms are modified.
         atoms_new = self.atoms.copy()
@@ -75,7 +79,9 @@ class FreeEnergies(CrystalGenomeTestDriver):
 
         return atoms_new
 
-    def _preFL(self, pressures: List[float], temperature: float):
+    def _preFL(
+        self, pressures: List[float], temperature: float
+    ) -> Tuple[List[float], List[float]]:
 
         for pressure in pressures:
 
@@ -108,8 +114,8 @@ class FreeEnergies(CrystalGenomeTestDriver):
 
         return equilibrium_lattice_parameters, spring_constants
 
-    def _FL(self, pressures: List[float], temperature: float):
-        
+    def _FL(self, pressures: List[float], temperature: float) -> List[float]:
+
         for pressure in pressures:
 
             variables = {
@@ -146,6 +152,6 @@ if __name__ == "__main__":
     test_driver = FreeEnergies(model_name)
     test_driver(
         bulk("Ar", "fcc", a=5.248).repeat((3, 3, 3)),
-        temperature=10.0,
-        pressure=1.0,
+        temperatures=[10.0, 20.0, 30.0],
+        pressures=[1.0, 2.0, 3.0],
     )
