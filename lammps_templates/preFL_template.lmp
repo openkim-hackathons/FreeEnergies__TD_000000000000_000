@@ -1,45 +1,37 @@
-kim init {rpls_modelname} metal unit_conversion_mode
+kim init ${modelname} metal unit_conversion_mode
 
 # Set logfile
-log output/lammps_preFL.log
+log 
 
 # periodic boundary conditions along all three dimensions
 boundary p p p
 
-# Set neighbor skin
-variable neigh_skin equal 2.0*${{_u_distance}}
-neighbor ${{neigh_skin}} bin
+# Read crystal with equilibrium lattice parameter.
+read_data output/zero_temperature_crystal.lmp
 
-# create a supercell with cubic lattice (fcc, bcc, sc, or diamond)
-# using N*N*N conventional (orthogonal) unit cells
-variable latticeconst_converted equal {rpls_latticeconst}*${{_u_distance}}
-lattice       {rpls_latticetype}  ${{latticeconst_converted}}
-region        simbox  block 0 {rpls_N} 0 {rpls_N} 0 {rpls_N} units lattice
-create_box    1 simbox
-create_atoms  1 box
+# Convert box and all atomic positions to the correct units.
+change_box all x scale ${_u_distance} &
+               y scale ${_u_distance} &
+               z scale ${_u_distance} &
+               xy final $(xy*v__u_distance) &
+               xz final $(xz*v__u_distance) &
+               yz final $(yz*v__u_distance) &
+               remap
 
-variable mass_converted equal {rpls_mass}*${{_u_mass}}
+# Interatomic potential and neighbor settings
+kim interactions ${species}
 
-kim interactions {rpls_species}
-
-mass          1 ${{mass_converted}}
-
-# initial volume
-variable      l equal lx        # assign formula
-variable      lx0 equal ${{l}}    # evaluate initial value
-variable      lx0_metal equal ${{lx0}}/${{_u_distance}}
-variable      lx0_metal_times1000 equal ${{lx0_metal}}*1000
-
-print "Initial system volume: ${{lx0_metal}} Angstroms^3"
+# Initialize velocities.
+velocity all create $(v_temperature*v__u_temperature) ${temperature_seed}
 
 # set the time step to 0.001 picoseconds
-variable timestep_converted equal 0.001*${{_u_time}}
-timestep ${{timestep_converted}}
+variable timestep equal 0.001*${_u_time}
+timestep ${timestep}
 
-variable temp_converted equal {rpls_temp}*${{_u_temperature}}
-variable Tdamp_converted equal 0.01*${{_u_time}}
-variable press_converted equal {rpls_press}*${{_u_pressure}}
-variable Pdamp_converted equal 0.1*${{_u_time}}
+variable temp_converted equal {temp}*${_u_temperature}
+variable Tdamp_converted equal 0.01*${_u_time}
+variable press_converted equal {press}*${_u_pressure}
+variable Pdamp_converted equal 0.1*${_u_time}
 
 # create initial velocities consistent with the chosen temperature
 velocity      all create ${{temp_converted}} 17 mom yes rot yes
