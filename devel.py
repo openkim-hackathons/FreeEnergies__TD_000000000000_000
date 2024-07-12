@@ -59,7 +59,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         # TODO: Write them using kim utils helps for writting kim properties.
 
     def _write_initial_structure(
-        self, filename: str = "output/zero_temperature_crystal.lmp"
+        self, filename: str = "output/zero_temperature_crystal.dump"
     ) -> Atoms:
 
         # Copy original atoms so that their information does not get lost when the new atoms are modified.
@@ -108,7 +108,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
             )
             subprocess.run(command, check=True, shell=True)
 
-        # Analyse lammps outputs
+        # TODO: Analyse lammps outputs
         equilibrium_lattice_parameters = []
         spring_constants = []
 
@@ -141,7 +141,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
             )
             subprocess.run(command, check=True, shell=True)
 
-        # Analyse lammps outputs
+        # TODO: Analyse lammps outputs
         free_energies_vs_pressure_at_temperature = []
         return free_energies_vs_pressure_at_temperature
 
@@ -174,7 +174,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
             )
             subprocess.run(command, check=True, shell=True)
 
-        # Analyse lammps outputs
+        # TODO: Analyse lammps outputs
         free_energies_vs_pressure_vs_temperature = []
         return free_energies_vs_pressure_vs_temperature
 
