@@ -27,7 +27,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
             raise ValueError("Pressure has to be larger than zero.")
 
         # Write initial atomic structure to lammps dump file
-        self._write_initial_structure(size)
+        supercell = self._write_initial_structure(size)
 
         # preFL computes the lattice parameter and spring constants as functions of pressure at the starting temperature.
         # TODO: Does it work for anythign else than cubic structures? 
@@ -36,6 +36,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         )
 
         # TODO: Need to scale self.atoms by the equilibrium lattice constant, write it to a dump file and load it in FL
+        breakpoint()
 
         # FL computes the free energy as a function of pressure at the starting temperature (list of free energies vs P at T = starting temperature).
         free_energies_vs_pressure_at_temperature = self._FL(
@@ -52,7 +53,6 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         print("# Frenkel Ladd Free Energy Results #")
         print("####################################")
 
-        # TODO: Add units
         print(
             r"$G_{FL} =$" + f" {free_energies_vs_pressure_vs_temperature:.5f} (eV/atom)"
         )
@@ -62,6 +62,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
 
         # Write property
         # TODO: Write them using kim utils helps for writting kim properties.
+        self._add_key_to_current_property_instance("constant_pressure_free_energy", XX, "eV/atom")
 
     def _write_initial_structure(
         self,
@@ -79,14 +80,14 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         # These species are passed to kim interactions.
         # See https://wiki.fysik.dtu.dk/ase/_modules/ase/io/lammpsdata.html#write_lammps_data
         symbols = atoms_new.get_chemical_symbols()
-        species = sorted(set(symbols))
+        self.species = sorted(set(symbols))
 
         # Write lammps file.
         structure_file = os.path.join(
             os.path.dirname(os.path.realpath(__file__)), filename
         )
         atoms_new.write(structure_file, format="lammps-data", masses=True)
-    
+       
 
         return atoms_new
 
@@ -95,6 +96,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
     ) -> Tuple[List[float], List[float]]:
 
         for pressure in pressures:
+        
 
             variables = {
                 "modelname": self.kim_model_name,
@@ -105,7 +107,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
                 "pressure_damping": pdamp,
                 "timestep": timestep,
                 "number_sampling_timesteps": number_sampling_timesteps,
-                "species": " ".join(species),
+                "species": " ".join(self.species),
                 "average_position_filename": "output/average_position_equilibration.dump.*",
                 "average_cell_filename": "output/average_cell_equilibration.dump",
                 "write_restart_filename": "output/final_configuration_equilibration.restart",
@@ -142,7 +144,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
                 "pressure_damping": pdamp,
                 "timestep": timestep,
                 "number_sampling_timesteps": number_sampling_timesteps,
-                "species": " ".join(species),
+                "species": " ".join(self.species),
                 "average_position_filename": "output/average_position_equilibration.dump.*",
                 "average_cell_filename": "output/average_cell_equilibration.dump",
                 "write_restart_filename": "output/final_configuration_equilibration.restart",
