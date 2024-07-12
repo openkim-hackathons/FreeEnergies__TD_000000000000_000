@@ -1,45 +1,30 @@
 {
-  "property-id" "tag:staff@noreply.openkim.org,2024-03-11:property/heat_capacity"
+  "property-id" "tag:staff@noreply.openkim.org,2024-03-11:property/free_energy"
 
-  "property-title" "Heat capacity of crystal"
+  "property-title" "Free energy of crystal"
 
-  "property-description" "Heat capacity of a crystal calculated at constant pressure and constant volume.
-  This is computed from two separate simulations (NPT and NVT) using kim-convergence for convergence verification."
+  "property-description" "Gibbs free energy of a crystal at constant temperature and pressure using
+  Frenkel-Ladd Hamiltonian integration algorithm. Computed through one equilibrium NPT simulation ('preFL')
+  and one NONequilibrium NVT simulation ('FL'). Uses kim-convergence for convergence verification."
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; CHANGE THE SECTION BELOW WHEN CREATING NEW PROPERTIES
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-  "constant_volume_heat_capacity" {
+  "constant_pressure_free_energy" {
     "type"         "float"
     "has-unit"     true
     "extent"       []
     "required"     true
-    "description" "Constant volume phonon heat capacity of solid."
+    "description" "Gibbs free energy of crystal."
   }
 
-  "constant_volume_heat_capacity_err" {
+  "constant_pressure_free_energy_err" {
     "type"         "float"
     "has-unit"     true
     "extent"       []
     "required"     true
-    "description" "Error in constant volume phonon heat capacity of solid."
-  }
-
-  "constant_pressure_heat_capacity" {
-    "type"         "float"
-    "has-unit"     true
-    "extent"       []
-    "required"     true
-    "description" "Constant pressure phonon heat capacity of solid"
-  }
-
-    "constant_pressure_heat_capacity_err" {
-    "type"         "float"
-    "has-unit"     true
-    "extent"       []
-    "required"     true
-    "description" "Error in constant volume phonon heat capacity of solid."
+    "description" "Error in Gibbs free energy of crystal."
   }
 
   "volume" {
