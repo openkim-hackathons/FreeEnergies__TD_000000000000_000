@@ -112,7 +112,9 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         variables = {
             "modelname": self.kim_model_name,
             "temperature": self.temperature,
+            "temperature_damping": 0.1,
             "pressure": self.pressure,
+            "pressure_damping": 1.0,
             "species": " ".join(self.species),
             "output_filename": "output/lammps_preFL.dat",
             "write_restart_filename": "output/lammps_preFL_restart.restart",
