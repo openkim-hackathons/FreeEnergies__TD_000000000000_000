@@ -56,7 +56,7 @@ class FreeEnergies(CrystalGenomeTestDriver):
         self.poscar = None
 
         # Write property
-        # TODO
+        # TODO: Write them using kim utils helps for writting kim properties
 
     def _write_initial_structure(
         self, filename: str = "output/zero_temperature_crystal.lmp"
