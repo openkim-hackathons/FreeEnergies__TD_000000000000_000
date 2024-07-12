@@ -23,7 +23,7 @@ change_box all triclinic
 kim           interactions ${species}
 
 # set the time step to 0.001 picoseconds
-variable      timestep equal 0.001*${_u_time}
+variable      timestep equal ${timestep}*${_u_time}
 timestep      ${timestep}
 
 # Leaving pressure variables just in case we need to compute lattice parameters
