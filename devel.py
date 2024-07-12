@@ -50,7 +50,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         print("####################################")
 
         # TODO: Add units
-        print(rf"$G_{FL} =$ {free_energies_vs_pressure_vs_temperature:.5f} (units)")
+        print(r"$G_{FL} =$"+f"{free_energies_vs_pressure_vs_temperature:.5f} (units)")
 
         # I have to do this or KIM tries to save some coordinate file
         self.poscar = None
