@@ -37,7 +37,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
 
         # preFL computes the equilibrium lattice parameter and spring constants for a given temperature and pressure.
         # TODO: This should probably be replaced with its own test driver, which compute equilibrium lattice constants, and which can handles arbitrary crystal structures. Then we can get spring constants.
-        equilibrium_cell, self.spring_constants = self._preFL(
+        equilibrium_cell, self.spring_constants, self.volume = self._preFL(
             pressurs=pressure, temperature=temperature
         )
 
@@ -129,7 +129,10 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         xx, xy, xz, yx, yy, yz, zx, zy, zz, spring_constants = data
         equilibrium_cell = np.array([[xx, xy, xz], [yx, yy, yz], [zx, zy, zz]])
 
-        return equilibrium_cell, spring_constants
+        #TODO: read in volume 
+        volume = 0
+
+        return equilibrium_cell, spring_constants, volume
 
     def _FL(
         self,
@@ -175,22 +178,11 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
 
         natoms = len(self.atoms)
 
-        if x.latticetype == "fcc":
-            V = ((a**3) / 4) * natoms
-        if x.latticetype == "bcc":
-            V = ((a**3) / 2) * natoms
-        if x.latticetype == "sc":
-            V = (a**3) * natoms
-        if x.latticetype == "diamond":
-            V = ((a**3) / 8) * natoms
-        else:
-            pass  # handle unsupported crystal structures
-
         F_CM = (
             KB
             * self.temperature
             * np.log(
-                (natoms / V)
+                (natoms / self.volume)
                 * (2 * np.pi * KB * self.temperature / (natoms * self.mass * omega**2))
                 ** (3 / 2)
             )
