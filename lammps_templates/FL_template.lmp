@@ -4,58 +4,37 @@ kim init ${modelname} metal unit_conversion_mode
 boundary p p p
 
 # Read crystal equilibrium crystal.
-read_data output/equuilibrium_crystal.dump
+read_data output/equilibrium_crystal.dump
+
+change_box all triclinic
 
 # Interatomic potential and neighbor settings
 kim           interactions ${species}
 
 
-
-
-
-
-# Set neighbor skin
-variable neigh_skin equal 2.0*${{_u_distance}}
-neighbor ${{neigh_skin}} bin
-
-# create a supercell with cubic lattice (fcc, bcc, sc, or diamond)
-# using 10*10*10 conventional (orthogonal) unit cells
-variable latticeconst_converted equal {rpls_latticeconst}*${{_u_distance}}
-lattice       {rpls_latticetype}  ${{latticeconst_converted}}
-region        simbox  block 0 10 0 10 0 10 units lattice
-create_box    1 simbox
-create_atoms  1 box
-
-variable mass_converted equal {rpls_mass}*${{_u_mass}}
-
-
-mass          1 ${{mass_converted}}
-
 # set the time step to 0.001 picoseconds
-variable timestep_converted equal 0.001*${{_u_time}}
-timestep ${{timestep_converted}}
+variable timestep_converted equal ${timestep}*${_u_time}
+timestep ${timestep_converted}
 
-variable temp_converted equal 100*${{_u_temperature}}
-variable Tdamp_converted equal 0.01*${{_u_time}}
+variable temp_converted equal ${temperature}*${_u_temperature}
+variable Tdamp_converted equal ${temperature_damping}*${_u_time}
 
 # create initial velocities consistent with the chosen temperature
-velocity      all create ${{temp_converted}} 17 mom yes rot yes
+velocity      all create ${temp_converted} 17 mom yes rot yes
 
 # Frenkel-Ladd fix
-variable      t_switch equal 100000
-variable      t_equil equal 50000
 fix           FL all ti/spring {{rpls_springconst}} ${t_switch} ${t_equil} function 2
 
 # set NVT ensemble for all atoms
-fix           ensemble all nvt temp ${{temp_converted}} ${{temp_converted}} ${{Tdamp_converted}}
+fix           ensemble all nvt temp ${temp_converted} ${temp_converted} ${Tdamp_converted}
 compute       cl all temp/com
 fix_modify    ensemble temp cl
 
 # print data to logfile every 1000 timesteps
-variable      etotal_metal equal etotal/${{_u_energy}}
-variable      pe_metal equal pe/${{_u_energy}}
-variable      T_metal equal temp/${{_u_temperature}}
-variable      P_metal equal press/${{_u_pressure}}
+variable      etotal_metal equal etotal/${_u_energy}
+variable      pe_metal equal pe/${_u_energy}
+variable      T_metal equal temp/${_u_temperature}
+variable      P_metal equal press/${_u_pressure}
 
 thermo_style  custom step etotal v_etotal_metal pe v_pe_metal &
               temp v_T_metal press v_P_metal
@@ -67,7 +46,7 @@ run ${t_equil}
 # run switch 1
 fix           record all print 1 "$(pe/atoms) $(f_FL/atoms) $(f_FL[1])" &
               title "# PE_potential [eV/atom] | PE_FL [eV/atom] | lambda" &
-              screen no file {{rpls_FL_file1}}
+              screen no file ${switch1_output_file}
 run ${t_switch}
 unfix record
 
@@ -77,7 +56,7 @@ run ${t_equil}
 # run switch 2
 fix           record all print 1 "$(pe/atoms) $(f_FL/atoms) $(f_FL[1])" &
               title "# PE_potential [eV/atom] | PE_FL [eV/atom] | lambda" &
-              screen no file {{rpls_FL_file2}}
+              screen no file ${switch2_output_file}
 run ${t_switch}
 unfix record
 

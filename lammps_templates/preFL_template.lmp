@@ -59,7 +59,7 @@ variable      cvecy_metal equal cvecy/${_u_distance}
 variable      cvecz_metal equal cvecz/${_u_distance}
 
 # compute mean squared displacement
-compute       MSD all msd com yes
+compute       MSD all msd com yes average yes
 variable      msd_metal equal c_MSD[4]/${_u_distance}
 
 # Temperature may be off because of rigid bodies or SHAKE constraints. See https://docs.lammps.org/velocity.html

@@ -10,8 +10,8 @@ test_driver = FrenkelLaddFreeEnergies(model_name)
 test_driver(
     bulk("Ar", "fcc", a=5.248),
     size=(3, 3, 3),
-    temperatures=[10.0, 20.0, 30.0],
-    pressures=[1.0, 2.0, 3.0],
+    temperatures=100.0,
+    pressures=1.0,
 )
 ```
 

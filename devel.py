@@ -4,7 +4,7 @@ from typing import List, Dict, Tuple
 from ase.build import bulk
 from ase import Atoms
 import numpy as np
-
+from ase.data import atomic_masses, atomic_numbers
 from kim_tools import CrystalGenomeTestDriver
 import scipy.constants as sc
 
@@ -12,8 +12,6 @@ EV = sc.value("electron volt")
 MU = sc.value("atomic mass constant")
 HBAR = sc.value("Planck constant in eV/Hz") / (2 * np.pi)
 KB = sc.value("Boltzmann constant in eV/K")
-
-from ase.data import atomic_masses, atomic_numbers
 
 
 class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
@@ -25,9 +23,13 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         size: Tuple[int, int, int],
         **kwargs,
     ) -> None:
-        """"""
-        # TODO: Docstring
-        """"""
+        """Gibbs free energy of a crystal at constant temperature and pressure using Frenkel-Ladd Hamiltonian integration algorithm. Computed through one equilibrium NPT simulation ('preFL') and one NONequilibrium NVT simulation ('FL').
+
+        Args:
+            temperature (float): system temperature.
+            pressure (float): system pressure.
+            size (Tuple[int, int, int]): system size.
+        """
         # Check arguments
 
         self.temperature = temperature
@@ -57,7 +59,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         # FL computes the free energy at a given pressure and temperature.
         free_energy = self._FL()
 
-        # Print Result
+        # Print results
         print("####################################")
         print("# Frenkel Ladd Free Energy Results #")
         print("####################################")
@@ -114,10 +116,13 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         variables = {
             "modelname": self.kim_model_name,
             "temperature": self.temperature,
+            "temperature_damping": 0.1,
+            "temperature_seed": np.random.randint(low=100000, high=999999, dtype=int),
             "pressure": self.pressure,
+            "pressure_damping": 1.0,
             "species": " ".join(self.species),
             "output_filename": "output/lammps_preFL.dat",
-            "write_restart_filename": "output/lammps_preFL_restart.restart",
+            "write_restart_filename": "output/lammps_preFL.restart",
         }
         # TODO: Possibly run MPI version of Lammps if available.
         command = (
@@ -147,8 +152,14 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
             "temperature": self.temperature,
             "pressure": self.pressure,
             "species": " ".join(self.species),
+            "tswitch": 100000,
+            "temperature_damping": 0.01,
+            "t_equil": 50000,
+            "timestep": 0.001,  # ps
             "output_filename": "output/lammps_FL.dat",
-            "write_restart_filename": "output/lammps_FL_restart.restart",
+            "write_restart_filename": "output/lammps_FL.restart",
+            "switch1_output_file": "output/FL_switch1.dat",
+            "switch2_output_file": "output/FL_switch2.dat",
         }
         # TODO: Possibly run MPI version of Lammps if available.
         command = (
@@ -161,15 +172,17 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
 
         return self.compute_free_energy()
 
-    # TODO: Analyse lammps outputs
+    
     def compute_free_energy(self) -> float:
 
         # compute free energy via integration of FL path
 
-        Hi_f, Hf_f, lamb_f = np.loadtxt("output/...", unpack=True, skiprows=1)
+        Hi_f, Hf_f, lamb_f = np.loadtxt(
+            "output/FL_switch1.dat", unpack=True, skiprows=1
+        )
         W_forw = np.trapz(Hf_f - Hi_f, lamb_f)
 
-        Hf_b, Hi_b, lamb_b = np.loadtxt("output/...", unpack=True, skiprows=1)
+        Hf_b, Hi_b, lamb_b = np.loadtxt("output/FL_switch2.dat.", unpack=True, skiprows=1)
         W_back = np.trapz(Hf_b - Hi_b, 1 - lamb_b)
 
         Work = (W_forw - W_back) / 2
