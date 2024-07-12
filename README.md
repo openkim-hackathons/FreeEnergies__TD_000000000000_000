@@ -1,5 +1,7 @@
 # FreeEnergies__TD_000000000000_000
 
+Gibbs free energy of a crystal at constant temperature and pressure using Frenkel-Ladd Hamiltonian integration algorithm. Computed through one equilibrium NPT simulation ('preFL') and one NONequilibrium NVT simulation ('FL').
+  
 ## Some notes
 - Free energy calculations broken down into three steps: preFL, FL, and RS.
 - preFL computes the lattice parameter and spring constants as functions of pressure at the starting temperature (T = 100K).
