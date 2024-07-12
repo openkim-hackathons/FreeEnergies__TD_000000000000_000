@@ -109,8 +109,8 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
             subprocess.run(command, check=True, shell=True)
 
         # TODO: Analyse lammps outputs
-        equilibrium_lattice_parameters = []
-        spring_constants = []
+        data = np.loadtxt("output/lammps_preFL.log", unpack=True)
+        _, equilibrium_lattice_parameters, spring_constants = data[:,0],data[:,1],data[:,2]
 
         return equilibrium_lattice_parameters, spring_constants
 
