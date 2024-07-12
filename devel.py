@@ -8,7 +8,7 @@ import numpy as np
 from kim_tools import CrystalGenomeTestDriver
 
 
-class FreeEnergies(CrystalGenomeTestDriver):
+class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
     def _calculate(
         self,
         temperatures: List[float],
@@ -56,7 +56,7 @@ class FreeEnergies(CrystalGenomeTestDriver):
         self.poscar = None
 
         # Write property
-        # TODO: Write them using kim utils helps for writting kim properties
+        # TODO: Write them using kim utils helps for writting kim properties.
 
     def _write_initial_structure(
         self, filename: str = "output/zero_temperature_crystal.lmp"
@@ -147,6 +147,7 @@ class FreeEnergies(CrystalGenomeTestDriver):
 
     def _RS(
         self,
+        pressures: List[float],
     ):
         for pressure in pressures:
 
@@ -181,7 +182,7 @@ class FreeEnergies(CrystalGenomeTestDriver):
 if __name__ == "__main__":
     model_name = "LJ_Shifted_Bernardes_1958MedCutoff_Ar__MO_126566794224_004"
     subprocess.run(f"kimitems install {model_name}", shell=True, check=True)
-    test_driver = FreeEnergies(model_name)
+    test_driver = FrenkelLaddFreeEnergies(model_name)
     test_driver(
         bulk("Ar", "fcc", a=5.248).repeat((3, 3, 3)),
         temperatures=[10.0, 20.0, 30.0],
