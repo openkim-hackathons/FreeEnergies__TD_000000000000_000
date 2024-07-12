@@ -60,8 +60,5 @@ fix           record all print 1 "$(pe/atoms) $(f_FL/atoms) $(f_FL[1])" &
 run ${t_switch}
 unfix record
 
-# run equil 3
-run ${t_equil}
-
 print "LAMMPS calculation completed"
 quit 0
