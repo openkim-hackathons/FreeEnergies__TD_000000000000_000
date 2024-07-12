@@ -1,7 +1,7 @@
 kim init {rpls_modelname} metal unit_conversion_mode
 
 # Set logfile
-log output/lmp_preFL_P{rpls_press}.log
+log output/lammps_preFL.log
 
 # periodic boundary conditions along all three dimensions
 boundary p p p
@@ -11,10 +11,10 @@ variable neigh_skin equal 2.0*${{_u_distance}}
 neighbor ${{neigh_skin}} bin
 
 # create a supercell with cubic lattice (fcc, bcc, sc, or diamond)
-# using 10*10*10 conventional (orthogonal) unit cells
+# using N*N*N conventional (orthogonal) unit cells
 variable latticeconst_converted equal {rpls_latticeconst}*${{_u_distance}}
 lattice       {rpls_latticetype}  ${{latticeconst_converted}}
-region        simbox  block 0 10 0 10 0 10 units lattice
+region        simbox  block 0 {rpls_N} 0 {rpls_N} 0 {rpls_N} units lattice
 create_box    1 simbox
 create_atoms  1 box
 
@@ -36,7 +36,7 @@ print "Initial system volume: ${{lx0_metal}} Angstroms^3"
 variable timestep_converted equal 0.001*${{_u_time}}
 timestep ${{timestep_converted}}
 
-variable temp_converted equal 100*${{_u_temperature}}
+variable temp_converted equal {rpls_temp}*${{_u_temperature}}
 variable Tdamp_converted equal 0.01*${{_u_time}}
 variable press_converted equal {rpls_press}*${{_u_pressure}}
 variable Pdamp_converted equal 0.1*${{_u_time}}
@@ -55,12 +55,13 @@ variable      pe_metal equal pe/${{_u_energy}}
 variable      T_metal equal temp/${{_u_temperature}}
 variable      P_metal equal press/${{_u_pressure}}
 variable      lx_metal equal lx/${{_u_distance}}
+variable      kB equal 8.617333262e-5 # eV/K
 compute       c1 all msd com yes
 variable      msd_metal equal c_c1[4]/${{_u_distance}}
-fix           avgmyTemp  all ave/time 5 20 100 v_T_metal  ave running start 1000
-fix           avgmyPress all ave/time 5 20 100 v_P_metal  ave running start 1000
-fix           avgmylx    all ave/time 5 20 100 v_lx_metal  ave running start 1000
-fix           avgmymsd   all ave/time 5 20 100 v_msd_metal  ave running start 1000
+fix           avgmyTemp  all ave/time 5 20 100 v_T_metal ave running start 1000
+fix           avgmyPress all ave/time 5 20 100 v_P_metal ave running start 1000
+fix           avgmylx    all ave/time 5 20 100 v_lx_metal ave running start 1000
+fix           avgmymsd   all ave/time 5 20 100 v_msd_metal ave running start 1000
 
 # extract fix quantities into variables so they can be used in if-else logic later.
 variable      T equal f_avgmyTemp
@@ -68,9 +69,12 @@ variable      P equal f_avgmyPress
 variable      LX equal f_avgmylx
 variable      MSD equal f_avgmymsd
 
+variable      latt_param equal $(f_avgmylx/{rpls_N})
+variable      spring_constant equal $(3*kB*f_avgmyTemp/(f_avgmymsd)^2)
+
 # set error bounds for temperature and pressure in original metal units (K and bar)
-variable      T_low equal  "100 - 1.0"
-variable      T_up  equal  "100 + 1.0"
+variable      T_low equal  "{rpls_temp} - 1.0"
+variable      T_up  equal  "{rpls_temp} + 1.0"
 variable      P_low equal  "{rpls_press} - 5.0"
 variable      P_up  equal  "{rpls_press} + 5.0"
 
@@ -94,10 +98,8 @@ label break
 # Write final averaged volume to file if temperature and volume have converged; otherwise write a
 # flag to indicate non-convergence.
 variable      myStep equal step
-if "${{myStep}} < 2000000" then "print '${{LX}}'  file {rpls_latt_file} &
-                                 print '${{MSD}}'  file {rpls_msd_file}"  &
-else  "print 'not_converged'  file {rpls_latt_file} &
-       print 'not_converged'  file {rpls_msd_file}"
+if "${{myStep}} < 2000000" then "print '${{LX}} ${{MSD}}' file {rpls_output_file}"
+else  "print 'not_converged' file {rpls_output_file}"
 
 print "LAMMPS calculation completed"
 quit 0

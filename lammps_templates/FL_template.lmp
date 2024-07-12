@@ -1,7 +1,7 @@
 kim init {rpls_modelname} metal unit_conversion_mode
 
 # Set logfile
-log output/lmp_FL_P{rpls_press}.log
+log output/lammps_FL.log
 
 # periodic boundary conditions along all three dimensions
 boundary p p p
@@ -59,7 +59,7 @@ run ${t_equil}
 
 # run switch 1
 fix           record all print 1 "$(pe/atoms) $(f_FL/atoms) $(f_FL[1])" &
-              title "# pe_potential [eV/atom] | pe_FL [eV/atom] | lambda" &
+              title "# PE_potential [eV/atom] | PE_FL [eV/atom] | lambda" &
               screen no file {{rpls_FL_file1}}
 run ${t_switch}
 unfix record
@@ -69,7 +69,7 @@ run ${t_equil}
 
 # run switch 2
 fix           record all print 1 "$(pe/atoms) $(f_FL/atoms) $(f_FL[1])" &
-              title "# pe_potential [eV/atom] | pe_FL [eV/atom] | lambda" &
+              title "# PE_potential [eV/atom] | PE_FL [eV/atom] | lambda" &
               screen no file {{rpls_FL_file2}}
 run ${t_switch}
 unfix record
