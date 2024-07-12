@@ -27,33 +27,18 @@ class FreeEnergies(CrystalGenomeTestDriver):
         # Write initial atomic structure to lammps dump file
         self._write_initial_structure()
 
-        # preFL computes the lattice parameter and spring constants as functions of pressure at the starting temperature (T = 100K).
-        
-        # TODO: If we notice that this takes too long, maybe use an initial temperature ramp.
-        variables = {
-            "modelname": self.kim_model_name,
-            "temperature": temperature,
-            "temperature_seed": seed,
-            "temperature_damping": tdamp,
-            "pressure": pressure,
-            "pressure_damping": pdamp,
-            "timestep": timestep,
-            "number_sampling_timesteps": number_sampling_timesteps,
-            "species": " ".join(species),
-            "average_position_filename": "output/average_position_equilibration.dump.*",
-            "average_cell_filename": "output/average_cell_equilibration.dump",
-            "write_restart_filename": "output/final_configuration_equilibration.restart",
-        }
-        # TODO: Possibly run MPI version of Lammps if available.
-        command = (
-            "lammps "
-            + " ".join(f"-var {key} '{item}'" for key, item in variables.items())
-            + " -log output/lammps_equilibration.log"
-            + " -in npt_equilibration.lammps"
+        # preFL computes the lattice parameter and spring constants as functions of pressure at the starting temperature.
+        equilibrium_lattice_parameters, spring_constants = self._preFL(
+            pressures=pressures, temperature=np.min(temperatures)
         )
-        subprocess.run(command, check=True, shell=True)
 
-        # Analyse equilibration run.
+        # FL computes the free energy as a function of pressure at the starting temperature (list of free energies vs P at T = starting temperature).
+        free_energies_vs_pressure_at_temperature = self._FL(
+            pressures=pressures, temperature=np.min(temperatures)
+        )
+
+        # RS computes the free energy at each pressure over a mesh of temperatures.
+        # free_energies_vs_??? = self._RS(pressures=pressures, temperature=np.min(temperatures))
 
         # Run first NPT simulation at higher temperature.
 
@@ -89,6 +74,70 @@ class FreeEnergies(CrystalGenomeTestDriver):
         atoms_new.write(structure_file, format="lammps-data", masses=True)
 
         return atoms_new
+
+    def _preFL(self, pressures: List[float], temperature: float):
+
+        for pressure in pressures:
+
+            variables = {
+                "modelname": self.kim_model_name,
+                "temperature": temperature,
+                "temperature_seed": seed,
+                "temperature_damping": tdamp,
+                "pressure": pressure,
+                "pressure_damping": pdamp,
+                "timestep": timestep,
+                "number_sampling_timesteps": number_sampling_timesteps,
+                "species": " ".join(species),
+                "average_position_filename": "output/average_position_equilibration.dump.*",
+                "average_cell_filename": "output/average_cell_equilibration.dump",
+                "write_restart_filename": "output/final_configuration_equilibration.restart",
+            }
+            # TODO: Possibly run MPI version of Lammps if available.
+            command = (
+                "lammps "
+                + " ".join(f"-var {key} '{item}'" for key, item in variables.items())
+                + " -log output/lammps_preFL.log"
+                + " -in preFL_template.lmp"
+            )
+            subprocess.run(command, check=True, shell=True)
+
+        # Analyse lammps outputs
+        equilibrium_lattice_parameters = []
+        spring_constants = []
+
+        return equilibrium_lattice_parameters, spring_constants
+
+    def _FL(self, pressures: List[float], temperature: float):
+        
+        for pressure in pressures:
+
+            variables = {
+                "modelname": self.kim_model_name,
+                "temperature": temperature,
+                "temperature_seed": seed,
+                "temperature_damping": tdamp,
+                "pressure": pressure,
+                "pressure_damping": pdamp,
+                "timestep": timestep,
+                "number_sampling_timesteps": number_sampling_timesteps,
+                "species": " ".join(species),
+                "average_position_filename": "output/average_position_equilibration.dump.*",
+                "average_cell_filename": "output/average_cell_equilibration.dump",
+                "write_restart_filename": "output/final_configuration_equilibration.restart",
+            }
+            # TODO: Possibly run MPI version of Lammps if available.
+            command = (
+                "lammps "
+                + " ".join(f"-var {key} '{item}'" for key, item in variables.items())
+                + " -log output/lammps_FL.log"
+                + " -in FL_template.lmp"
+            )
+            subprocess.run(command, check=True, shell=True)
+
+        # Analyse lammps outputs
+        free_energies_vs_pressure_at_temperature = []
+        return free_energies_vs_pressure_at_temperature
 
 
 if __name__ == "__main__":
