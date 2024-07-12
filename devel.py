@@ -30,6 +30,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         self._write_initial_structure(size)
 
         # preFL computes the lattice parameter and spring constants as functions of pressure at the starting temperature.
+        # TODO: Does it work for anythign else than cubic structures? 
         equilibrium_lattice_parameters, spring_constants = self._preFL(
             pressures=pressures, temperature=np.min(temperatures)
         )
