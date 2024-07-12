@@ -37,7 +37,8 @@ fix           ensemble all nvt temp ${temp_converted} ${temp_converted} ${Tdamp_
 #fix          ensemble all npt temp ${temp_converted} ${temp_converted} ${Tdamp_converted} tri ${press_converted} ${press_converted} ${Pdamp_converted}
 
 # Initialize measurement of box vectors
-thermo_style custom avecx avecy avecz bvecx bvecy bvecz cvecx cvecy cvecz temp press vol etotal
+thermo_style custom avecx avecy avecz bvecx bvecy bvecz cvecx cvecy cvecz temp press vol etotal step
+thermo_modify triclinic/general yes
 thermo 1000
 
 # compute box information
@@ -54,20 +55,23 @@ variable      cvecy_metal equal cvecy/${_u_distance}
 variable      cvecz_metal equal cvecz/${_u_distance}
 
 # compute mean squared displacement
-compute       MSD all msd com yes
+compute       MSD all msd com yes average yes
 variable      msd_metal equal c_MSD[4]/${_u_distance}
 
 # Temperature may be off because of rigid bodies or SHAKE constraints. See https://docs.lammps.org/velocity.html
 run 0
-velocity all scale $(v_temperature*v__u_temperature)
+velocity all scale $(${temperature}*${_u_temperature})
 
 # Set up convergence check with kim-convergence.
 # Alternative is to set a safe general equilibration time
 # More important for expensive potentials
-python run_length_control input 6 SELF 1 variable msd_metal format pissss file run_length_control_preFL.py
+#python run_length_control input 6 SELF 1 variable msd_metal format pissss file run_length_control_preFL.py
 
 # Run until converged.
-python run_length_control invoke
+#python run_length_control invoke
+
+# Equilibration
+run 50000
 
 # compute averages of above variables
 fix           AVG all ave/time 100 500 50000 v_avecx_metal v_avecy_metal v_avecz_metal &
@@ -79,9 +83,9 @@ fix           AVG all ave/time 100 500 50000 v_avecx_metal v_avecy_metal v_avecz
 run 50000
 
 # compute spring constant
-variable      kB equal 8.617333262e-5*(v__u_energy/v__u_temperature) # eV/K unless converted
+variable      kB equal 8.617333262e-5*(${_u_energy}/${_u_temperature}) # eV/K unless converted
 variable      MSD equal f_AVG[10]
-variable      spring_constant equal $(3*kB*${temp_converted}/(MSD)^2)
+variable      spring_constant equal $(3*kB*${temp_converted}/(${MSD})^2)
 
 # Write final averages and spring constant
 print "# xx | xy | xz | yx | yy | yz | zx | zy | zz | spring constant [eV/Ang^2]" file ${output_filename}
@@ -90,7 +94,7 @@ print "${f_AVG[1]} f_AVG[2] f_AVG[3] f_AVG[4] f_AVG[5] f_AVG[6] f_AVG[7] f_AVG[8
 # Reset.
 unfix ensemble
 unfix AVG
-unfix cr_fix  # From run_length_control.py
+#unfix cr_fix  # From run_length_control.py
 reset_timestep 0
 
 # Write the initial starting file for a true simulation.
