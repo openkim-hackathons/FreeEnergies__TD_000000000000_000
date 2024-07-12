@@ -13,6 +13,8 @@ MU = sc.value("atomic mass constant")
 HBAR = sc.value("Planck constant in eV/Hz") / (2 * np.pi)
 KB = sc.value("Boltzmann constant in eV/K")
 
+from ase.data import atomic_masses, atomic_numbers
+
 
 class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
 
@@ -23,9 +25,9 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         size: Tuple[int, int, int],
         **kwargs,
     ) -> None:
-        """
+        """"""
         # TODO: Docstring
-        """
+        """"""
         # Check arguments
 
         self.temperature = temperature
@@ -96,6 +98,10 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         # See https://wiki.fysik.dtu.dk/ase/_modules/ase/io/lammpsdata.html#write_lammps_data
         symbols = atoms_new.get_chemical_symbols()
         self.species = sorted(set(symbols))
+        self.mass = [
+            atomic_masses[atomic_numbers[element_symbol]]
+            for element_symbol in self.species
+        ]
 
         # Write lammps file.
         structure_file = os.path.join(
@@ -129,7 +135,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         xx, xy, xz, yx, yy, yz, zx, zy, zz, spring_constants = data
         equilibrium_cell = np.array([[xx, xy, xz], [yx, yy, yz], [zx, zy, zz]])
 
-        #TODO: read in volume 
+        # TODO: read in volume
         volume = 0
 
         return equilibrium_cell, spring_constants, volume
@@ -170,7 +176,9 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
 
         Work = (W_forw - W_back) / 2
 
-        omega = np.sqrt(self.spring_constants * EV / (self.mass * MU)) * 1.0e10  # [rad/s].
+        omega = (
+            np.sqrt(self.spring_constants * EV / (self.mass * MU)) * 1.0e10
+        )  # [rad/s].
 
         F_harm = (
             3 * KB * self.temperature * np.log(HBAR * omega / (KB * self.temperature))
