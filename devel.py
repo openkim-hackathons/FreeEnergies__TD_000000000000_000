@@ -62,6 +62,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
 
         # Write property
         # TODO: Write them using kim utils helps for writting kim properties.
+        self._add_key_to_current_property_instance("constant_pressure_free_energy", XX, "eV/atom")
 
     def _write_initial_structure(
         self,
@@ -79,7 +80,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         # These species are passed to kim interactions.
         # See https://wiki.fysik.dtu.dk/ase/_modules/ase/io/lammpsdata.html#write_lammps_data
         symbols = atoms_new.get_chemical_symbols()
-        species = sorted(set(symbols))
+        self.species = sorted(set(symbols))
 
         # Write lammps file.
         structure_file = os.path.join(
@@ -95,6 +96,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
     ) -> Tuple[List[float], List[float]]:
 
         for pressure in pressures:
+        
 
             variables = {
                 "modelname": self.kim_model_name,
@@ -105,7 +107,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
                 "pressure_damping": pdamp,
                 "timestep": timestep,
                 "number_sampling_timesteps": number_sampling_timesteps,
-                "species": " ".join(species),
+                "species": " ".join(self.species),
                 "average_position_filename": "output/average_position_equilibration.dump.*",
                 "average_cell_filename": "output/average_cell_equilibration.dump",
                 "write_restart_filename": "output/final_configuration_equilibration.restart",
@@ -142,7 +144,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
                 "pressure_damping": pdamp,
                 "timestep": timestep,
                 "number_sampling_timesteps": number_sampling_timesteps,
-                "species": " ".join(species),
+                "species": " ".join(self.species),
                 "average_position_filename": "output/average_position_equilibration.dump.*",
                 "average_cell_filename": "output/average_cell_equilibration.dump",
                 "write_restart_filename": "output/final_configuration_equilibration.restart",
