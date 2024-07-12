@@ -11,7 +11,7 @@
 ; CHANGE THE SECTION BELOW WHEN CREATING NEW PROPERTIES
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-  "constant_pressure_free_energy" {
+  "free_energy" {
     "type"         "float"
     "has-unit"     true
     "extent"       []
@@ -19,7 +19,7 @@
     "description" "Gibbs free energy of crystal."
   }
 
-  "constant_pressure_free_energy_err" {
+  "free_energy_err" {
     "type"         "float"
     "has-unit"     true
     "extent"       []
