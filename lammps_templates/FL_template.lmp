@@ -16,25 +16,25 @@ kim           interactions ${species}
 variable timestep_converted equal ${timestep}*${_u_time}
 timestep ${timestep_converted}
 
-variable temp_converted equal ${temperature}*${{_u_temperature}}
-variable Tdamp_converted equal ${temperature_damping}*${{_u_time}}
+variable temp_converted equal ${temperature}*${_u_temperature}
+variable Tdamp_converted equal ${temperature_damping}*${_u_time}
 
 # create initial velocities consistent with the chosen temperature
-velocity      all create ${{temp_converted}} 17 mom yes rot yes
+velocity      all create ${temp_converted} 17 mom yes rot yes
 
 # Frenkel-Ladd fix
 fix           FL all ti/spring {{rpls_springconst}} ${t_switch} ${t_equil} function 2
 
 # set NVT ensemble for all atoms
-fix           ensemble all nvt temp ${{temp_converted}} ${{temp_converted}} ${{Tdamp_converted}}
+fix           ensemble all nvt temp ${temp_converted} ${temp_converted} ${Tdamp_converted}
 compute       cl all temp/com
 fix_modify    ensemble temp cl
 
 # print data to logfile every 1000 timesteps
-variable      etotal_metal equal etotal/${{_u_energy}}
-variable      pe_metal equal pe/${{_u_energy}}
-variable      T_metal equal temp/${{_u_temperature}}
-variable      P_metal equal press/${{_u_pressure}}
+variable      etotal_metal equal etotal/${_u_energy}
+variable      pe_metal equal pe/${_u_energy}
+variable      T_metal equal temp/${_u_temperature}
+variable      P_metal equal press/${_u_pressure}
 
 thermo_style  custom step etotal v_etotal_metal pe v_pe_metal &
               temp v_T_metal press v_P_metal
@@ -46,7 +46,7 @@ run ${t_equil}
 # run switch 1
 fix           record all print 1 "$(pe/atoms) $(f_FL/atoms) $(f_FL[1])" &
               title "# PE_potential [eV/atom] | PE_FL [eV/atom] | lambda" &
-              screen no file {{rpls_FL_file1}}
+              screen no file {rpls_FL_file1}
 run ${t_switch}
 unfix record
 
@@ -56,7 +56,7 @@ run ${t_equil}
 # run switch 2
 fix           record all print 1 "$(pe/atoms) $(f_FL/atoms) $(f_FL[1])" &
               title "# PE_potential [eV/atom] | PE_FL [eV/atom] | lambda" &
-              screen no file {{rpls_FL_file2}}
+              screen no file {rpls_FL_file2}
 run ${t_switch}
 unfix record
 
