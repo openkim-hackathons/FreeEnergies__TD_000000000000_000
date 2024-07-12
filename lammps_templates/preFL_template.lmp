@@ -1,4 +1,4 @@
-kim init {rpls_modelname} metal unit_conversion_mode
+kim init ${modelname} metal unit_conversion_mode
 
 # Set logfile
 log output/lammps_preFL.log

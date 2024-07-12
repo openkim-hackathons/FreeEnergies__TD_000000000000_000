@@ -27,7 +27,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
             raise ValueError("Pressure has to be larger than zero.")
 
         # Write initial atomic structure to lammps dump file
-        self._write_initial_structure(size)
+        supercell = self._write_initial_structure(size)
 
         # preFL computes the lattice parameter and spring constants as functions of pressure at the starting temperature.
         # TODO: Does it work for anythign else than cubic structures? 
@@ -36,6 +36,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         )
 
         # TODO: Need to scale self.atoms by the equilibrium lattice constant, write it to a dump file and load it in FL
+        breakpoint()
 
         # FL computes the free energy as a function of pressure at the starting temperature (list of free energies vs P at T = starting temperature).
         free_energies_vs_pressure_at_temperature = self._FL(
@@ -52,7 +53,6 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         print("# Frenkel Ladd Free Energy Results #")
         print("####################################")
 
-        # TODO: Add units
         print(
             r"$G_{FL} =$" + f" {free_energies_vs_pressure_vs_temperature:.5f} (eV/atom)"
         )
@@ -86,7 +86,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
             os.path.dirname(os.path.realpath(__file__)), filename
         )
         atoms_new.write(structure_file, format="lammps-data", masses=True)
-    
+       
 
         return atoms_new
 
