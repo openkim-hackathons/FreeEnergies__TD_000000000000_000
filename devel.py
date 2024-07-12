@@ -13,10 +13,10 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         self,
         temperatures: List[float],
         pressures: List[float],
-
+        size: Tuple[int, int, int],
         **kwargs,
     ) -> None:
-        """ 
+        """
         # TODO: Docstring
         """
         # Check arguments
@@ -27,7 +27,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
             raise ValueError("Pressure has to be larger than zero.")
 
         # Write initial atomic structure to lammps dump file
-        self._write_initial_structure()
+        self._write_initial_structure(size)
 
         # preFL computes the lattice parameter and spring constants as functions of pressure at the starting temperature.
         equilibrium_lattice_parameters, spring_constants = self._preFL(
@@ -52,7 +52,9 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         print("####################################")
 
         # TODO: Add units
-        print(r"$G_{FL} =$"+f" {free_energies_vs_pressure_vs_temperature:.5f} (eV/atom)")
+        print(
+            r"$G_{FL} =$" + f" {free_energies_vs_pressure_vs_temperature:.5f} (eV/atom)"
+        )
 
         # I have to do this or KIM tries to save some coordinate file
         self.poscar = None
@@ -61,11 +63,16 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         # TODO: Write them using kim utils helps for writting kim properties.
 
     def _write_initial_structure(
-        self, filename: str = "output/zero_temperature_crystal.dump"
+        self,
+        size: Tuple[int, int, int],
+        filename: str = "output/zero_temperature_crystal.dump",
     ) -> Atoms:
 
         # Copy original atoms so that their information does not get lost when the new atoms are modified.
         atoms_new = self.atoms.copy()
+
+        # Build supercell
+        atoms_new = atoms_new.repeat(size)
 
         # This is how ASE obtains the species that are written to the initial configuration.
         # These species are passed to kim interactions.
@@ -78,6 +85,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
             os.path.dirname(os.path.realpath(__file__)), filename
         )
         atoms_new.write(structure_file, format="lammps-data", masses=True)
+        breakpoint()
 
         return atoms_new
 
@@ -112,7 +120,11 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
 
         # Analyse lammps outputs
         data = np.loadtxt("output/lammps_preFL.log", unpack=True)
-        _, equilibrium_lattice_parameters, spring_constants = data[:,0],data[:,1],data[:,2]
+        _, equilibrium_lattice_parameters, spring_constants = (
+            data[:, 0],
+            data[:, 1],
+            data[:, 2],
+        )
 
         return equilibrium_lattice_parameters, spring_constants
 
@@ -186,7 +198,8 @@ if __name__ == "__main__":
     subprocess.run(f"kimitems install {model_name}", shell=True, check=True)
     test_driver = FrenkelLaddFreeEnergies(model_name)
     test_driver(
-        bulk("Ar", "fcc", a=5.248).repeat((3, 3, 3)),
+        bulk("Ar", "fcc", a=5.248),
+        size=(3, 3, 3),
         temperatures=[10.0, 20.0, 30.0],
         pressures=[1.0, 2.0, 3.0],
     )
