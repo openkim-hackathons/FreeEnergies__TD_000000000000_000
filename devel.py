@@ -16,7 +16,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         lammps_args: Dict[str],
         **kwargs,
     ) -> None:
-        """ "
+        """ 
         # TODO: Docstring
         """
         # Check arguments
@@ -49,8 +49,8 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         print("# Frenkel Ladd Free Energy Results #")
         print("####################################")
 
-        # TODO: Nicer formatting, pandas dataframe?
-        print(free_energies_vs_pressure_vs_temperature)
+        # TODO: Add units
+        print(rf"$G_{FL} =$ {free_energies_vs_pressure_vs_temperature:.5f} (units)")
 
         # I have to do this or KIM tries to save some coordinate file
         self.poscar = None
