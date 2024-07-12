@@ -1,0 +1,107 @@
+kim init {rpls_modelname} metal unit_conversion_mode
+
+# Set logfile
+log output/lmp_preFL_P{rpls_press}.log
+
+# periodic boundary conditions along all three dimensions
+boundary p p p
+
+# Set neighbor skin
+variable neigh_skin equal 2.0*${{_u_distance}}
+neighbor ${{neigh_skin}} bin
+
+# create a supercell with cubic lattice (fcc, bcc, sc, or diamond)
+# using 10*10*10 conventional (orthogonal) unit cells
+variable latticeconst_converted equal {rpls_latticeconst}*${{_u_distance}}
+lattice       {rpls_latticetype}  ${{latticeconst_converted}}
+region        simbox  block 0 10 0 10 0 10 units lattice
+create_box    1 simbox
+create_atoms  1 box
+
+variable mass_converted equal {rpls_mass}*${{_u_mass}}
+
+kim interactions {rpls_species}
+
+mass          1 ${{mass_converted}}
+
+# initial volume
+variable      l equal lx        # assign formula
+variable      lx0 equal ${{l}}    # evaluate initial value
+variable      lx0_metal equal ${{lx0}}/${{_u_distance}}
+variable      lx0_metal_times1000 equal ${{lx0_metal}}*1000
+
+print "Initial system volume: ${{lx0_metal}} Angstroms^3"
+
+# set the time step to 0.001 picoseconds
+variable timestep_converted equal 0.001*${{_u_time}}
+timestep ${{timestep_converted}}
+
+variable temp_converted equal 100*${{_u_temperature}}
+variable Tdamp_converted equal 0.01*${{_u_time}}
+variable press_converted equal {rpls_press}*${{_u_pressure}}
+variable Pdamp_converted equal 0.1*${{_u_time}}
+
+# create initial velocities consistent with the chosen temperature
+velocity      all create ${{temp_converted}} 17 mom yes rot yes
+
+# set NPT ensemble for all atoms
+fix           ensemble all npt temp ${{temp_converted}} ${{temp_converted}} ${{Tdamp_converted}} &
+              iso ${{press_converted}} ${{press_converted}} ${{Pdamp_converted}}
+
+# compute the time averages of pressure, temperature, and volume, respectively
+# ignore the first 5000 timesteps
+variable      etotal_metal equal etotal/${{_u_energy}}
+variable      pe_metal equal pe/${{_u_energy}}
+variable      T_metal equal temp/${{_u_temperature}}
+variable      P_metal equal press/${{_u_pressure}}
+variable      lx_metal equal lx/${{_u_distance}}
+compute       c1 all msd com yes
+variable      msd_metal equal c_c1[4]/${{_u_distance}}
+fix           avgmyTemp  all ave/time 5 20 100 v_T_metal  ave running start 1000
+fix           avgmyPress all ave/time 5 20 100 v_P_metal  ave running start 1000
+fix           avgmylx    all ave/time 5 20 100 v_lx_metal  ave running start 1000
+fix           avgmymsd   all ave/time 5 20 100 v_msd_metal  ave running start 1000
+
+# extract fix quantities into variables so they can be used in if-else logic later.
+variable      T equal f_avgmyTemp
+variable      P equal f_avgmyPress
+variable      LX equal f_avgmylx
+variable      MSD equal f_avgmymsd
+
+# set error bounds for temperature and pressure in original metal units (K and bar)
+variable      T_low equal  "100 - 1.0"
+variable      T_up  equal  "100 + 1.0"
+variable      P_low equal  "{rpls_press} - 5.0"
+variable      P_up  equal  "{rpls_press} + 5.0"
+
+# print to logfile every 1000 timesteps
+thermo_style  custom step etotal v_etotal_metal pe v_pe_metal &
+              temp v_T_metal lx v_lx_metal press v_P_metal c_c1[4] v_msd_metal
+thermo        1000
+
+# Run a simulation for at most 2000*1000 timesteps. At each 1000th time step, check
+# whether the temperature and pressure have converged. If yes, break.
+label top
+variable a loop 2000
+run 1000
+if "${{lx_metal}}>${{lx0_metal_times1000}}" then "jump SELF unstable"
+if "${{T}}>${{T_low}} && ${{T}}<${{T_up}} && ${{P}}>${{P_low}} && ${{P}}<${{P_up}}" then "jump SELF break"
+print "flag: Temp = ${{T}}, Press = ${{P}}"
+next a
+jump SELF top
+label break
+
+# Write final averaged volume to file if temperature and volume have converged; otherwise write a
+# flag to indicate non-convergence.
+variable      myStep equal step
+if "${{myStep}} < 2000000" then "print '${{LX}}'  file {rpls_latt_file} &
+                                 print '${{MSD}}'  file {rpls_msd_file}"  &
+else  "print 'not_converged'  file {rpls_latt_file} &
+       print 'not_converged'  file {rpls_msd_file}"
+
+print "LAMMPS calculation completed"
+quit 0
+
+# unstable
+label unstable
+print "ERROR: System volume ${{lx_metal}} A has become larger than ${{lx0_metal_times1000}} A. Aborting calculation."

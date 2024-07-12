@@ -12,7 +12,7 @@ import numpy.typing as npt
 from kim_test_utils.test_driver import CrystalGenomeTestDriver
 
 
-class HeatCapacityPhonon(CrystalGenomeTestDriver):
+class FreeEnergies(CrystalGenomeTestDriver):
     def _calculate(self, temperature: float, pressure: float, temperature_offset_fraction: float,
                    timestep: float, number_sampling_timesteps: int, repeat: Tuple[int, int, int] = (3, 3, 3),
                    seed: Optional[int] = None, loose_triclinic_and_monoclinic=False, **kwargs) -> None:
@@ -553,6 +553,6 @@ class HeatCapacityPhonon(CrystalGenomeTestDriver):
 if __name__ == "__main__":
     model_name = "LJ_Shifted_Bernardes_1958MedCutoff_Ar__MO_126566794224_004"
     subprocess.run(f"kimitems install {model_name}", shell=True, check=True)
-    test_driver = HeatCapacityPhonon(model_name)
+    test_driver = FreeEnergies(model_name)
     test_driver(bulk("Ar", "fcc", a=5.248), temperature=10.0, pressure=1.0, temperature_offset_fraction=0.01,
                 timestep=0.001, number_sampling_timesteps=100, repeat=(7, 7, 7), loose_triclinic_and_monoclinic=False)
