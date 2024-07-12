@@ -104,7 +104,7 @@ class FreeEnergies(CrystalGenomeTestDriver):
                 "lammps "
                 + " ".join(f"-var {key} '{item}'" for key, item in variables.items())
                 + " -log output/lammps_preFL.log"
-                + " -in preFL_template.lmp"
+                + " -in lammps_templates/preFL_template.lmp"
             )
             subprocess.run(command, check=True, shell=True)
 
@@ -137,13 +137,18 @@ class FreeEnergies(CrystalGenomeTestDriver):
                 "lammps "
                 + " ".join(f"-var {key} '{item}'" for key, item in variables.items())
                 + " -log output/lammps_FL.log"
-                + " -in FL_template.lmp"
+                + " -in lammps_templates/FL_template.lmp"
             )
             subprocess.run(command, check=True, shell=True)
 
         # Analyse lammps outputs
         free_energies_vs_pressure_at_temperature = []
         return free_energies_vs_pressure_at_temperature
+
+    def _RS(
+        self,
+    ):
+        pass
 
 
 if __name__ == "__main__":
