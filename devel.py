@@ -6,9 +6,16 @@ from ase import Atoms
 import numpy as np
 
 from kim_tools import CrystalGenomeTestDriver
+import scipy.constants as sc
+
+EV = sc.value("electron volt")
+MU = sc.value("atomic mass constant")
+HBAR = sc.value("Planck constant in eV/Hz") / (2 * np.pi)
+KB = sc.value("Boltzmann constant in eV/K")
 
 
 class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
+
     def _calculate(
         self,
         temperature: float,
@@ -20,24 +27,23 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         # TODO: Docstring
         """
         # Check arguments
-        if not temperature > 0.0:
-            raise ValueError("Temperature has to be larger than zero.")
 
-        if not pressure > 0.0:
-            raise ValueError("Pressure has to be larger than zero.")
+        self.temperature = temperature
+        self.pressure = pressure
+        self._validate_inputs()
 
         # Write initial atomic structure to lammps dump file
-        supercell = self._write_initial_structure(size)
+        supercell = self._setup_initial_structure(size)
 
         # preFL computes the equilibrium lattice parameter and spring constants for a given temperature and pressure.
         # TODO: This should probably be replaced with its own test driver, which compute equilibrium lattice constants, and which can handles arbitrary crystal structures. Then we can get spring constants.
-        equilibrium_cell, spring_constants = self._preFL(
+        equilibrium_cell, self.spring_constants = self._preFL(
             pressurs=pressure, temperature=temperature
         )
 
         # Rescaling 0K supercell to have equilibrium lattice constant.
-        # equilibrium_cell is 3x3 matrix. 
-        # TODO: Divide cell by system size? 
+        # equilibrium_cell is 3x3 matrix.
+        # TODO: Divide cell by system size?
         supercell.set_cell(equilibrium_cell, scale_atoms=True)
         supercell.write(
             os.path.join(
@@ -49,7 +55,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         )
 
         # FL computes the free energy at a given pressure and temperature.
-        free_energy = self._FL(pressures=pressure, temperature=temperature)
+        free_energy = self._FL()
 
         # Print Result
         print("####################################")
@@ -66,7 +72,14 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
             "free_energy", free_energy, "eV/atom"
         )
 
-    def _write_initial_structure(
+    def _validate_inputs(self):
+        if not self.temperature > 0.0:
+            raise ValueError("Temperature has to be larger than zero.")
+
+        if not self.pressure > 0.0:
+            raise ValueError("Pressure has to be larger than zero.")
+
+    def _setup_initial_structure(
         self,
         size: Tuple[int, int, int],
         filename: str = "output/zero_temperature_crystal.dump",
@@ -92,19 +105,12 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
 
         return atoms_new
 
-    def _preFL(
-        self, pressure: float, temperature: float
-    ) -> Tuple[List[float], List[float]]:
+    def _preFL(self) -> Tuple[List[float], List[float]]:
 
         variables = {
             "modelname": self.kim_model_name,
-            "temperature": temperature,
-            "temperature_seed": seed,
-            "temperature_damping": tdamp,
-            "pressure": pressure,
-            "pressure_damping": pdamp,
-            "timestep": timestep,
-            "number_sampling_timesteps": number_sampling_timesteps,
+            "temperature": self.temperature,
+            "pressure": self.pressure,
             "species": " ".join(self.species),
             "output_filename": "output/lammps_preFL.dat",
             "write_restart_filename": "output/lammps_preFL_restart.restart",
@@ -121,27 +127,21 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         # Analyse lammps outputs
         data = np.loadtxt("output/lammps_preFL.log", unpack=True)
         xx, xy, xz, yx, yy, yz, zx, zy, zz, spring_constants = data
-        equilibrium_cell = np.array(
-            [[xx, xy, xz], [yx, yy, yz], [zx, zy, zz]]
-        )
+        equilibrium_cell = np.array([[xx, xy, xz], [yx, yy, yz], [zx, zy, zz]])
 
         return equilibrium_cell, spring_constants
 
-    def _FL(self, pressure: float, temperature: float):
+    def _FL(
+        self,
+    ) -> float:
 
         variables = {
             "modelname": self.kim_model_name,
-            "temperature": temperature,
-            "temperature_seed": seed,
-            "temperature_damping": tdamp,
-            "pressure": pressure,
-            "pressure_damping": pdamp,
-            "timestep": timestep,
-            "number_sampling_timesteps": number_sampling_timesteps,
+            "temperature": self.temperature,
+            "pressure": self.pressure,
             "species": " ".join(self.species),
-            "average_position_filename": "output/average_position_equilibration.dump.*",
-            "average_cell_filename": "output/average_cell_equilibration.dump",
-            "write_restart_filename": "output/final_configuration_equilibration.restart",
+            "output_filename": "output/lammps_FL.dat",
+            "write_restart_filename": "output/lammps_FL_restart.restart",
         }
         # TODO: Possibly run MPI version of Lammps if available.
         command = (
@@ -152,9 +152,53 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         )
         subprocess.run(command, check=True, shell=True)
 
-        # TODO: Analyse lammps outputs
-        free_energies_vs_pressure_at_temperature = []
-        return free_energies_vs_pressure_at_temperature
+        return self.compute_free_energy()
+
+    # TODO: Analyse lammps outputs
+    def compute_free_energy(self) -> float:
+
+        # compute free energy via integration of FL path
+
+        Hi_f, Hf_f, lamb_f = np.loadtxt("output/...", unpack=True, skiprows=1)
+        W_forw = np.trapz(Hf_f - Hi_f, lamb_f)
+
+        Hf_b, Hi_b, lamb_b = np.loadtxt("output/...", unpack=True, skiprows=1)
+        W_back = np.trapz(Hf_b - Hi_b, 1 - lamb_b)
+
+        Work = (W_forw - W_back) / 2
+
+        omega = np.sqrt(self.spring_constants * EV / (self.mass * MU)) * 1.0e10  # [rad/s].
+
+        F_harm = (
+            3 * KB * self.temperature * np.log(HBAR * omega / (KB * self.temperature))
+        )  # [eV/atom].
+
+        natoms = len(self.atoms)
+
+        if x.latticetype == "fcc":
+            V = ((a**3) / 4) * natoms
+        if x.latticetype == "bcc":
+            V = ((a**3) / 2) * natoms
+        if x.latticetype == "sc":
+            V = (a**3) * natoms
+        if x.latticetype == "diamond":
+            V = ((a**3) / 8) * natoms
+        else:
+            pass  # handle unsupported crystal structures
+
+        F_CM = (
+            KB
+            * self.temperature
+            * np.log(
+                (natoms / V)
+                * (2 * np.pi * KB * self.temperature / (natoms * self.mass * omega**2))
+                ** (3 / 2)
+            )
+            / natoms
+        )  # correction for fixed center of mass
+
+        free_energy = F_harm - Work + F_CM
+        return free_energy
 
 
 if __name__ == "__main__":

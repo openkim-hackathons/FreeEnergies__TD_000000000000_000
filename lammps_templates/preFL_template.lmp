@@ -31,17 +31,27 @@ variable      Pdamp_converted equal ${pressure_damping}*${_u_time}
 # Initialize velocities.
 velocity      all create ${temp_converted} ${temperature_seed}
 
-# set NVT ensemble
-# if need to compute new dimensions, use NPT with aniso barostat
-fix           NVT all nvt temp ${temp_converted} ${temp_converted} ${Tdamp_converted}
+# Set thermodynamic ensemble
+# if need to compute new box matrix, use uncomment second line
+fix           ensemble all nvt temp ${temp_converted} ${temp_converted} ${Tdamp_converted}
+#fix          ensemble all npt temp ${temp_converted} ${temp_converted} ${Tdamp_converted} tri ${press_converted} ${press_converted} ${Pdamp_converted}
 
-# compute box dimensions
-variable      lx_metal equal lx/${_u_distance}
-variable      ly_metal equal ly/${_u_distance}
-variable      lz_metal equal lz/${_u_distance}
-variable      xy_metal equal xy
-variable      ly_metal equal yz
-variable      lz_metal equal xz
+# Initialize measurement of box vectors
+thermo_style custom avecx avecy avecz bvecx bvecy bvecz cvecx cvecy cvecz temp press vol etotal
+thermo 1000
+
+# compute box information
+variable      avecx_metal equal avecx/${_u_distance}
+variable      avecy_metal equal avecy/${_u_distance}
+variable      avecz_metal equal avecz/${_u_distance}
+
+variable      bvecx_metal equal bvecx/${_u_distance}
+variable      bvecy_metal equal bvecy/${_u_distance}
+variable      bvecz_metal equal bvecz/${_u_distance}
+
+variable      cvecx_metal equal cvecx/${_u_distance}
+variable      cvecy_metal equal cvecy/${_u_distance}
+variable      cvecz_metal equal cvecz/${_u_distance}
 
 # compute mean squared displacement
 compute       MSD all msd com yes
@@ -52,32 +62,35 @@ run 0
 velocity all scale $(v_temperature*v__u_temperature)
 
 # Set up convergence check with kim-convergence.
-python run_length_control input 6 SELF 1 variable vol_metal variable temp_metal format pissss file run_length_control_preFL.py
+# Alternative is to set a safe general equilibration time
+# More important for expensive potentials
+python run_length_control input 6 SELF 1 variable msd_metal format pissss file run_length_control_preFL.py
 
 # Run until converged.
 python run_length_control invoke
 
 # compute averages of above variables
-fix           AVG all ave/time 100 500 50000 v_lx_metal v_ly_metal v_lz_metal v_xy_metal v_yz_metal v_xz_metal v_msd_metal ave running
+fix           AVG all ave/time 100 500 50000 v_avecx_metal v_avecy_metal v_avecz_metal &
+                                             v_bvecx_metal v_bvecy_metal v_bvecz_metal &
+                                             v_cvecx_metal v_cvecy_metal v_cvecz_metal &
+                                             v_msd_metal ave running
 
 # Run steps in the converged regime.
 run 50000
 
 # compute spring constant
-variable      kB equal 8.617333262e-5 # eV/K
-variable      MSD equal f_AVG[...]
-variable      spring_constant equal $(3*kB*${temperature}/(MSD)^2)
+variable      kB equal 8.617333262e-5*(v__u_energy/v__u_temperature) # eV/K unless converted
+variable      MSD equal f_AVG[10]
+variable      spring_constant equal $(3*kB*${temp_converted}/(MSD)^2)
 
 # Write final averages and spring constant
 print "# xx | xy | xz | yx | yy | yz | zx | zy | zz | spring constant [eV/Ang^2]" file ${output_filename}
-print "${f_AVG[0]} f_AVG[1] f_AVG[2] f_AVG[3] f_AVG[4] f_AVG[5] f_AVG[6] f_AVG[7] f_AVG[8] ${spring_constant}" screen no append ${output_filename}
+print "${f_AVG[1]} f_AVG[2] f_AVG[3] f_AVG[4] f_AVG[5] f_AVG[6] f_AVG[7] f_AVG[8] f_AVG[9] ${spring_constant}" screen no append ${output_filename}
 
 # Reset.
-unfix NVT
-unfix avePos
-unfix aveCell
+unfix ensemble
+unfix AVG
 unfix cr_fix  # From run_length_control.py
-undump avePosDump
 reset_timestep 0
 
 # Write the initial starting file for a true simulation.
