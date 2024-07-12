@@ -148,14 +148,14 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
             "temperature": self.temperature,
             "pressure": self.pressure,
             "species": " ".join(self.species),
-            "tswitch":100000, 
+            "tswitch": 100000,
             "temperature_damping": 0.01,
-            't_equil' : 50000,
-            "timestep": 0.001, #ps
+            "t_equil": 50000,
+            "timestep": 0.001,  # ps
             "output_filename": "output/lammps_FL.dat",
             "write_restart_filename": "output/lammps_FL.restart",
-            "switch1_output_file":"output/FL_switch1.dat",
-            "switch2_output_file":"output/FL_switch2.dat",
+            "switch1_output_file": "output/FL_switch1.dat",
+            "switch2_output_file": "output/FL_switch2.dat",
         }
         # TODO: Possibly run MPI version of Lammps if available.
         command = (
@@ -173,7 +173,9 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
 
         # compute free energy via integration of FL path
 
-        Hi_f, Hf_f, lamb_f = np.loadtxt("output/FL_switch1.dat", unpack=True, skiprows=1)
+        Hi_f, Hf_f, lamb_f = np.loadtxt(
+            "output/FL_switch1.dat", unpack=True, skiprows=1
+        )
         W_forw = np.trapz(Hf_f - Hi_f, lamb_f)
 
         Hf_b, Hi_b, lamb_b = np.loadtxt("FL_switch2.dat.", unpack=True, skiprows=1)
