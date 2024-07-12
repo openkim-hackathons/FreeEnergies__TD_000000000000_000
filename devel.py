@@ -39,9 +39,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
 
         # preFL computes the equilibrium lattice parameter and spring constants for a given temperature and pressure.
         # TODO: This should probably be replaced with its own test driver, which compute equilibrium lattice constants, and which can handles arbitrary crystal structures. Then we can get spring constants.
-        equilibrium_cell, self.spring_constants, self.volume = self._preFL(
-            pressurs=pressure, temperature=temperature
-        )
+        equilibrium_cell, self.spring_constants, self.volume = self._preFL()
 
         # Rescaling 0K supercell to have equilibrium lattice constant.
         # equilibrium_cell is 3x3 matrix.
@@ -208,6 +206,6 @@ if __name__ == "__main__":
     test_driver(
         bulk("Ar", "fcc", a=5.248),
         size=(3, 3, 3),
-        temperature=100.0,
+        temperature=20.0,
         pressure=1.0,
     )
