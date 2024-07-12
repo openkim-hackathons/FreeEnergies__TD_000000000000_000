@@ -1,10 +1,6 @@
-from math import ceil
 import os
-import random
-import re
 import subprocess
-from typing import Iterable, List, Optional, Tuple, Dict
-from ase import Atoms
+from typing import List, Dict
 from ase.build import bulk
 import matplotlib.pyplot as plt
 import numpy as np
@@ -21,30 +17,18 @@ class FreeEnergies(CrystalGenomeTestDriver):
         **kwargs,
     ) -> None:
         """ """
-        # TODO: Check all arguments.
+        # Check arguments
+        if not np.all(temperatures > 0.0):
+            raise ValueError("Temperature has to be larger than zero.")
 
-        # Copy original atoms so that their information does not get lost when the new atoms are modified.
-        atoms_new = self.atoms.copy()
+        if not np.all(pressures > 0.0):
+            raise ValueError("Pressure has to be larger than zero.")
 
-        # This is how ASE obtains the species that are written to the initial configuration.
-        # These species are passed to kim interactions.
-        # See https://wiki.fysik.dtu.dk/ase/_modules/ase/io/lammpsdata.html#write_lammps_data
-        symbols = atoms_new.get_chemical_symbols()
-        species = sorted(set(symbols))
+        # Write initial atomic structure to lammps dump file
+        self._write_initial_structure()
 
-        # Write lammps file.
-        TDdirectory = os.path.dirname(os.path.realpath(__file__))
-        structure_file = os.path.join(
-            TDdirectory, "output/zero_temperature_crystal.lmp"
-        )
-        atoms_new.write(structure_file, format="lammps-data", masses=True)
-
-
-        # TODO: Move damping factors to argument.
-        pdamp = timestep * 100.0
-        tdamp = timestep * 1000.0
-
-        # Run NPT simulation for equilibration.
+        # preFL computes the lattice parameter and spring constants as functions of pressure at the starting temperature (T = 100K).
+        
         # TODO: If we notice that this takes too long, maybe use an initial temperature ramp.
         variables = {
             "modelname": self.kim_model_name,
@@ -70,35 +54,41 @@ class FreeEnergies(CrystalGenomeTestDriver):
         subprocess.run(command, check=True, shell=True)
 
         # Analyse equilibration run.
-        
 
         # Run first NPT simulation at higher temperature.
-        
-    
+
         # Print Result
         print("####################################")
-        print("# NPT Phonon Heat Capacity Results #")
+        print("# Frenkel Ladd Free Energy Results #")
         print("####################################")
-        print(f"C_p:\t{c}")
-        print(f"C_p Error:\t{c_err}")
+
+        print()
 
         # I have to do this or KIM tries to save some coordinate file
         self.poscar = None
 
         # Write property
-        self._add_property_instance_and_common_crystal_genome_keys(
-            "heat-capacity-phonon-npt", write_stress=True, write_temp=True
-        )  # last two default to False
-        self._add_key_to_current_property_instance(
-            "constant_pressure_heat_capacity", c, "eV/Kelvin"
-        )
-        self._add_key_to_current_property_instance(
-            "constant_pressure_heat_capacity_err", c_err, "eV/Kelvin"
-        )
-        self._add_key_to_current_property_instance(
-            "pressure", variables["pressure"], "bars"
-        )
 
+    def _write_initial_structure(
+        self, filename: str = "output/zero_temperature_crystal.lmp"
+    ):
+
+        # Copy original atoms so that their information does not get lost when the new atoms are modified.
+        atoms_new = self.atoms.copy()
+
+        # This is how ASE obtains the species that are written to the initial configuration.
+        # These species are passed to kim interactions.
+        # See https://wiki.fysik.dtu.dk/ase/_modules/ase/io/lammpsdata.html#write_lammps_data
+        symbols = atoms_new.get_chemical_symbols()
+        species = sorted(set(symbols))
+
+        # Write lammps file.
+        structure_file = os.path.join(
+            os.path.dirname(os.path.realpath(__file__)), filename
+        )
+        atoms_new.write(structure_file, format="lammps-data", masses=True)
+
+        return atoms_new
 
 
 if __name__ == "__main__":
