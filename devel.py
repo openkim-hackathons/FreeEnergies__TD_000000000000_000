@@ -49,8 +49,8 @@ class FreeEnergies(CrystalGenomeTestDriver):
         print("# Frenkel Ladd Free Energy Results #")
         print("####################################")
 
-        # TODO
-        print()
+        # TODO: Nicer formatting, pandas dataframe?
+        print(free_energies_vs_pressure_vs_temperature)
 
         # I have to do this or KIM tries to save some coordinate file
         self.poscar = None
@@ -148,7 +148,34 @@ class FreeEnergies(CrystalGenomeTestDriver):
     def _RS(
         self,
     ):
-        pass
+        for pressure in pressures:
+
+            variables = {
+                "modelname": self.kim_model_name,
+                "temperature": temperature,
+                "temperature_seed": seed,
+                "temperature_damping": tdamp,
+                "pressure": pressure,
+                "pressure_damping": pdamp,
+                "timestep": timestep,
+                "number_sampling_timesteps": number_sampling_timesteps,
+                "species": " ".join(species),
+                "average_position_filename": "output/average_position_equilibration.dump.*",
+                "average_cell_filename": "output/average_cell_equilibration.dump",
+                "write_restart_filename": "output/final_configuration_equilibration.restart",
+            }
+            # TODO: Possibly run MPI version of Lammps if available.
+            command = (
+                "lammps "
+                + " ".join(f"-var {key} '{item}'" for key, item in variables.items())
+                + " -log output/lammps_RS.log"
+                + " -in lammps_templates/RS_template.lmp"
+            )
+            subprocess.run(command, check=True, shell=True)
+
+        # Analyse lammps outputs
+        free_energies_vs_pressure_vs_temperature = []
+        return free_energies_vs_pressure_vs_temperature
 
 
 if __name__ == "__main__":
