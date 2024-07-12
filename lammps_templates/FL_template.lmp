@@ -6,8 +6,6 @@ boundary p p p
 # Read crystal equilibrium crystal.
 read_data output/equilibrium_crystal.dump
 
-change_box all triclinic
-
 # Interatomic potential and neighbor settings
 kim           interactions ${species}
 

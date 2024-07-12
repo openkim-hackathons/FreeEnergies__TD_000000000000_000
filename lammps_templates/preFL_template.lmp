@@ -8,8 +8,6 @@ boundary p p p
 # Read crystal with 0K lattice parameter.
 read_data output/zero_temperature_crystal.dump
 
-change_box all triclinic
-
 # Convert box and all atomic positions to the correct units.
 #change_box all x scale ${_u_distance} &
 #               y scale ${_u_distance} &
@@ -41,22 +39,26 @@ fix           ensemble all nvt temp ${temp_converted} ${temp_converted} ${Tdamp_
 #fix          ensemble all npt temp ${temp_converted} ${temp_converted} ${Tdamp_converted} tri ${press_converted} ${press_converted} ${Pdamp_converted}
 
 # Initialize measurement of box vectors
-thermo_style custom avecx avecy avecz bvecx bvecy bvecz cvecx cvecy cvecz temp press vol etotal step
-thermo_modify triclinic/general yes
+#thermo_style custom avecx avecy avecz bvecx bvecy bvecz cvecx cvecy cvecz temp press vol etotal step
+thermo_style custom lx ly lz xy yz xz temp press vol etotal step
 thermo 1000
 
 # compute box information
-variable      avecx_metal equal avecx/${_u_distance}
-variable      avecy_metal equal avecy/${_u_distance}
-variable      avecz_metal equal avecz/${_u_distance}
+#variable      avecx_metal equal avecx/${_u_distance}
+#variable      avecy_metal equal avecy/${_u_distance}
+#variable      avecz_metal equal avecz/${_u_distance}
 
-variable      bvecx_metal equal bvecx/${_u_distance}
-variable      bvecy_metal equal bvecy/${_u_distance}
-variable      bvecz_metal equal bvecz/${_u_distance}
+#variable      bvecx_metal equal bvecx/${_u_distance}
+#variable      bvecy_metal equal bvecy/${_u_distance}
+#variable      bvecz_metal equal bvecz/${_u_distance}
 
-variable      cvecx_metal equal cvecx/${_u_distance}
-variable      cvecy_metal equal cvecy/${_u_distance}
-variable      cvecz_metal equal cvecz/${_u_distance}
+#variable      cvecx_metal equal cvecx/${_u_distance}
+#variable      cvecy_metal equal cvecy/${_u_distance}
+#variable      cvecz_metal equal cvecz/${_u_distance}
+
+variable       lx_metal equal lx/${_u_distance}
+variable       ly_metal equal ly/${_u_distance}
+variable       lz_metal equal lz/${_u_distance}
 
 # compute mean squared displacement
 compute       MSD all msd com yes average yes
@@ -78,9 +80,9 @@ velocity all scale $(${temperature}*${_u_temperature})
 run 50000
 
 # compute averages of above variables
-fix           AVG all ave/time 100 500 50000 v_avecx_metal v_avecy_metal v_avecz_metal &
-                                             v_bvecx_metal v_bvecy_metal v_bvecz_metal &
-                                             v_cvecx_metal v_cvecy_metal v_cvecz_metal &
+fix           AVG all ave/time 100 500 50000 v_lx_metal v_ly_metal v_lz_metal &
+                                             #v_bvecx_metal v_bvecy_metal v_bvecz_metal &
+                                             #v_cvecx_metal v_cvecy_metal v_cvecz_metal &
                                              v_msd_metal ave running
 
 # Run steps in the converged regime.
@@ -92,8 +94,10 @@ variable      MSD equal f_AVG[10]
 variable      spring_constant equal $(3*kB*${temp_converted}/(${MSD})^2)
 
 # Write final averages and spring constant
-print "# xx | xy | xz | yx | yy | yz | zx | zy | zz | spring constant [eV/Ang^2]" file ${output_filename}
-print "${f_AVG[1]} f_AVG[2] f_AVG[3] f_AVG[4] f_AVG[5] f_AVG[6] f_AVG[7] f_AVG[8] f_AVG[9] ${spring_constant}" screen no append ${output_filename}
+#print "# xx | xy | xz | yx | yy | yz | zx | zy | zz | spring constant [eV/Ang^2]" file ${output_filename}
+#print "${f_AVG[1]} f_AVG[2] f_AVG[3] f_AVG[4] f_AVG[5] f_AVG[6] f_AVG[7] f_AVG[8] f_AVG[9] ${spring_constant}" screen no append ${output_filename}
+print "# lx | ly | lz | spring constant [eV/Ang^2]" file ${output_filename}
+print "${f_AVG[1]} f_AVG[2] f_AVG[3] ${spring_constant}" screen no append ${output_filename}
 
 # Reset.
 unfix ensemble
