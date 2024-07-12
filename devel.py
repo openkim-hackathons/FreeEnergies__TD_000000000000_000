@@ -13,17 +13,17 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         self,
         temperatures: List[float],
         pressures: List[float],
-        lammps_args: Dict[str],
+
         **kwargs,
     ) -> None:
         """ 
         # TODO: Docstring
         """
         # Check arguments
-        if not np.all(temperatures > 0.0):
+        if not np.all(np.array(temperatures) > 0.0):
             raise ValueError("Temperature has to be larger than zero.")
 
-        if not np.all(pressures > 0.0):
+        if not np.all(np.array(pressures) > 0.0):
             raise ValueError("Pressure has to be larger than zero.")
 
         # Write initial atomic structure to lammps dump file
@@ -33,6 +33,8 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         equilibrium_lattice_parameters, spring_constants = self._preFL(
             pressures=pressures, temperature=np.min(temperatures)
         )
+
+        # TODO: Need to scale self.atoms by the equilibrium lattice constant, write it to a dump file and load it in FL
 
         # FL computes the free energy as a function of pressure at the starting temperature (list of free energies vs P at T = starting temperature).
         free_energies_vs_pressure_at_temperature = self._FL(
