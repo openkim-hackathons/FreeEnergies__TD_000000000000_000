@@ -312,6 +312,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
 
     def _preFL(self) -> Tuple[List[float], List[float]]:
 
+        self._add_msd_fix_for_multicomponent()
         variables = {
             "modelname": self.kim_model_name,
             "temperature": self.temperature,
@@ -373,16 +374,77 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
 
         return self._compute_free_energy()
 
+    def _add_msd_fix_for_multicomponent(self):
+
+        fix_msd_template = """
+        group {group} type {group} 
+        fix           {fix_name} {group} msd com yes average yes
+        """
+
+        fix_entries = [
+            {
+                "fix_name": f"MSD{i}",
+                "group": f"{i+1}",
+            }
+            for i in range(len(self.spring_constants))
+        ]
+
+        fix_msd = "".join([fix_msd_template.format(**entry) for entry in fix_entries])
+
+        # Read in the file
+        with open("lammps_templates/FL_template.lmp", "r") as file:
+            filedata = file.read()
+        # Replace the target string
+        filedata = filedata.replace("{fix_springs}", fix_springs)
+        # Write the file out again
+        with open("lammps_templates/FL_template.lmp", "w") as file:
+            file.write(filedata)
+
+        # fix           record all print 1 "$(pe/atoms) $((f_FL0+f_FL1+f_FL2)/atoms) $(f_FL0[1])" &
+        #              title "# PE_potential [eV/atom] | PE_FL [eV/atom] | lambda" &
+
+        record_template = """
+        fix           record all print 1 "$(pe/atoms) {data}" &
+                     title "{title}" &
+        """
+
+        terms = [f"f_FL{i}" for i in range(len(self.spring_constants))]
+        terms = "+".join(terms)
+        final_sum = f"$(({terms})/atoms) $(f_FL0[1])"
+
+        fix_entries = [
+            {
+                "fix_name": "record",
+                "group": "all",
+                "data": final_sum,
+                "title": "# PE_potential [eV/atom] | PE_FL [eV/atom] | lambda",
+            }
+        ]
+
+        record_template = "".join(
+            [record_template.format(**entry) for entry in fix_entries]
+        )
+
+        # Read in the file
+        with open("lammps_templates/FL_template.lmp", "r") as file:
+            filedata = file.read()
+        # Replace the target string
+        filedata = filedata.replace("{record_template}", record_template)
+        # Write the file out again
+        with open("lammps_templates/FL_template.lmp", "w") as file:
+            file.write(filedata)
+
     def _add_fl_fix_for_multicomponent(self):
 
         fix_springs_template = """
+        group {group} type {group}
         fix           {fix_name} {group} ti/spring {spring_constant} {t_switch} {t_equil} function {function}
         """
 
         fix_entries = [
             {
                 "fix_name": f"FL{i}",
-                "group": "all",
+                "group": f"{i+1}",
                 "spring_constant": self.spring_constants[i],
                 "t_switch": "${t_switch}",
                 "t_equil": "${t_equil}",
