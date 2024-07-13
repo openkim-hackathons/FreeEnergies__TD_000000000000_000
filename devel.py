@@ -411,7 +411,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
 
         terms = [f"f_FL{i}" for i in range(len(self.spring_constants))]
         terms = "+".join(terms)
-        final_sum = f"({terms})/atoms $(f_FL0[1])"
+        final_sum = f"$(({terms})/atoms) $(f_FL0[1])"
 
         fix_entries = [
             {
