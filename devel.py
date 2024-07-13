@@ -294,23 +294,23 @@ class LammpsTemplates:
         self.pre_fl = self.pre_fl.replace("{avg_template}", avg_template)
 
         k_template = """
-        group {group} type {group}
-        compute           {compute_name} {group} msd com yes average yes
+        variable      {variable_name} equal f_AVG{i}[4]*(v__u_distance)^2
+        variable      spring_constant_{i} equal $(3*v_kB*v_temp_converted/(v_MSD{i})^2)
         """
 
-        compute_entries = [
+        k_entries = [
             {
-                "compute_name": f"MSD{i}",
+                "variable_name": f"MSD{i}",
                 "group": f"{i+1}",
             }
             for i in range(nspecies)
         ]
 
-        compute_msd = "".join(
+        k_lines = "".join(
             [k_template.format(**entry) for entry in k_entries]
         )
 
-        self.pre_fl = self.pre_fl.replace("{compute_msd}", compute_msd)
+        self.pre_fl = self.pre_fl.replace("{compute_msd}", k_lines)
 
     def _write_pre_fl_lammps_templates(self, nspecies: int):
         self._add_msd_fix_for_multicomponent(nspecies)

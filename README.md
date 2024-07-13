@@ -18,3 +18,7 @@ test_driver(
 ## Caution
 - "fix ti/spring" is part of the EXTRA-FIX package, which isn't enabled in the lammps build that the test driver is using. 
 - preFL computes equilibrium lattice parameters, yet right now it would only work for cubic systems. Do we have a test driver specifically for this, that works for arbitrary crystal structures?
+
+
+# Contact
+If any troubles, feel free to contact us at ``ksheriff at mit dot edu``, and ``jogbebor at mit dot edu``
