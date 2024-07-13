@@ -298,21 +298,21 @@ class LammpsTemplates:
         self.pre_fl = self.pre_fl.replace("{k_lines}", k_lines)
 
         print_template = """
-        print "$(f_AVG[1]) $(f_AVG[2]) $(f_AVG[3]) $(vol) {spring_constants}" screen no append ${output_filename}
+        print "$(f_AVG[1]) $(f_AVG[2]) $(f_AVG[3]) $(vol) {spring_constants}" screen no append ${{output_filename}}
         """
 
         terms = [f"v_spring_constant_{i}" for i in range(nspecies)]
         terms = " ".join(terms)
         spring_constants = f"{terms}"
 
-        fix_entries = [
+        print_entries = [
             {
                 "spring_constants": spring_constants,
             }
         ]
 
         print_template = "".join(
-            [print_template.format(**entry) for entry in fix_entries]
+            [print_template.format(**entry) for entry in print_entries]
         )
 
         self.pre_fl = self.pre_fl.replace("{print_template}", print_template)
