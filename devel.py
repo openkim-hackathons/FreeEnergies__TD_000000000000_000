@@ -294,13 +294,15 @@ class LammpsTemplates:
         self.pre_fl = self.pre_fl.replace("{avg_template}", avg_template)
 
         k_template = """
-        variable      {variable_name} equal f_AVG{i}[4]*(v__u_distance)^2
-        variable      spring_constant_{i} equal $(3*v_kB*v_temp_converted/(v_MSD{i})^2)
+        variable      {variable_name_1} equal f_AVG[{avg_i}]*(v__u_distance)^2
+        variable      {variable_name_2} equal $(3*v_kB*v_temp_converted/(v_{variable_name_1})^2)
         """
 
         k_entries = [
             {
-                "variable_name": f"MSD{i}",
+                "variable_name_1": f"MSD{i}",
+                "variable_name_2": f"spring_constant_{i}",
+                "avg_i": f"{i+4}",
                 "group": f"{i+1}",
             }
             for i in range(nspecies)
