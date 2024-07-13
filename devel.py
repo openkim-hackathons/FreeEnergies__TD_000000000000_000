@@ -416,10 +416,10 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
                 "fix_name": "record",
                 "group": "all",
                 "data": "".join(
-                    [f"$(f_FL{i}/atoms) $(f_FL{i}[1])" for i in range(len(self.species)+1)]
+                    [f"$(f_FL{i}/atoms) $(f_FL{i}[1])" for i in range(len(self.spring_constants))]
                 ),
                 "title": "# PE_potential [eV/atom] |"
-                + " PE_FL [eV/atom] | lambda |" * (len(self.species)+1),
+                + " PE_FL [eV/atom] | lambda |" * (len(self.spring_constants)),
             }
         ]
 
@@ -435,7 +435,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         # Write the file out again
         with open("lammps_templates/FL_template.lmp", "w") as file:
             file.write(filedata)
-        breakpoint()
+        
 
     def _compute_free_energy(self) -> float:
         """Compute free energy via integration of FL path"""

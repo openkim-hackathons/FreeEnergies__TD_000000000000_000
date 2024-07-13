@@ -33,9 +33,11 @@
 
         # Frenkel-Ladd fix
         
-        fix           FL0 all ti/spring 1 ${t_switch} ${t_equil} function 2
+        fix           FL0 all ti/spring 0.1 ${t_switch} ${t_equil} function 2
         
-        fix           FL1 all ti/spring 2 ${t_switch} ${t_equil} function 2
+        fix           FL1 all ti/spring 0.2 ${t_switch} ${t_equil} function 2
+        
+        fix           FL2 all ti/spring 0.3 ${t_switch} ${t_equil} function 2
         
 
         # set NVT ensemble for all atoms
@@ -58,8 +60,8 @@
 
         # run switch 1
         
-        fix           record all print 1 "$(pe/atoms) $(f_FL0/atoms) $(f_FL0[1])$(f_FL1/atoms) $(f_FL1[1])" &
-                     title "# PE_potential [eV/atom] | PE_FL [eV/atom] | lambda PE_FL [eV/atom] | lambda" &
+        fix           record all print 1 "$(pe/atoms) $(f_FL0/atoms) $(f_FL0[1]) $(f_FL1/atoms) $(f_FL1[1]) $(f_FL2/atoms) $(f_FL2[1])" &
+                     title "# PE_potential [eV/atom] | PE_FL [eV/atom] | lambda | PE_FL [eV/atom] | lambda | PE_FL [eV/atom] | lambda |" &
         
                     screen no file ${switch1_output_file}
         run ${t_switch}
@@ -70,8 +72,8 @@
 
         # run switch 2
         
-        fix           record all print 1 "$(pe/atoms) $(f_FL0/atoms) $(f_FL0[1])$(f_FL1/atoms) $(f_FL1[1])" &
-                     title "# PE_potential [eV/atom] | PE_FL [eV/atom] | lambda PE_FL [eV/atom] | lambda" &
+        fix           record all print 1 "$(pe/atoms) $(f_FL0/atoms) $(f_FL0[1]) $(f_FL1/atoms) $(f_FL1[1]) $(f_FL2/atoms) $(f_FL2[1])" &
+                     title "# PE_potential [eV/atom] | PE_FL [eV/atom] | lambda | PE_FL [eV/atom] | lambda | PE_FL [eV/atom] | lambda |" &
         
                     screen no file ${switch2_output_file}
         run ${t_switch}
