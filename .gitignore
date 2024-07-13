@@ -3,7 +3,7 @@ log.lammps
 __pycache__/
 *.py[cod]
 *$py.class
-
+.ruff_cache
 # C extensions
 *.so
 
