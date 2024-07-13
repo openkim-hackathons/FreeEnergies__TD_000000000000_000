@@ -83,6 +83,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
 
         if not self.pressure > 0.0:
             raise ValueError("Pressure has to be larger than zero.")
+        
     def _write_lammps_templates(self): 
         pre_fl = """
         kim init ${modelname} metal unit_conversion_mode
@@ -270,7 +271,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         print "LAMMPS calculation completed"
         quit 0
         """
-
+        os.makedirs('lammps_templates', exist_ok=True)
         open('lammps_templates/preFL_template.lmp', 'w').write(pre_fl)
         open('lammps_templates/FL_template.lmp', 'w').write(fl)
 
