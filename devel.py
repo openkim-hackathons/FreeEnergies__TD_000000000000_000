@@ -409,16 +409,15 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
                      title "{title}" &
         """
 
+        terms = [f"f_FL{i}" for i in range(len(self.spring_constants))]
+        terms = "+".join(terms)
+        final_sum = f"({terms})/atoms $(f_FL0[1])"
+
         fix_entries = [
             {
                 "fix_name": "record",
                 "group": "all",
-                "data": "+".join(
-                    [
-                        f"$(f_FL{i}/atoms) "
-                        for i in range(len(self.spring_constants))
-                    ]
-                )+' $(f_FL0[1])',
+                "data": final_sum,
                 "title": "# PE_potential [eV/atom] | PE_FL [eV/atom] | lambda",
             }
         ]
@@ -439,8 +438,6 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
 
     def _compute_free_energy(self) -> float:
         """Compute free energy via integration of FL path"""
-
-        # Recall output is "# PE_potential [eV/atom] | PE_FL [eV/atom] | lambda | PE_FL [eV/atom] | lambda | PE_FL [eV/atom] | lambda |, where the number of PE_FL [eV/atom] | lambda is based on len(self.spring_constants):
 
         Hi_f, Hf_f, lamb_f = np.loadtxt(
             "output/FL_switch1.dat", unpack=True, skiprows=1
