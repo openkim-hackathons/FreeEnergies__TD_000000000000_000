@@ -31,6 +31,7 @@ velocity      all create ${temp_converted} ${temperature_seed}
 
 # Frenkel-Ladd fix
 fix           FL all ti/spring ${spring_constant} ${t_switch} ${t_equil} function 2
+#fix           FL2 all ti/spring ${spring_constant_2} ${t_switch} ${t_equil} function 2
 
 # set NVT ensemble for all atoms
 fix           ensemble all nvt temp ${temp_converted} ${temp_converted} ${Tdamp_converted}
