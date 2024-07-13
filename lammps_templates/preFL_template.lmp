@@ -21,7 +21,7 @@ read_data output/zero_temperature_crystal.dump
 kim           interactions ${species}
 
 # set the time step to 0.001 picoseconds
-variable      timestep equal ${timestep}*${_u_time}
+variable      timestep equal 0.001*${_u_time}
 timestep      ${timestep}
 
 # Leaving pressure variables just in case we need to compute lattice parameters
@@ -62,7 +62,6 @@ variable       lz_metal equal lz/${_u_distance}
 
 # compute mean squared displacement
 compute       MSD all msd com yes average yes
-variable      msd_metal equal c_MSD[4]/${_u_distance}
 
 # Temperature may be off because of rigid bodies or SHAKE constraints. See https://docs.lammps.org/velocity.html
 run 0
@@ -77,27 +76,27 @@ velocity all scale $(v_temperature*v__u_temperature)
 #python run_length_control invoke
 
 # Equilibration
-run 50000
+run 10000
 
 # compute averages of above variables
-fix           AVG all ave/time 100 500 50000 v_lx_metal v_ly_metal v_lz_metal &
+fix           AVG all ave/time 100 100 10000 v_lx_metal v_ly_metal v_lz_metal c_MSD[4] ave running
                                              #v_bvecx_metal v_bvecy_metal v_bvecz_metal &
                                              #v_cvecx_metal v_cvecy_metal v_cvecz_metal &
-                                             v_msd_metal ave running
+                                             #c_MSD[4] ave running
 
 # Run steps in the converged regime.
-run 50000
+run 10000
 
 # compute spring constant
 variable      kB equal 8.617333262e-5*(v__u_energy/v__u_temperature) # eV/K unless converted
-variable      MSD equal f_AVG[10]
-variable      spring_constant equal $(3*kB*${temp_converted}/(${MSD})^2)
+variable      MSD equal f_AVG[4]*(v__u_distance)^2
+variable      spring_constant equal $(3*v_kB*v_temp_converted/(v_MSD)^2)
 
 # Write final averages and spring constant
 #print "# xx | xy | xz | yx | yy | yz | zx | zy | zz | spring constant [eV/Ang^2]" file ${output_filename}
 #print "${f_AVG[1]} f_AVG[2] f_AVG[3] f_AVG[4] f_AVG[5] f_AVG[6] f_AVG[7] f_AVG[8] f_AVG[9] ${spring_constant}" screen no append ${output_filename}
 print "# lx | ly | lz [Ang] | vol [Ang^3] | spring constant [eV/Ang^2]" file ${output_filename}
-print "${f_AVG[1]} f_AVG[2] f_AVG[3] $(vol) ${spring_constant}" screen no append ${output_filename}
+print "$(f_AVG[1]) $(f_AVG[2]) $(f_AVG[3]) $(vol) ${spring_constant}" screen no append ${output_filename}
 
 # Reset.
 unfix ensemble
