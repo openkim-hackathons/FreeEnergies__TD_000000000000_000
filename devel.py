@@ -145,7 +145,10 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
     def _FL(
         self,
     ) -> float:
+        
+       
 
+        self._add_fl_fix_for_multicomponent()
         variables = {
             "modelname": self.kim_model_name,
             "temperature": self.temperature,
@@ -167,14 +170,23 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
             "lammps "
             + " ".join(f"-var {key} '{item}'" for key, item in variables.items())
             + " -log output/lammps_FL.log"
-            + " -in lammps_templates/FL_template.lmp"
+            + " -in lammps_templates/FL_template_wFix.lmp"
         )
         subprocess.run(command, check=True, shell=True)
 
-        return self.compute_free_energy()
+        return self._compute_free_energy()
 
-    
-    def compute_free_energy(self) -> float:
+    def _add_fl_fix_for_multicomponent(self): 
+        
+        fix_springs = f"""
+        fix           FL all ti/spring {self.spring_constants[0]} ${{t_switch}} ${{t_equil}} function 2
+        fix           FL2 all ti/spring {self.spring_constants[1]} ${{t_switch}} ${{t_equil}} function 2
+        """
+        breakpoint()
+        
+        open('lammps_templates/FL_template_wFix.lmp', 'w').write(open('lammps_templates/FL_template.lmp', 'r').read().replace('{fix_springs}', fix_springs)) 
+
+    def _compute_free_energy(self) -> float:
         """Compute free energy via integration of FL path
         """
 
