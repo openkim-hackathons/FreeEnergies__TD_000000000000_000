@@ -43,8 +43,8 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         supercell = self._setup_initial_structure(size)
 
         # !!!TEST
-        self.spring_constants = [0.1, 0.2, 0.3]
-        self._add_fl_fix_for_multicomponent()
+        # self.spring_constants = [0.1, 0.2, 0.3]
+        # self._add_fl_fix_for_multicomponent()
 
         # preFL computes the equilibrium lattice parameter and spring constants for a given temperature and pressure.
         # TODO: This should probably be replaced with its own test driver, which compute equilibrium lattice constants, and which can handles arbitrary crystal structures (right now only works for cubic crystals). Then we can get spring constants.
@@ -434,7 +434,6 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         # Write the file out again
         with open("lammps_templates/FL_template.lmp", "w") as file:
             file.write(filedata)
-        breakpoint()
 
     def _compute_free_energy(self) -> float:
         """Compute free energy via integration of FL path"""
