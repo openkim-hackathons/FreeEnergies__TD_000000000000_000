@@ -1,6 +1,6 @@
 import os
 import subprocess
-from typing import List, Dict, Tuple
+from typing import List, Tuple
 from ase.build import bulk
 from ase import Atoms
 import numpy as np
@@ -274,7 +274,7 @@ class LammpsTemplates:
         self.pre_fl = self.pre_fl.replace("{compute_msd}", compute_msd)
 
         avg_template = """
-        fix          AVG all ave/time 100 100 10000 v_lx_metal v_ly_metal v_lz_metal {msd_data} ave running"
+        fix          AVG all ave/time 100 100 10000 v_lx_metal v_ly_metal v_lz_metal {msd_data} ave running
         """
 
         terms = [f"c_MSD{i}[4]" for i in range(nspecies)]
@@ -303,7 +303,6 @@ class LammpsTemplates:
                 "variable_name_1": f"MSD{i}",
                 "variable_name_2": f"spring_constant_{i}",
                 "avg_i": f"{i+4}",
-                "group": f"{i+1}",
             }
             for i in range(nspecies)
         ]
@@ -312,7 +311,25 @@ class LammpsTemplates:
             [k_template.format(**entry) for entry in k_entries]
         )
 
-        self.pre_fl = self.pre_fl.replace("{compute_msd}", k_lines)
+        self.pre_fl = self.pre_fl.replace("{k_lines}", k_lines)
+
+        print_template = """
+        print "$(f_AVG[1]) $(f_AVG[2]) $(f_AVG[3]) $(vol) {spring_constants}" screen no append ${output_filename}
+        """
+
+        terms = [f"v_spring_constant_{i}" for i in range(nspecies)]
+        terms = " ".join(terms)
+        spring_constants = f"{terms}"
+
+        fix_entries = [
+            {
+                "spring_constants": spring_constants,
+            }
+        ]
+
+        print_template = "".join([print_template.format(**entry) for entry in fix_entries])
+
+        self.pre_fl = self.pre_fl.replace("{print_template}", print_template)
 
     def _write_pre_fl_lammps_templates(self, nspecies: int):
         self._add_msd_fix_for_multicomponent(nspecies)
