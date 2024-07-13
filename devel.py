@@ -14,82 +14,9 @@ HBAR = sc.value("Planck constant in eV/Hz") / (2 * np.pi)
 KB = sc.value("Boltzmann constant in eV/K")
 
 
-class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
-
-    def _calculate(
-        self,
-        temperature: float,
-        pressure: float,
-        size: Tuple[int, int, int],
-        **kwargs,
-    ) -> None:
-        """Gibbs free energy of a crystal at constant temperature and pressure using Frenkel-Ladd Hamiltonian integration algorithm. Computed through one equilibrium NPT simulation ('preFL') and one NONequilibrium NVT simulation ('FL').
-
-        Args:
-            temperature (float): system temperature.
-            pressure (float): system pressure.
-            size (Tuple[int, int, int]): system size.
-        """
-        # Check arguments
-
-        self.temperature = temperature
-        self.pressure = pressure
-        self._validate_inputs()
-
-        # Write initial template file
-        self._write_lammps_templates()
-
-        # Write initial atomic structure to lammps dump file
-        supercell = self._setup_initial_structure(size)
-
-        # !!!TEST
-        # self.spring_constants = [0.1, 0.2, 0.3]
-        # self._add_fl_fix_for_multicomponent()
-
-        # preFL computes the equilibrium lattice parameter and spring constants for a given temperature and pressure.
-        # TODO: This should probably be replaced with its own test driver, which compute equilibrium lattice constants, and which can handles arbitrary crystal structures (right now only works for cubic crystals). Then we can get spring constants.
-        equilibrium_cell, self.spring_constants, self.volume = self._preFL()
-
-        # Rescaling 0K supercell to have equilibrium lattice constant.
-        # equilibrium_cell is 3x3 matrix or can also have [len(a), len(b), len(c), angle(b,c), angle(a,c), angle(a,b)]
-        # TODO: Divide cell by system size?
-        supercell.set_cell(equilibrium_cell, scale_atoms=True)
-        supercell.write(
-            os.path.join(
-                os.path.dirname(os.path.realpath(__file__)),
-                "output/equilibrium_crystal.dump",
-            ),
-            format="lammps-data",
-            masses=True,
-        )
-
-        # FL computes the free energy at a given pressure and temperature.
-        free_energy = self._FL()
-
-        # Print results
-        print("####################################")
-        print("# Frenkel Ladd Free Energy Results #")
-        print("####################################")
-
-        print(r"$G_{FL} =$" + f" {free_energy:.5f} (eV/atom)")
-
-        # KIM tries to save some coordinate file, disabling it.
-        self.poscar = None
-
-        # Write property
-        self._add_key_to_current_property_instance(
-            "free_energy", free_energy, "eV/atom"
-        )
-
-    def _validate_inputs(self):
-        if not self.temperature > 0.0:
-            raise ValueError("Temperature has to be larger than zero.")
-
-        if not self.pressure > 0.0:
-            raise ValueError("Pressure has to be larger than zero.")
-
-    def _write_lammps_templates(self):
-        pre_fl = """
+class LammpsTemplates:
+    def __init__(self):
+        self.pre_fl = """
         kim init ${modelname} metal unit_conversion_mode
 
         # periodic boundary conditions along all three dimensions
@@ -201,7 +128,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
 
         """
 
-        fl = """
+        self.fl = """
 
         kim init ${modelname} metal unit_conversion_mode
 
@@ -273,9 +200,85 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         print "LAMMPS calculation completed"
         quit 0
         """
+
+
+class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
+
+    def _calculate(
+        self,
+        temperature: float,
+        pressure: float,
+        size: Tuple[int, int, int],
+        **kwargs,
+    ) -> None:
+        """Gibbs free energy of a crystal at constant temperature and pressure using Frenkel-Ladd Hamiltonian integration algorithm. Computed through one equilibrium NPT simulation ('preFL') and one NONequilibrium NVT simulation ('FL').
+
+        Args:
+            temperature (float): system temperature.
+            pressure (float): system pressure.
+            size (Tuple[int, int, int]): system size.
+        """
+        # Check arguments
+
+        self.temperature = temperature
+        self.pressure = pressure
+        self._validate_inputs()
+
+        # Write initial template file
+        self._write_lammps_templates()
+
+        # Write initial atomic structure to lammps dump file
+        supercell = self._setup_initial_structure(size)
+
+        # preFL computes the equilibrium lattice parameter and spring constants for a given temperature and pressure.
+        # TODO: This should probably be replaced with its own test driver, which compute equilibrium lattice constants, and which can handles arbitrary crystal structures (right now only works for cubic crystals). Then we can get spring constants.
+        equilibrium_cell, self.spring_constants, self.volume = self._preFL()
+
+        # Rescaling 0K supercell to have equilibrium lattice constant.
+        # equilibrium_cell is 3x3 matrix or can also have [len(a), len(b), len(c), angle(b,c), angle(a,c), angle(a,b)]
+        # TODO: Divide cell by system size?
+        supercell.set_cell(equilibrium_cell, scale_atoms=True)
+        supercell.write(
+            os.path.join(
+                os.path.dirname(os.path.realpath(__file__)),
+                "output/equilibrium_crystal.dump",
+            ),
+            format="lammps-data",
+            masses=True,
+        )
+
+        # FL computes the free energy at a given pressure and temperature.
+        free_energy = self._FL()
+
+        # Print results
+        print("####################################")
+        print("# Frenkel Ladd Free Energy Results #")
+        print("####################################")
+
+        print(r"$G_{FL} =$" + f" {free_energy:.5f} (eV/atom)")
+
+        # KIM tries to save some coordinate file, disabling it.
+        self.poscar = None
+
+        # Write property
+        self._add_key_to_current_property_instance(
+            "free_energy", free_energy, "eV/atom"
+        )
+
+    def _validate_inputs(self):
+        if not self.temperature > 0.0:
+            raise ValueError("Temperature has to be larger than zero.")
+
+        if not self.pressure > 0.0:
+            raise ValueError("Pressure has to be larger than zero.")
+
+    def _write_lammps_templates(self):
+
+        self.templates = LammpsTemplates()
+
         os.makedirs("lammps_templates", exist_ok=True)
-        open("lammps_templates/preFL_template.lmp", "w").write(pre_fl)
-        open("lammps_templates/FL_template.lmp", "w").write(fl)
+        open("lammps_templates/preFL_template.lmp", "w").write(self.templates.pre_fl)
+        open("lammps_templates/FL_template.lmp", "w").write(self.templates.fl)
 
     def _setup_initial_structure(
         self,
