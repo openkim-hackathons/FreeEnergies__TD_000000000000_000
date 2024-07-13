@@ -15,7 +15,9 @@ KB = sc.value("Boltzmann constant in eV/K")
 
 
 class LammpsTemplates:
-    def __init__(self):
+    def __init__(self, root):
+        self.root = root
+        os.makedirs(self.root, exist_ok=True)
         self.pre_fl = """
         kim init ${modelname} metal unit_conversion_mode
 
@@ -201,6 +203,123 @@ class LammpsTemplates:
         quit 0
         """
 
+    def _add_fl_fix_for_multicomponent(self, spring_constants: List[float]):
+
+        fix_springs_template = """
+        group {group} type {group}
+        fix           {fix_name} {group} ti/spring {spring_constant} {t_switch} {t_equil} function {function}
+        """
+
+        fix_entries = [
+            {
+                "fix_name": f"FL{i}",
+                "group": f"{i+1}",
+                "spring_constant": spring_constants[i],
+                "t_switch": "${t_switch}",
+                "t_equil": "${t_equil}",
+                "function": 2,
+            }
+            for i in range(len(spring_constants))
+        ]
+
+        fix_springs = "".join(
+            [fix_springs_template.format(**entry) for entry in fix_entries]
+        )
+
+        self.fl = self.fl.replace("{fix_springs}", fix_springs)
+
+        record_template = """
+        fix           record all print 1 "$(pe/atoms) {data}" &
+                     title "{title}" &
+        """
+
+        terms = [f"f_FL{i}" for i in range(len(self.spring_constants))]
+        terms = "+".join(terms)
+        final_sum = f"$(({terms})/atoms) $(f_FL0[1])"
+
+        fix_entries = [
+            {
+                "fix_name": "record",
+                "group": "all",
+                "data": final_sum,
+                "title": "# PE_potential [eV/atom] | PE_FL [eV/atom] | lambda",
+            }
+        ]
+
+        record_template = "".join(
+            [record_template.format(**entry) for entry in fix_entries]
+        )
+
+        self.fl = self.fl.replace("{record_template}", record_template)
+
+    def _add_msd_fix_for_multicomponent(self, nspecies: int):
+
+        compute_msd_template = """
+        group {group} type {group}
+        compute           {compute_name} {group} msd com yes average yes
+        """
+
+        compute_entries = [
+            {
+                "compute_name": f"MSD{i}",
+                "group": f"{i+1}",
+            }
+            for i in range(nspecies)
+        ]
+
+        compute_msd = "".join(
+            [compute_msd_template.format(**entry) for entry in compute_entries]
+        )
+
+        self.pre_fl = self.pre_fl.replace("{compute_msd}", compute_msd)
+
+        avg_template = """
+        fix          AVG all ave/time 100 100 10000 v_lx_metal v_ly_metal v_lz_metal {msd_data} ave running"
+        """
+
+        terms = [f"c_MSD{i}[4]" for i in range(nspecies)]
+        terms = " ".join(terms)
+        msd_data = f"{terms}"
+
+        fix_entries = [
+            {
+                "fix_name": "AVG",
+                "group": "all",
+                "msd_data": msd_data,
+            }
+        ]
+
+        avg_template = "".join([avg_template.format(**entry) for entry in fix_entries])
+
+        self.pre_fl = self.pre_fl.replace("{avg_template}", avg_template)
+
+        k_template = """
+        group {group} type {group}
+        compute           {compute_name} {group} msd com yes average yes
+        """
+
+        compute_entries = [
+            {
+                "compute_name": f"MSD{i}",
+                "group": f"{i+1}",
+            }
+            for i in range(nspecies)
+        ]
+
+        compute_msd = "".join(
+            [k_template.format(**entry) for entry in k_entries]
+        )
+
+        self.pre_fl = self.pre_fl.replace("{compute_msd}", compute_msd)
+
+    def _write_pre_fl_lammps_templates(self, nspecies: int):
+        self._add_msd_fix_for_multicomponent(nspecies)
+        open(self.root + "preFL_template.lmp", "w").write(self.pre_fl)
+
+    def _write_fl_lammps_templates(self, spring_constants: List[float]):
+        self._add_fl_fix_for_multicomponent(spring_constants)
+        open(self.root + "FL_template.lmp", "w").write(self.fl)
+
 
 class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
 
@@ -219,20 +338,21 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
             size (Tuple[int, int, int]): system size.
         """
         # Check arguments
-
         self.temperature = temperature
         self.pressure = pressure
         self._validate_inputs()
 
-        # Write initial template file
-        self._write_lammps_templates()
-
         # Write initial atomic structure to lammps dump file
         supercell = self._setup_initial_structure(size)
+
+        # Write initial template file
+        self.templates = LammpsTemplates(root="lammps_templates/")
+        self.templates._write_pre_fl_lammps_templates(nspecies=len(self.species))
 
         # preFL computes the equilibrium lattice parameter and spring constants for a given temperature and pressure.
         # TODO: This should probably be replaced with its own test driver, which compute equilibrium lattice constants, and which can handles arbitrary crystal structures (right now only works for cubic crystals). Then we can get spring constants.
         equilibrium_cell, self.spring_constants, self.volume = self._preFL()
+        assert len(self.species) == len(self.spring_constants)
 
         # Rescaling 0K supercell to have equilibrium lattice constant.
         # equilibrium_cell is 3x3 matrix or can also have [len(a), len(b), len(c), angle(b,c), angle(a,c), angle(a,b)]
@@ -248,6 +368,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         )
 
         # FL computes the free energy at a given pressure and temperature.
+        self.templates._write_fl_lammps_templates(spring_constans=self.spring_constants)
         free_energy = self._FL()
 
         # Print results
@@ -271,14 +392,6 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
 
         if not self.pressure > 0.0:
             raise ValueError("Pressure has to be larger than zero.")
-
-    def _write_lammps_templates(self):
-
-        self.templates = LammpsTemplates()
-
-        os.makedirs("lammps_templates", exist_ok=True)
-        open("lammps_templates/preFL_template.lmp", "w").write(self.templates.pre_fl)
-        open("lammps_templates/FL_template.lmp", "w").write(self.templates.fl)
 
     def _setup_initial_structure(
         self,
@@ -310,9 +423,10 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
 
         return atoms_new
 
+    ####################################
+
     def _preFL(self) -> Tuple[List[float], List[float]]:
 
-        self._add_msd_fix_for_multicomponent()
         variables = {
             "modelname": self.kim_model_name,
             "temperature": self.temperature,
@@ -330,7 +444,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
             "lammps "
             + " ".join(f"-var {key} '{item}'" for key, item in variables.items())
             + " -log output/lammps_preFL.log"
-            + " -in lammps_templates/preFL_template.lmp"
+            + f" -in {self.templates.root}preFL_template.lmp"
         )
         subprocess.run(command, check=True, shell=True)
 
@@ -368,137 +482,11 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
             "lammps "
             + " ".join(f"-var {key} '{item}'" for key, item in variables.items())
             + " -log output/lammps_FL.log"
-            + " -in lammps_templates/FL_template.lmp"
+            + f" -in {self.templates.root}FL_template.lmp"
         )
         subprocess.run(command, check=True, shell=True)
 
         return self._compute_free_energy()
-
-    def _add_msd_fix_for_multicomponent(self):
-
-        fix_msd_template = """
-        group {group} type {group} 
-        fix           {fix_name} {group} msd com yes average yes
-        """
-
-        fix_entries = [
-            {
-                "fix_name": f"MSD{i}",
-                "group": f"{i+1}",
-            }
-            for i in range(len(self.spring_constants))
-        ]
-
-        fix_msd = "".join([fix_msd_template.format(**entry) for entry in fix_entries])
-
-        # Read in the file
-        with open("lammps_templates/FL_template.lmp", "r") as file:
-            filedata = file.read()
-        # Replace the target string
-        filedata = filedata.replace("{fix_springs}", fix_springs)
-        # Write the file out again
-        with open("lammps_templates/FL_template.lmp", "w") as file:
-            file.write(filedata)
-
-        # fix           record all print 1 "$(pe/atoms) $((f_FL0+f_FL1+f_FL2)/atoms) $(f_FL0[1])" &
-        #              title "# PE_potential [eV/atom] | PE_FL [eV/atom] | lambda" &
-
-        record_template = """
-        fix           record all print 1 "$(pe/atoms) {data}" &
-                     title "{title}" &
-        """
-
-        terms = [f"f_FL{i}" for i in range(len(self.spring_constants))]
-        terms = "+".join(terms)
-        final_sum = f"$(({terms})/atoms) $(f_FL0[1])"
-
-        fix_entries = [
-            {
-                "fix_name": "record",
-                "group": "all",
-                "data": final_sum,
-                "title": "# PE_potential [eV/atom] | PE_FL [eV/atom] | lambda",
-            }
-        ]
-
-        record_template = "".join(
-            [record_template.format(**entry) for entry in fix_entries]
-        )
-
-        # Read in the file
-        with open("lammps_templates/FL_template.lmp", "r") as file:
-            filedata = file.read()
-        # Replace the target string
-        filedata = filedata.replace("{record_template}", record_template)
-        # Write the file out again
-        with open("lammps_templates/FL_template.lmp", "w") as file:
-            file.write(filedata)
-
-    def _add_fl_fix_for_multicomponent(self):
-
-        fix_springs_template = """
-        group {group} type {group}
-        fix           {fix_name} {group} ti/spring {spring_constant} {t_switch} {t_equil} function {function}
-        """
-
-        fix_entries = [
-            {
-                "fix_name": f"FL{i}",
-                "group": f"{i+1}",
-                "spring_constant": self.spring_constants[i],
-                "t_switch": "${t_switch}",
-                "t_equil": "${t_equil}",
-                "function": 2,
-            }
-            for i in range(len(self.spring_constants))
-        ]
-
-        fix_springs = "".join(
-            [fix_springs_template.format(**entry) for entry in fix_entries]
-        )
-
-        # Read in the file
-        with open("lammps_templates/FL_template.lmp", "r") as file:
-            filedata = file.read()
-        # Replace the target string
-        filedata = filedata.replace("{fix_springs}", fix_springs)
-        # Write the file out again
-        with open("lammps_templates/FL_template.lmp", "w") as file:
-            file.write(filedata)
-
-        # fix           record all print 1 "$(pe/atoms) $((f_FL0+f_FL1+f_FL2)/atoms) $(f_FL0[1])" &
-        #              title "# PE_potential [eV/atom] | PE_FL [eV/atom] | lambda" &
-
-        record_template = """
-        fix           record all print 1 "$(pe/atoms) {data}" &
-                     title "{title}" &
-        """
-
-        terms = [f"f_FL{i}" for i in range(len(self.spring_constants))]
-        terms = "+".join(terms)
-        final_sum = f"$(({terms})/atoms) $(f_FL0[1])"
-
-        fix_entries = [
-            {
-                "fix_name": "record",
-                "group": "all",
-                "data": final_sum,
-                "title": "# PE_potential [eV/atom] | PE_FL [eV/atom] | lambda",
-            }
-        ]
-
-        record_template = "".join(
-            [record_template.format(**entry) for entry in fix_entries]
-        )
-
-        # Read in the file
-        with open("lammps_templates/FL_template.lmp", "r") as file:
-            filedata = file.read()
-        # Replace the target string
-        filedata = filedata.replace("{record_template}", record_template)
-        # Write the file out again
-        with open("lammps_templates/FL_template.lmp", "w") as file:
-            file.write(filedata)
 
     def _compute_free_energy(self) -> float:
         """Compute free energy via integration of FL path"""
