@@ -120,6 +120,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
             "temperature_seed": np.random.randint(low=100000, high=999999, dtype=int),
             "pressure": self.pressure,
             "pressure_damping": 1.0,
+            "timestep": 0.001,  # ps
             "species": " ".join(self.species),
             "output_filename": "output/lammps_preFL.dat",
             "write_restart_filename": "output/lammps_preFL.restart",
@@ -134,12 +135,10 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         subprocess.run(command, check=True, shell=True)
 
         # Analyse lammps outputs
-        data = np.loadtxt("output/lammps_preFL.log", unpack=True)
-        xx, xy, xz, yx, yy, yz, zx, zy, zz, spring_constants = data
-        equilibrium_cell = np.array([[xx, xy, xz], [yx, yy, yz], [zx, zy, zz]])
-
-        # TODO: read in volume
-        volume = 0
+        data = np.loadtxt("output/lammps_preFL.dat", unpack=True)
+        #xx, xy, xz, yx, yy, yz, zx, zy, zz, spring_constants = data
+        lx, ly, lz, volume, spring_constants = data
+        equilibrium_cell = np.array([[lx, 0, 0], [0, ly, 0], [0, 0, lz]])
 
         return equilibrium_cell, spring_constants, volume
 
@@ -152,10 +151,12 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
             "temperature": self.temperature,
             "pressure": self.pressure,
             "species": " ".join(self.species),
-            "tswitch": 100000,
+            "t_switch": 10000,
             "temperature_damping": 0.01,
-            "t_equil": 50000,
+            "temperature_seed": np.random.randint(low=100000, high=999999, dtype=int),
+            "t_equil": 10000,
             "timestep": 0.001,  # ps
+            "spring_constant": self.spring_constants,
             "output_filename": "output/lammps_FL.dat",
             "write_restart_filename": "output/lammps_FL.restart",
             "switch1_output_file": "output/FL_switch1.dat",

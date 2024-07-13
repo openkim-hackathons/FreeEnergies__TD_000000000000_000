@@ -4,11 +4,20 @@ kim init ${modelname} metal unit_conversion_mode
 boundary p p p
 
 # Read crystal equilibrium crystal.
-read_data output/equilibrium_crystal.dump
+#read_data output/equilibrium_crystal.dump
+read_data output/zero_temperature_crystal.dump
+
+# Convert box and all atomic positions to the correct units.
+#change_box all x scale ${_u_distance} &
+#               y scale ${_u_distance} &
+#               z scale ${_u_distance} &
+#               xy final $(xy*v__u_distance) &
+#               xz final $(xz*v__u_distance) &
+#               yz final $(yz*v__u_distance) &
+#               remap
 
 # Interatomic potential and neighbor settings
 kim           interactions ${species}
-
 
 # set the time step to 0.001 picoseconds
 variable timestep_converted equal ${timestep}*${_u_time}
@@ -18,10 +27,10 @@ variable temp_converted equal ${temperature}*${_u_temperature}
 variable Tdamp_converted equal ${temperature_damping}*${_u_time}
 
 # create initial velocities consistent with the chosen temperature
-velocity      all create ${temp_converted} 17 mom yes rot yes
+velocity      all create ${temp_converted} ${temperature_seed}
 
 # Frenkel-Ladd fix
-fix           FL all ti/spring {{rpls_springconst}} ${t_switch} ${t_equil} function 2
+fix           FL all ti/spring ${spring_constant} ${t_switch} ${t_equil} function 2
 
 # set NVT ensemble for all atoms
 fix           ensemble all nvt temp ${temp_converted} ${temp_converted} ${Tdamp_converted}
