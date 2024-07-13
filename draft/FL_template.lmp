@@ -60,7 +60,7 @@
 
         # run switch 1
         
-        fix           record all print 1 "$(pe/atoms) $(f_FL0/atoms) +$(f_FL1/atoms) +$(f_FL2/atoms)  $(f_FL0[1])" &
+        fix           record all print 1 "$(pe/atoms) $((f_FL0+f_FL1+f_FL2)/atoms) $(f_FL0[1])" &
                      title "# PE_potential [eV/atom] | PE_FL [eV/atom] | lambda" &
         
                     screen no file ${switch1_output_file}
@@ -72,7 +72,7 @@
 
         # run switch 2
         
-        fix           record all print 1 "$(pe/atoms) $(f_FL0/atoms) +$(f_FL1/atoms) +$(f_FL2/atoms)  $(f_FL0[1])" &
+        fix           record all print 1 "$(pe/atoms) $((f_FL0+f_FL1+f_FL2)/atoms) $(f_FL0[1])" &
                      title "# PE_potential [eV/atom] | PE_FL [eV/atom] | lambda" &
         
                     screen no file ${switch2_output_file}

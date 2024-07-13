@@ -93,7 +93,7 @@
 
         # Write final averages and spring constant
         #print "# xx | xy | xz | yx | yy | yz | zx | zy | zz | spring constant [eV/Ang^2]" file ${output_filename}
-        #print "${f_AVG[1]} f_AVG[2] f_AVG[3] f_AVG[4] f_AVG[5] f_AVG[6] f_AVG[7] f_AVG[8] f_AVG[9] ${spring_constant}" screen no append ${output_filename}
+        #print "$(f_AVG[1]) $(f_AVG[2]) $(f_AVG[3]) $(f_AVG[4]) $(f_AVG[5]) $(f_AVG[6]) $(f_AVG[7]) $(f_AVG[8]) $(f_AVG[9]) ${spring_constant}" screen no append ${output_filename}
         print "# lx | ly | lz [Ang] | vol [Ang^3] | spring constant [eV/Ang^2]" file ${output_filename}
         print "$(f_AVG[1]) $(f_AVG[2]) $(f_AVG[3]) $(vol) ${spring_constant}" screen no append ${output_filename}
 

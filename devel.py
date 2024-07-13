@@ -43,7 +43,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         supercell = self._setup_initial_structure(size)
 
         # !!!TEST
-        self.spring_constants = [.1, .2,.3]
+        self.spring_constants = [0.1, 0.2, 0.3]
         self._add_fl_fix_for_multicomponent()
 
         # preFL computes the equilibrium lattice parameter and spring constants for a given temperature and pressure.
@@ -184,7 +184,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
 
         # Write final averages and spring constant
         #print "# xx | xy | xz | yx | yy | yz | zx | zy | zz | spring constant [eV/Ang^2]" file ${output_filename}
-        #print "${f_AVG[1]} f_AVG[2] f_AVG[3] f_AVG[4] f_AVG[5] f_AVG[6] f_AVG[7] f_AVG[8] f_AVG[9] ${spring_constant}" screen no append ${output_filename}
+        #print "$(f_AVG[1]) $(f_AVG[2]) $(f_AVG[3]) $(f_AVG[4]) $(f_AVG[5]) $(f_AVG[6]) $(f_AVG[7]) $(f_AVG[8]) $(f_AVG[9]) ${spring_constant}" screen no append ${output_filename}
         print "# lx | ly | lz [Ang] | vol [Ang^3] | spring constant [eV/Ang^2]" file ${output_filename}
         print "$(f_AVG[1]) $(f_AVG[2]) $(f_AVG[3]) $(vol) ${spring_constant}" screen no append ${output_filename}
 
@@ -401,10 +401,8 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         with open("lammps_templates/FL_template.lmp", "w") as file:
             file.write(filedata)
 
-        # run switch 1
-        # fix           record all print 1 "$(pe/atoms) $(f_FL/atoms) $(f_FL[1])" &
-        #             title "# PE_potential [eV/atom] | PE_FL [eV/atom] | lambda" &
-        #             screen no file ${switch1_output_file}
+        # fix           record all print 1 "$(pe/atoms) $((f_FL0+f_FL1+f_FL2)/atoms) $(f_FL0[1])" &
+        #              title "# PE_potential [eV/atom] | PE_FL [eV/atom] | lambda" &
 
         record_template = """
         fix           record all print 1 "$(pe/atoms) {data}" &
@@ -415,11 +413,13 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
             {
                 "fix_name": "record",
                 "group": "all",
-                "data": "".join(
-                    [f"$(f_FL{i}/atoms) $(f_FL{i}[1])" for i in range(len(self.spring_constants))]
-                ),
-                "title": "# PE_potential [eV/atom] |"
-                + " PE_FL [eV/atom] | lambda |" * (len(self.spring_constants)),
+                "data": "+".join(
+                    [
+                        f"$(f_FL{i}/atoms) "
+                        for i in range(len(self.spring_constants))
+                    ]
+                )+' $(f_FL0[1])',
+                "title": "# PE_potential [eV/atom] | PE_FL [eV/atom] | lambda",
             }
         ]
 
@@ -435,10 +435,12 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         # Write the file out again
         with open("lammps_templates/FL_template.lmp", "w") as file:
             file.write(filedata)
-        
+        breakpoint()
 
     def _compute_free_energy(self) -> float:
         """Compute free energy via integration of FL path"""
+
+        # Recall output is "# PE_potential [eV/atom] | PE_FL [eV/atom] | lambda | PE_FL [eV/atom] | lambda | PE_FL [eV/atom] | lambda |, where the number of PE_FL [eV/atom] | lambda is based on len(self.spring_constants):
 
         Hi_f, Hf_f, lamb_f = np.loadtxt(
             "output/FL_switch1.dat", unpack=True, skiprows=1
@@ -473,7 +475,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
             / natoms
         )  # correction for fixed center of mass
 
-        free_energy = F_harm - Work + F_CM
+        free_energy = np.sum(F_harm) - Work + F_CM
         return free_energy
 
 
