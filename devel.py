@@ -36,11 +36,15 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         self.pressure = pressure
         self._validate_inputs()
 
-        # Write initial template file 
+        # Write initial template file
         self._write_lammps_templates()
 
         # Write initial atomic structure to lammps dump file
         supercell = self._setup_initial_structure(size)
+
+        # !!!TEST
+        self.spring_constants = [.1, .2,.3]
+        self._add_fl_fix_for_multicomponent()
 
         # preFL computes the equilibrium lattice parameter and spring constants for a given temperature and pressure.
         # TODO: This should probably be replaced with its own test driver, which compute equilibrium lattice constants, and which can handles arbitrary crystal structures (right now only works for cubic crystals). Then we can get spring constants.
@@ -83,8 +87,8 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
 
         if not self.pressure > 0.0:
             raise ValueError("Pressure has to be larger than zero.")
-        
-    def _write_lammps_templates(self): 
+
+    def _write_lammps_templates(self):
         pre_fl = """
         kim init ${modelname} metal unit_conversion_mode
 
@@ -196,7 +200,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
 
 
         """
-    
+
         fl = """
 
         kim init ${modelname} metal unit_conversion_mode
@@ -252,8 +256,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         run ${t_equil}
 
         # run switch 1
-        fix           record all print 1 "$(pe/atoms) $(f_FL/atoms) $(f_FL[1])" &
-                    title "# PE_potential [eV/atom] | PE_FL [eV/atom] | lambda" &
+        {record_template}
                     screen no file ${switch1_output_file}
         run ${t_switch}
         unfix record
@@ -262,8 +265,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         run ${t_equil}
 
         # run switch 2
-        fix           record all print 1 "$(pe/atoms) $(f_FL/atoms) $(f_FL[1])" &
-                    title "# PE_potential [eV/atom] | PE_FL [eV/atom] | lambda" &
+        {record_template}
                     screen no file ${switch2_output_file}
         run ${t_switch}
         unfix record
@@ -271,9 +273,9 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         print "LAMMPS calculation completed"
         quit 0
         """
-        os.makedirs('lammps_templates', exist_ok=True)
-        open('lammps_templates/preFL_template.lmp', 'w').write(pre_fl)
-        open('lammps_templates/FL_template.lmp', 'w').write(fl)
+        os.makedirs("lammps_templates", exist_ok=True)
+        open("lammps_templates/preFL_template.lmp", "w").write(pre_fl)
+        open("lammps_templates/FL_template.lmp", "w").write(fl)
 
     def _setup_initial_structure(
         self,
@@ -370,12 +372,6 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
 
     def _add_fl_fix_for_multicomponent(self):
 
-        # fix_springs = f"""
-        # fix           FL all ti/spring {self.spring_constants[0]} ${{t_switch}} ${{t_equil}} function 2
-        # fix           FL2 all ti/spring {self.spring_constants[1]} ${{t_switch}} ${{t_equil}} function 2
-        # """
-        # breakpoint()
-        self.spring_constants=[1,2] #!!! to remobe 
         fix_springs_template = """
         fix           {fix_name} {group} ti/spring {spring_constant} {t_switch} {t_equil} function {function}
         """
@@ -395,13 +391,51 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         fix_springs = "".join(
             [fix_springs_template.format(**entry) for entry in fix_entries]
         )
-        breakpoint()
 
-        open("lammps_templates/FL_template.lmp", "w").write(
-            open("lammps_templates/FL_template.lmp", "r")
-            .read()
-            .replace("{fix_springs}", fix_springs)
+        # Read in the file
+        with open("lammps_templates/FL_template.lmp", "r") as file:
+            filedata = file.read()
+        # Replace the target string
+        filedata = filedata.replace("{fix_springs}", fix_springs)
+        # Write the file out again
+        with open("lammps_templates/FL_template.lmp", "w") as file:
+            file.write(filedata)
+
+        # run switch 1
+        # fix           record all print 1 "$(pe/atoms) $(f_FL/atoms) $(f_FL[1])" &
+        #             title "# PE_potential [eV/atom] | PE_FL [eV/atom] | lambda" &
+        #             screen no file ${switch1_output_file}
+
+        record_template = """
+        fix           record all print 1 "$(pe/atoms) {data}" &
+                     title "{title}" &
+        """
+
+        fix_entries = [
+            {
+                "fix_name": "record",
+                "group": "all",
+                "data": "".join(
+                    [f"$(f_FL{i}/atoms) $(f_FL{i}[1])" for i in range(len(self.species)+1)]
+                ),
+                "title": "# PE_potential [eV/atom] |"
+                + " PE_FL [eV/atom] | lambda |" * (len(self.species)+1),
+            }
+        ]
+
+        record_template = "".join(
+            [record_template.format(**entry) for entry in fix_entries]
         )
+
+        # Read in the file
+        with open("lammps_templates/FL_template.lmp", "r") as file:
+            filedata = file.read()
+        # Replace the target string
+        filedata = filedata.replace("{record_template}", record_template)
+        # Write the file out again
+        with open("lammps_templates/FL_template.lmp", "w") as file:
+            file.write(filedata)
+        breakpoint()
 
     def _compute_free_energy(self) -> float:
         """Compute free energy via integration of FL path"""
