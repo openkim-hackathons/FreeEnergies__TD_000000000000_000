@@ -44,13 +44,13 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         equilibrium_cell, self.spring_constants, self.volume = self._preFL()
 
         # Rescaling 0K supercell to have equilibrium lattice constant.
-        # equilibrium_cell is 3x3 matrix.
+        # equilibrium_cell is 3x3 matrix or can also have [len(a), len(b), len(c), angle(b,c), angle(a,c), angle(a,b)]
         # TODO: Divide cell by system size?
         supercell.set_cell(equilibrium_cell, scale_atoms=True)
         supercell.write(
             os.path.join(
                 os.path.dirname(os.path.realpath(__file__)),
-                "output/equuilibrium_crystal.dump",
+                "output/equilibrium_crystal.dump",
             ),
             format="lammps-data",
             masses=True,
