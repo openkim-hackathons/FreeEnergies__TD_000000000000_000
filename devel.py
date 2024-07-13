@@ -50,7 +50,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         supercell.write(
             os.path.join(
                 os.path.dirname(os.path.realpath(__file__)),
-                "output/equuilibrium_crystal.dump",
+                "output/equilibrium_crystal.dump",
             ),
             format="lammps-data",
             masses=True,
