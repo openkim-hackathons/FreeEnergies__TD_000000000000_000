@@ -135,11 +135,9 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
 
         # Analyse lammps outputs
         data = np.loadtxt("output/lammps_preFL.dat", unpack=True)
-        xx, xy, xz, yx, yy, yz, zx, zy, zz, spring_constants = data
-        equilibrium_cell = np.array([[xx, xy, xz], [yx, yy, yz], [zx, zy, zz]])
-
-        # TODO: read in volume
-        volume = 0
+        #xx, xy, xz, yx, yy, yz, zx, zy, zz, spring_constants = data
+        lx, ly, lz, volume, spring_constants = data
+        equilibrium_cell = np.array([[lx, 0, 0], [0, ly, 0], [0, 0, lz]])
 
         return equilibrium_cell, spring_constants, volume
 
@@ -156,7 +154,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
             "temperature_damping": 0.01,
             "t_equil": 50000,
             "timestep": 0.001,  # ps
-            "spring_constant": self.spring_constant,
+            "spring_constant": self.spring_constants,
             "output_filename": "output/lammps_FL.dat",
             "write_restart_filename": "output/lammps_FL.restart",
             "switch1_output_file": "output/FL_switch1.dat",
