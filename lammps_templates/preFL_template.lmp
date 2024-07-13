@@ -1,7 +1,5 @@
 kim init ${modelname} metal unit_conversion_mode
 
-print "lammps version is $(version)"
-
 # periodic boundary conditions along all three dimensions
 boundary p p p
 
@@ -21,8 +19,8 @@ read_data output/zero_temperature_crystal.dump
 kim           interactions ${species}
 
 # set the time step to 0.001 picoseconds
-variable      timestep equal 0.001*${_u_time}
-timestep      ${timestep}
+variable      timestep_converted equal ${timestep}*${_u_time}
+timestep      ${timestep_converted}
 
 # Leaving pressure variables just in case we need to compute lattice parameters
 variable      temp_converted equal ${temperature}*${_u_temperature}
