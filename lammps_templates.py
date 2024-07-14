@@ -336,8 +336,8 @@ class LammpsTemplates:
             else self.pre_fl.replace("{cell_type}", "aniso")
         )
 
-    def _write_pre_fl_lammps_templates(self, nspecies: int):
-        self._add_msd_fix_for_multicomponent(nspecies)
+    def _write_pre_fl_lammps_templates(self, nspecies: int, is_triclinic: bool):
+        self._add_msd_fix_for_multicomponent(nspecies, is_triclinic)
         open(self.root + "preFL_template.lmp", "w").write(self.pre_fl)
 
     def _write_fl_lammps_templates(self, spring_constants: List[float]):
