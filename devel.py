@@ -111,6 +111,14 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
             atomic_masses[atomic_numbers[element_symbol]]
             for element_symbol in self.species
         ])
+        
+        self.concentration = np.zeros(len(self.species))
+        symbols = np.array(self.atoms.get_chemical_symbols())
+        for i in range(len(self.species)): 
+            
+            self.concentration[i] = (symbols==self.species[i]).sum()
+        self.concentration*=1/len(symbols)
+        
 
         # Write lammps file.
         structure_file = os.path.join(
@@ -214,7 +222,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
 
         # array of harmoinc free energies, one per component
         F_harm = (
-            #self.concentration *
+            self.concentration *
             3 * KB * self.temperature * np.log(HBAR * omega / (KB * self.temperature))
         )/natoms  # [eV/atom].
 
