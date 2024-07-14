@@ -93,7 +93,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
             raise ValueError("Temperature has to be larger than zero.")
 
         if not self.pressure >= 0.0:
-            raise ValueError("Pressure has to be larger than zero.")
+            raise ValueError("Pressure has to be larger or equal than zero.")
 
     def _setup_initial_structure(
         self,
