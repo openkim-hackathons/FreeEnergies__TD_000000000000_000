@@ -32,7 +32,10 @@
         velocity      all create ${temp_converted} ${temperature_seed}
 
         # Frenkel-Ladd fix
-        {fix_springs}
+        
+        group 1 type 1
+        fix           FL0 1 ti/spring 12.3070624125603 ${t_switch} ${t_equil} function 2
+        
 
         # set NVT ensemble for all atoms
         fix           ensemble all nvt temp ${temp_converted} ${temp_converted} ${Tdamp_converted}
@@ -53,7 +56,9 @@
         run ${t_equil}
 
         # run switch 1
-        {record_template}
+        
+        fix           record all print 1 "$(pe/atoms) $((f_FL0)/atoms) $(f_FL0[1])" &
+                     title "# PE_potential [eV/atom] | PE_FL [eV/atom] | lambda" &
                     screen no file ${switch1_output_file}
         run ${t_switch}
         unfix record
@@ -62,7 +67,9 @@
         run ${t_equil}
 
         # run switch 2
-        {record_template}
+        
+        fix           record all print 1 "$(pe/atoms) $((f_FL0)/atoms) $(f_FL0[1])" &
+                     title "# PE_potential [eV/atom] | PE_FL [eV/atom] | lambda" &
                     screen no file ${switch2_output_file}
         run ${t_switch}
         unfix record

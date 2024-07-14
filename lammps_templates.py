@@ -217,10 +217,9 @@ class LammpsTemplates:
 
         record_template = """
         fix           record all print 1 "$(pe/atoms) {data}" &
-                     title "{title}" &
-        """
+                     title "{title}" &"""
 
-        terms = [f"f_FL{i}" for i in range(len(self.spring_constants))]
+        terms = [f"f_FL{i}" for i in range(len(spring_constants))]
         terms = "+".join(terms)
         final_sum = f"$(({terms})/atoms) $(f_FL0[1])"
 

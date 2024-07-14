@@ -61,7 +61,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         )
 
         # FL computes the free energy at a given pressure and temperature.
-        self.templates._write_fl_lammps_templates(spring_constans=self.spring_constants)
+        self.templates._write_fl_lammps_templates(spring_constants=self.spring_constants)
         free_energy = self._FL()
 
         # Print results
@@ -143,6 +143,10 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         data = np.loadtxt("output/lammps_preFL.dat", unpack=True)
         # xx, xy, xz, yx, yy, yz, zx, zy, zz, spring_constants = data
         lx, ly, lz, volume, spring_constants = data
+        
+        if isinstance(spring_constants,float):
+            spring_constants = [spring_constants] 
+
         equilibrium_cell = np.array([[lx, 0, 0], [0, ly, 0], [0, 0, lz]])
 
         return equilibrium_cell, spring_constants, volume
@@ -150,7 +154,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
     def _FL(
         self,
     ) -> float:
-        self._add_fl_fix_for_multicomponent()
+        
         variables = {
             "modelname": self.kim_model_name,
             "temperature": self.temperature,
@@ -187,7 +191,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         W_forw = np.trapz(Hf_f - Hi_f, lamb_f)
 
         Hf_b, Hi_b, lamb_b = np.loadtxt(
-            "output/FL_switch2.dat.", unpack=True, skiprows=1
+            "output/FL_switch2.dat", unpack=True, skiprows=1
         )
         W_back = np.trapz(Hf_b - Hi_b, 1 - lamb_b)
 
