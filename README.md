@@ -17,7 +17,7 @@ test_driver(
 ```
 
 ## Notes
-Frenkel-Ladd method is more accurate for larger systems (~10k atoms) and longer nonequilibrium simulation time ($\geq 10$k integration steps)
+Frenkel-Ladd method is more accurate for larger systems (~10k atoms) and longer nonequilibrium simulation time ($\geq 10\text{k}$ integration steps)
 
 ## Citation
 Citation for the algorithm implented by this test driver:
