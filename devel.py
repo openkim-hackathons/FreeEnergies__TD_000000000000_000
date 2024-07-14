@@ -90,11 +90,8 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         )
 
         # Write crystal-structure-npt
-        self._add_property_instance_and_common_crystal_genome_keys(
-            "", write_stress=True, write_temp=True
-        )
         self._add_key_to_current_property_instance(
-            "free_energy", free_energy, "eV/cell"
+            "crystal_structure_npt", free_energy, "eV/cell"
         )
 
     def _validate_inputs(self):
@@ -267,6 +264,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
 if __name__ == "__main__":
     model_name = "LJ_Shifted_Bernardes_1958MedCutoff_Ar__MO_126566794224_004"
     subprocess.run(f"kimitems install {model_name}", shell=True, check=True)
+    subprocess.run("mkdir -p output", shell=True, check=True)
     test_driver = FrenkelLaddFreeEnergies(model_name)
     test_driver(
         bulk("Ar", "fcc", a=5.248),
