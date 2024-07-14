@@ -3,7 +3,7 @@
 
   "property-title" "Free energy of crystal"
 
-  "property-description" "Gibbs free energy of a crystal at constant temperature and pressure using
+  "property-description" "Gibbs free energy per unit cell of a crystal at constant temperature and pressure using
   Frenkel-Ladd Hamiltonian integration algorithm. Computed through one equilibrium NPT simulation ('preFL')
   and one NONequilibrium NVT simulation ('FL'). Uses kim-convergence for convergence verification."
 
@@ -16,31 +16,7 @@
     "has-unit"     true
     "extent"       []
     "required"     true
-    "description" "Gibbs free energy of crystal."
-  }
-
-  "free_energy_err" {
-    "type"         "float"
-    "has-unit"     true
-    "extent"       []
-    "required"     true
-    "description" "Error in Gibbs free energy of crystal."
-  }
-
-  "volume" {
-    "type"          "float"
-    "has_unit"      true
-    "extent"        []
-    "required"      true
-    "description"   "Volume of system"
-  }
-
-  "pressure" {
-    "type"          "float"
-    "has_unit"      true
-    "extent"        []
-    "required"      true
-    "description"   "Pressure of system"
+    "description" "Gibbs free energy per unit cell of crystal."
   }
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

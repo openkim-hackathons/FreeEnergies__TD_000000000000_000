@@ -64,12 +64,15 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         self.templates._write_fl_lammps_templates(spring_constants=self.spring_constants)
         free_energy = self._FL()
 
+        # Convert to eV/cell
+        free_energy = free_energy*len(self.atoms)/np.prod(size)
+
         # Print results
         print("####################################")
         print("# Frenkel Ladd Free Energy Results #")
         print("####################################")
       
-        print(r"$G_{FL} =$" + f" {free_energy[0]:.5f} (eV/atom)")
+        print(r"$G_{FL} =$" + f" {free_energy[0]:.5f} (eV/cell)")
 
         # KIM tries to save some coordinate file, disabling it.
         self.poscar = None
@@ -78,7 +81,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         self._add_property_instance_and_common_crystal_genome_keys(
             "free_energy", write_stress=True, write_temp=True) 
         self._add_key_to_current_property_instance(
-            "free_energy", free_energy[0], "eV/atom"
+            "free_energy", free_energy[0], "eV/cell"
         )
 
     def _validate_inputs(self):
@@ -144,12 +147,14 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         # Analyse lammps outputs
         data = np.loadtxt("output/lammps_preFL.dat", unpack=True)
         # xx, xy, xz, yx, yy, yz, zx, zy, zz, spring_constants = data
-        lx, ly, lz, volume, spring_constants = data
+        lx, ly, lz, xy, yz, xz, volume, spring_constants = data
         
         if isinstance(spring_constants,float):
             spring_constants = [spring_constants] 
 
-        equilibrium_cell = np.array([[lx, 0, 0], [0, ly, 0], [0, 0, lz]])
+        equilibrium_cell = np.array([[lx, xy, xz],
+                                     [xy, ly, yz],
+                                     [xz, yz, lz]])
 
         return equilibrium_cell, np.array(spring_constants), volume
 
@@ -198,16 +203,17 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         W_back = np.trapz(Hf_b - Hi_b, 1 - lamb_b)
 
         Work = (W_forw - W_back) / 2
+        Dissipation = (W_forw + W_back) / 2
 
         omega = (
             np.sqrt(self.spring_constants * EV / (self.mass * MU)) * 1.0e10
         )  # [rad/s].
 
+        natoms = len(self.atoms)
+
         F_harm = (
             3 * KB * self.temperature * np.log(HBAR * omega / (KB * self.temperature))
-        )  # [eV/atom].
-
-        natoms = len(self.atoms)
+        )/natoms  # [eV/atom].
 
         F_CM = (
             KB

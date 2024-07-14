@@ -1,6 +1,6 @@
 # FreeEnergies__TD_000000000000_000
 
-Gibbs free energy of a crystal at constant temperature and pressure using Frenkel-Ladd Hamiltonian integration algorithm. Computed through one equilibrium NPT simulation ('preFL') and one NONequilibrium NVT simulation ('FL').
+Gibbs free energy per unit cell of a crystal at constant temperature and pressure using Frenkel-Ladd Hamiltonian integration algorithm. Computed through one equilibrium NPT simulation ('preFL') and one NONequilibrium NVT simulation ('FL').
 
 ## Example of usage 
 ```python 
@@ -15,10 +15,8 @@ test_driver(
 )
 ```
 
-## Caution
-- "fix ti/spring" is part of the EXTRA-FIX package, which isn't enabled in the lammps build that the test driver is using. 
-- preFL computes equilibrium lattice parameters, yet right now it would only work for cubic systems. Do we have a test driver specifically for this, that works for arbitrary crystal structures?
-
+# Notes/Caution
+Frenkel-Ladd method is most accurate for large systems (~10k atoms)
 
 # Contact
 If any troubles, feel free to contact us at ``ksheriff at mit dot edu``, and ``jogbebor at mit dot edu``

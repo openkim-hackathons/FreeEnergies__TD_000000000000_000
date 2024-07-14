@@ -15,6 +15,9 @@ class LammpsTemplates:
         # Read crystal with 0K lattice parameter.
         read_data output/zero_temperature_crystal.dump
 
+        # Change to triclinic box. Necessary for triclinic barostat, but inflates mean squared displacement
+        #change_box all triclinic remap
+
         # Convert box and all atomic positions to the correct units.
         #change_box all x scale ${_u_distance} &
         #               y scale ${_u_distance} &
@@ -41,38 +44,29 @@ class LammpsTemplates:
         velocity      all create ${temp_converted} ${temperature_seed}
 
         # Set thermodynamic ensemble
-        # if need to compute new box matrix, use uncomment second line
-        fix           ensemble all nvt temp ${temp_converted} ${temp_converted} ${Tdamp_converted}
-        #fix          ensemble all npt temp ${temp_converted} ${temp_converted} ${Tdamp_converted} tri ${press_converted} ${press_converted} ${Pdamp_converted}
-
-        # Initialize measurement of box vectors
-        #thermo_style custom avecx avecy avecz bvecx bvecy bvecz cvecx cvecy cvecz temp press vol etotal step
-        thermo_style custom lx ly lz xy yz xz temp press vol etotal step
-        thermo 1000
+        fix          ensemble all npt temp ${temp_converted} ${temp_converted} ${Tdamp_converted} aniso ${press_converted} ${press_converted} ${Pdamp_converted}
 
         # compute box information
-        #variable      avecx_metal equal avecx/${_u_distance}
-        #variable      avecy_metal equal avecy/${_u_distance}
-        #variable      avecz_metal equal avecz/${_u_distance}
-
-        #variable      bvecx_metal equal bvecx/${_u_distance}
-        #variable      bvecy_metal equal bvecy/${_u_distance}
-        #variable      bvecz_metal equal bvecz/${_u_distance}
-
-        #variable      cvecx_metal equal cvecx/${_u_distance}
-        #variable      cvecy_metal equal cvecy/${_u_distance}
-        #variable      cvecz_metal equal cvecz/${_u_distance}
-
         variable       lx_metal equal lx/${_u_distance}
         variable       ly_metal equal ly/${_u_distance}
         variable       lz_metal equal lz/${_u_distance}
+        variable       xy_metal equal xy/${_u_distance}
+        variable       yz_metal equal yz/${_u_distance}
+        variable       xz_metal equal xz/${_u_distance}
 
         # compute mean squared displacement
-        compute       MSD all msd com yes average yes
+        #compute       MSD all msd com yes average yes
+        {compute_msd}
 
         # Temperature may be off because of rigid bodies or SHAKE constraints. See https://docs.lammps.org/velocity.html
-        run 0
-        velocity all scale $(v_temperature*v__u_temperature)
+        #run 0
+        #velocity all scale $(v_temperature*v__u_temperature)
+
+        # Initialize measurement of box vectors
+        #thermo_style custom avecx avecy avecz bvecx bvecy bvecz cvecx cvecy cvecz temp press vol etotal step
+        #thermo_style custom lx ly lz xy yz xz temp press vol etotal c_MSD0[4] c_MSD1[4] step
+        {thermo_template}
+        thermo 1000
 
         # Set up convergence check with kim-convergence.
         # Alternative is to set a safe general equilibration time
@@ -83,27 +77,35 @@ class LammpsTemplates:
         #python run_length_control invoke
 
         # Equilibration
-        run 10000
+        #run 10000
+
+        variable N_every equal 100
+        variable run_time equal 20000
+        variable N_repeat equal v_run_time/(2*v_N_every)
+        variable N_start equal v_run_time/2
 
         # compute averages of above variables
-        fix           AVG all ave/time 100 100 10000 v_lx_metal v_ly_metal v_lz_metal c_MSD[4] ave running
+        #fix           AVG all ave/time ${N_every} ${N_repeat} ${run_time} v_lx_metal v_ly_metal v_lz_metal c_MSD[4] ave running start ${N_start}
                                                     #v_bvecx_metal v_bvecy_metal v_bvecz_metal &
                                                     #v_cvecx_metal v_cvecy_metal v_cvecz_metal &
                                                     #c_MSD[4] ave running
+        {avg_template}
 
         # Run steps in the converged regime.
-        run 10000
+        run ${run_time}
 
         # compute spring constant
         variable      kB equal 8.617333262e-5*(v__u_energy/v__u_temperature) # eV/K unless converted
-        variable      MSD equal f_AVG[4]*(v__u_distance)^2
-        variable      spring_constant equal $(3*v_kB*v_temp_converted/(v_MSD)^2)
+        #variable      MSD equal f_AVG[4]*(v__u_distance)^2
+        #variable      spring_constant equal $(3*v_kB*v_temp_converted/(v_MSD)^2)
+        {k_lines}
 
         # Write final averages and spring constant
         #print "# xx | xy | xz | yx | yy | yz | zx | zy | zz | spring constant [eV/Ang^2]" file ${output_filename}
         #print "$(f_AVG[1]) $(f_AVG[2]) $(f_AVG[3]) $(f_AVG[4]) $(f_AVG[5]) $(f_AVG[6]) $(f_AVG[7]) $(f_AVG[8]) $(f_AVG[9]) ${spring_constant}" screen no append ${output_filename}
         print "# lx | ly | lz [Ang] | vol [Ang^3] | spring constant [eV/Ang^2]" file ${output_filename}
-        print "$(f_AVG[1]) $(f_AVG[2]) $(f_AVG[3]) $(vol) ${spring_constant}" screen no append ${output_filename}
+        #print "$(f_AVG[1]) $(f_AVG[2]) $(f_AVG[3]) $(vol) ${spring_constant}" screen no append ${output_filename}
+        {print_template}
 
         # Reset.
         unfix ensemble
@@ -154,10 +156,11 @@ class LammpsTemplates:
         # Frenkel-Ladd fix
         {fix_springs}
 
-        # set NVT ensemble for all atoms
-        fix           ensemble all nvt temp ${temp_converted} ${temp_converted} ${Tdamp_converted}
+        # set NVE-Langevin ensemble for all atoms (better sampling of spring-system with Langevin instead of NVT)
+        fix           ensemble all nve
+        fix           thermostat all langevin ${temp_converted} ${temp_converted} ${Tdamp_converted} ${temperature_seed}
         compute       cl all temp/com
-        fix_modify    ensemble temp cl
+        fix_modify    thermostat temp cl
 
         # print data to logfile every 1000 timesteps
         variable      etotal_metal equal etotal/${_u_energy}
@@ -258,8 +261,8 @@ class LammpsTemplates:
 
         self.pre_fl = self.pre_fl.replace("{compute_msd}", compute_msd)
 
-        avg_template = """
-        fix          AVG all ave/time 100 100 10000 v_lx_metal v_ly_metal v_lz_metal {msd_data} ave running
+        thermo_template = """
+        thermo_style custom lx ly lz xy yz xz temp press vol etotal {msd_data} step
         """
 
         terms = [f"c_MSD{i}[4]" for i in range(nspecies)]
@@ -268,8 +271,20 @@ class LammpsTemplates:
 
         fix_entries = [
             {
-                "fix_name": "AVG",
-                "group": "all",
+                "msd_data": msd_data,
+            }
+        ]
+
+        thermo_template = "".join([thermo_template.format(**entry) for entry in fix_entries])
+
+        self.pre_fl = self.pre_fl.replace("{thermo_template}", thermo_template)
+
+        avg_template = """
+        fix          AVG all ave/time ${{N_every}} ${{N_repeat}} ${{run_time}} v_lx_metal v_ly_metal v_lz_metal v_xy_metal v_yz_metal v_xz_metal {msd_data} ave running start ${{N_start}}
+        """
+
+        fix_entries = [
+            {
                 "msd_data": msd_data,
             }
         ]
@@ -287,7 +302,7 @@ class LammpsTemplates:
             {
                 "variable_name_1": f"MSD{i}",
                 "variable_name_2": f"spring_constant_{i}",
-                "avg_i": f"{i+4}",
+                "avg_i": f"{i+7}",
             }
             for i in range(nspecies)
         ]
@@ -297,7 +312,7 @@ class LammpsTemplates:
         self.pre_fl = self.pre_fl.replace("{k_lines}", k_lines)
 
         print_template = """
-        print "$(f_AVG[1]) $(f_AVG[2]) $(f_AVG[3]) $(vol) {spring_constants}" screen no append ${{output_filename}}
+        print "$(f_AVG[1]) $(f_AVG[2]) $(f_AVG[3]) $(f_AVG[4]) $(f_AVG[5]) $(f_AVG[6]) $(vol) $({spring_constants})" screen no append ${{output_filename}}
         """
 
         terms = [f"v_spring_constant_{i}" for i in range(nspecies)]
