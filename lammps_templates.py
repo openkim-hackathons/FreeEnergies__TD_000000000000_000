@@ -6,6 +6,7 @@ class LammpsTemplates:
     def __init__(self, root):
         self.root = root
         os.makedirs(self.root, exist_ok=True)
+        
         self.pre_fl = """
         kim init ${modelname} metal unit_conversion_mode
 

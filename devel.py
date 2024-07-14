@@ -81,9 +81,17 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         # KIM tries to save some coordinate file, disabling it.
         self.poscar = None
 
-        # Write property
+        # Write free energy
         self._add_property_instance_and_common_crystal_genome_keys(
             "free-energy", write_stress=True, write_temp=True
+        )
+        self._add_key_to_current_property_instance(
+            "free_energy", free_energy, "eV/cell"
+        )
+
+        # Write crystal-structure-npt
+        self._add_property_instance_and_common_crystal_genome_keys(
+            "", write_stress=True, write_temp=True
         )
         self._add_key_to_current_property_instance(
             "free_energy", free_energy, "eV/cell"
