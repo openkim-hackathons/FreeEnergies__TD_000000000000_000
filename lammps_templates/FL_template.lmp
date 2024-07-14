@@ -34,7 +34,7 @@
         # Frenkel-Ladd fix
         
         group 1 type 1
-        fix           FL0 1 ti/spring 12.3070624125603 ${t_switch} ${t_equil} function 2
+        fix           FL0 1 ti/spring 11.203472894766 ${t_switch} ${t_equil} function 2
         
 
         # set NVT ensemble for all atoms

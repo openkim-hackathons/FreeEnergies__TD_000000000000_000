@@ -68,15 +68,17 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         print("####################################")
         print("# Frenkel Ladd Free Energy Results #")
         print("####################################")
-
-        print(r"$G_{FL} =$" + f" {free_energy:.5f} (eV/atom)")
+      
+        print(r"$G_{FL} =$" + f" {free_energy[0]:.5f} (eV/atom)")
 
         # KIM tries to save some coordinate file, disabling it.
         self.poscar = None
 
         # Write property
+        self._add_property_instance_and_common_crystal_genome_keys(
+            "free_energy", write_stress=True, write_temp=True) 
         self._add_key_to_current_property_instance(
-            "free_energy", free_energy, "eV/atom"
+            "free_energy", free_energy[0], "eV/atom"
         )
 
     def _validate_inputs(self):
@@ -101,11 +103,11 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         # These species are passed to kim interactions.
         # See https://wiki.fysik.dtu.dk/ase/_modules/ase/io/lammpsdata.html#write_lammps_data
         symbols = atoms_new.get_chemical_symbols()
-        self.species = sorted(set(symbols))
-        self.mass = [
+        self.species = np.array(sorted(set(symbols)))
+        self.mass = np.array([
             atomic_masses[atomic_numbers[element_symbol]]
             for element_symbol in self.species
-        ]
+        ])
 
         # Write lammps file.
         structure_file = os.path.join(
@@ -149,7 +151,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
 
         equilibrium_cell = np.array([[lx, 0, 0], [0, ly, 0], [0, 0, lz]])
 
-        return equilibrium_cell, spring_constants, volume
+        return equilibrium_cell, np.array(spring_constants), volume
 
     def _FL(
         self,
