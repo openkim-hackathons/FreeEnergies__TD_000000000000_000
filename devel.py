@@ -15,6 +15,7 @@ HBAR = sc.value("Planck constant in eV/Hz") / (2 * np.pi)
 KB = sc.value("Boltzmann constant in eV/K")
 
 
+
 class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
     def _calculate(
         self,
@@ -50,6 +51,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         # Rescaling 0K supercell to have equilibrium lattice constant.
         # equilibrium_cell is 3x3 matrix or can also have [len(a), len(b), len(c), angle(b,c), angle(a,c), angle(a,b)]
         # TODO: Divide cell by system size?
+       
         supercell.set_cell(equilibrium_cell, scale_atoms=True)
         supercell.write(
             os.path.join(
@@ -91,7 +93,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         if not self.temperature > 0.0:
             raise ValueError("Temperature has to be larger than zero.")
 
-        if not self.pressure > 0.0:
+        if not self.pressure >= 0.0:
             raise ValueError("Pressure has to be larger than zero.")
 
     def _setup_initial_structure(
@@ -215,10 +217,15 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         Work = (W_forw - W_back) / 2
         Dissipation = (W_forw + W_back) / 2
 
+        print(f"Work: {Work:.5f}")
+        print(f"Dissipation: {Dissipation:.5f}")
+
         # array of omegas, one per component
         omega = (
             np.sqrt(self.spring_constants * EV / (self.mass * MU)) * 1.0e10
         )  # [rad/s].
+
+        print(f"omega: {omega[0]:.5f}")
 
         natoms = len(self.atoms)
 
@@ -230,6 +237,8 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
             * self.temperature
             * np.log(HBAR * omega / (KB * self.temperature))
         )  # [eV/atom].
+
+        print(f"F_harm: {F_harm[0]:.5f}")
 
         F_CM = (
             KB
@@ -248,6 +257,8 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
             / natoms
         )  # correction for fixed center of mass
 
+        print(f"F_CM: {F_CM[0]:.5f}")
+
         free_energy = np.sum(F_harm) - Work + F_CM
         return free_energy
 
@@ -258,7 +269,7 @@ if __name__ == "__main__":
     test_driver = FrenkelLaddFreeEnergies(model_name)
     test_driver(
         bulk("Ar", "fcc", a=5.248),
-        size=(5, 5, 5),
+        size=(3, 3, 3),
         temperature=20.0,
-        pressure=0.1,
+        pressure=0.0,
     )
