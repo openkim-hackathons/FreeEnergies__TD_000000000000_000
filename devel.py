@@ -61,17 +61,19 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         )
 
         # FL computes the free energy at a given pressure and temperature.
-        self.templates._write_fl_lammps_templates(spring_constants=self.spring_constants)
+        self.templates._write_fl_lammps_templates(
+            spring_constants=self.spring_constants
+        )
         free_energy = self._FL()
 
         # Convert to eV/cell
-        free_energy = free_energy*len(self.atoms)/np.prod(size)
+        free_energy = free_energy * len(self.atoms) / np.prod(size)
 
         # Print results
         print("####################################")
         print("# Frenkel Ladd Free Energy Results #")
         print("####################################")
-      
+
         print(r"$G_{FL} =$" + f" {free_energy[0]:.5f} (eV/cell)")
 
         # KIM tries to save some coordinate file, disabling it.
@@ -79,7 +81,8 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
 
         # Write property
         self._add_property_instance_and_common_crystal_genome_keys(
-            "free-energy", write_stress=True, write_temp=True) 
+            "free-energy", write_stress=True, write_temp=True
+        )
         self._add_key_to_current_property_instance(
             "free_energy", free_energy[0], "eV/cell"
         )
@@ -107,18 +110,19 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         # See https://wiki.fysik.dtu.dk/ase/_modules/ase/io/lammpsdata.html#write_lammps_data
         symbols = atoms_new.get_chemical_symbols()
         self.species = np.array(sorted(set(symbols)))
-        self.mass = np.array([
-            atomic_masses[atomic_numbers[element_symbol]]
-            for element_symbol in self.species
-        ])
-        
+        self.mass = np.array(
+            [
+                atomic_masses[atomic_numbers[element_symbol]]
+                for element_symbol in self.species
+            ]
+        )
+
         self.concentration = np.zeros(len(self.species))
         symbols = np.array(self.atoms.get_chemical_symbols())
-        for i in range(len(self.species)): 
-            
-            self.concentration[i] = (symbols==self.species[i]).sum()
-        self.concentration*=1/len(symbols)
-        
+        for i in range(len(self.species)):
+
+            self.concentration[i] = (symbols == self.species[i]).sum()
+        self.concentration *= 1 / len(symbols)
 
         # Write lammps file.
         structure_file = os.path.join(
@@ -156,20 +160,18 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         data = np.loadtxt("output/lammps_preFL.dat", unpack=True)
         # xx, xy, xz, yx, yy, yz, zx, zy, zz, spring_constants = data
         lx, ly, lz, xy, yz, xz, volume, spring_constants = data
-        
-        if isinstance(spring_constants,float):
-            spring_constants = [spring_constants] 
 
-        equilibrium_cell = np.array([[lx, xy, xz],
-                                     [xy, ly, yz],
-                                     [xz, yz, lz]])
+        if isinstance(spring_constants, float):
+            spring_constants = [spring_constants]
+
+        equilibrium_cell = np.array([[lx, xy, xz], [xy, ly, yz], [xz, yz, lz]])
 
         return equilibrium_cell, np.array(spring_constants), volume
 
     def _FL(
         self,
     ) -> float:
-        
+
         variables = {
             "modelname": self.kim_model_name,
             "temperature": self.temperature,
@@ -222,16 +224,19 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
 
         # array of harmoinc free energies, one per component
         F_harm = (
-            self.concentration *
-            3 * KB * self.temperature * np.log(HBAR * omega / (KB * self.temperature))
-        )/natoms  # [eV/atom].
+            self.concentration
+            * 3
+            * KB
+            * self.temperature
+            * np.log(HBAR * omega / (KB * self.temperature))
+        ) / natoms  # [eV/atom].
 
         F_CM = (
             KB
             * self.temperature
             * np.log(
                 (natoms / self.volume)
-                * (2 * np.pi * KB * self.temperature / (natoms * self.mass * omega**2))
+                * (2 * np.pi * KB * self.temperature / (natoms * np.mean(self.mass) * omega**2))
                 ** (3 / 2)
             )
             / natoms

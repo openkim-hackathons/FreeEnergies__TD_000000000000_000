@@ -99,7 +99,7 @@ class LammpsTemplates:
         # compute spring constant
         variable      kB equal 8.617333262e-5*(v__u_energy/v__u_temperature) # eV/K unless converted
         #variable      MSD equal f_AVG[4]*(v__u_distance)^2
-        #variable      spring_constant equal $(3*v_kB*v_temp_converted/(v_MSD)^2)
+        #variable      spring_constant equal $(3*v_kB*v_temp_converted/(v_MSD))
         {k_lines}
 
         # Write final averages and spring constant
@@ -297,7 +297,7 @@ class LammpsTemplates:
 
         k_template = """
         variable      {variable_name_1} equal f_AVG[{avg_i}]*(v__u_distance)^2
-        variable      {variable_name_2} equal $(3*v_kB*v_temp_converted/(v_{variable_name_1})^2)
+        variable      {variable_name_2} equal $(3*v_kB*v_temp_converted/(v_{variable_name_1}))
         """
 
         k_entries = [
