@@ -15,9 +15,6 @@ class LammpsTemplates:
         # Read crystal with 0K lattice parameter.
         read_data output/zero_temperature_crystal.dump
 
-        # Change to triclinic box. Necessary for triclinic barostat, but inflates mean squared displacement
-        #change_box all triclinic remap
-
         # Convert box and all atomic positions to the correct units.
         #change_box all x scale ${_u_distance} &
         #               y scale ${_u_distance} &
@@ -44,7 +41,7 @@ class LammpsTemplates:
         velocity      all create ${temp_converted} ${temperature_seed}
 
         # Set thermodynamic ensemble (barostat type depends on box type)
-        fix          ensemble all npt temp ${temp_converted} ${temp_converted} ${Tdamp_converted} aniso ${press_converted} ${press_converted} ${Pdamp_converted}
+        fix          ensemble all npt temp ${temp_converted} ${temp_converted} ${Tdamp_converted} {cell_type} ${press_converted} ${press_converted} ${Pdamp_converted}
         compute cl all temp/com
         fix_modify ensemble temp cl
 
@@ -117,9 +114,6 @@ class LammpsTemplates:
 
         # Write the initial starting file for a true simulation.
         write_restart ${write_restart_filename}
-
-
-
         """
 
         self.fl = """
@@ -243,7 +237,7 @@ class LammpsTemplates:
 
         self.fl = self.fl.replace("{record_template}", record_template)
 
-    def _add_msd_fix_for_multicomponent(self, nspecies: int):
+    def _add_msd_fix_for_multicomponent(self, nspecies: int, is_triclinic: bool):
         compute_msd_template = """
         group {group} type {group}
         compute           {compute_name} {group} msd com yes average yes
@@ -277,7 +271,9 @@ class LammpsTemplates:
             }
         ]
 
-        thermo_template = "".join([thermo_template.format(**entry) for entry in fix_entries])
+        thermo_template = "".join(
+            [thermo_template.format(**entry) for entry in fix_entries]
+        )
 
         self.pre_fl = self.pre_fl.replace("{thermo_template}", thermo_template)
 
@@ -332,6 +328,13 @@ class LammpsTemplates:
         )
 
         self.pre_fl = self.pre_fl.replace("{print_template}", print_template)
+
+        # determine barostat type based on self.is_triclinic
+        self.pre_fl = (
+            self.pre_fl.replace("{cell_type}", "tri")
+            if is_triclinic
+            else self.pre_fl.replace("{cell_type}", "aniso")
+        )
 
     def _write_pre_fl_lammps_templates(self, nspecies: int):
         self._add_msd_fix_for_multicomponent(nspecies)

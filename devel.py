@@ -40,7 +40,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
 
         # Write initial template file
         self.templates = LammpsTemplates(root="lammps_templates/")
-        self.templates._write_pre_fl_lammps_templates(nspecies=len(self.species))
+        self.templates._write_pre_fl_lammps_templates(nspecies=len(self.species),is_triclinic=self.is_triclinic)
 
         # preFL computes the equilibrium lattice parameter and spring constants for a given temperature and pressure.
         # TODO: This should probably be replaced with its own test driver, which compute equilibrium lattice constants, and which can handles arbitrary crystal structures (right now only works for cubic crystals). Then we can get spring constants.
@@ -130,6 +130,10 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
             os.path.dirname(os.path.realpath(__file__)), filename
         )
         atoms_new.write(structure_file, format="lammps-data", masses=True)
+
+        
+        angles = self.atoms.get_cell().angles()
+        self.is_triclinic =  all(angle != 90 for angle in angles) and len(set(angles)) == 3
 
         return atoms_new
 
