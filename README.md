@@ -20,7 +20,18 @@ test_driver(
 Frenkel-Ladd method is more accurate for larger systems (~10k atoms) and longer nonequilibrium simulation time (>= 10k integration steps)
 
 Citation for the algorithm implented by this test driver: https://doi.org/10.1016/j.commatsci.2015.10.050
-
+```
+@article{freitas_nonequilibrium_2016,
+title = {Nonequilibrium free-energy calculation of solids using LAMMPS},
+journal = {Computational Materials Science},
+volume = {112},
+pages = {333-341},
+year = {2016},
+issn = {0927-0256},
+doi = {https://doi.org/10.1016/j.commatsci.2015.10.050},
+author = {Rodrigo Freitas and Mark Asta and Maurice {de Koning}},
+}
+```
 # Contact
 If any troubles, feel free to contact us at ``ksheriff at mit dot edu``, and ``jogbebor at mit dot edu``
 
