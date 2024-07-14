@@ -79,7 +79,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
 
         # Write property
         self._add_property_instance_and_common_crystal_genome_keys(
-            "free_energy", write_stress=True, write_temp=True) 
+            "free-energy", write_stress=True, write_temp=True) 
         self._add_key_to_current_property_instance(
             "free_energy", free_energy[0], "eV/cell"
         )
@@ -205,13 +205,16 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         Work = (W_forw - W_back) / 2
         Dissipation = (W_forw + W_back) / 2
 
+        # array of omegas, one per component
         omega = (
             np.sqrt(self.spring_constants * EV / (self.mass * MU)) * 1.0e10
         )  # [rad/s].
 
         natoms = len(self.atoms)
 
+        # array of harmoinc free energies, one per component
         F_harm = (
+            #self.concentration *
             3 * KB * self.temperature * np.log(HBAR * omega / (KB * self.temperature))
         )/natoms  # [eV/atom].
 
@@ -236,7 +239,7 @@ if __name__ == "__main__":
     test_driver = FrenkelLaddFreeEnergies(model_name)
     test_driver(
         bulk("Ar", "fcc", a=5.248),
-        size=(3, 3, 3),
+        size=(5, 5, 5),
         temperature=20.0,
-        pressure=1.0,
+        pressure=0.1,
     )

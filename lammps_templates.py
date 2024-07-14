@@ -153,11 +153,13 @@ class LammpsTemplates:
         # create initial velocities consistent with the chosen temperature
         velocity      all create ${temp_converted} ${temperature_seed}
 
+        # set NVE ensemble for all atoms
+        fix           ensemble all nve
+
         # Frenkel-Ladd fix
         {fix_springs}
 
-        # set NVE-Langevin ensemble for all atoms (better sampling of spring-system with Langevin instead of NVT)
-        fix           ensemble all nve
+        # set langevin thermostat (NVE-Langevin samples spring system more accurately than NVT)
         fix           thermostat all langevin ${temp_converted} ${temp_converted} ${Tdamp_converted} ${temperature_seed}
         compute       cl all temp/com
         fix_modify    thermostat temp cl

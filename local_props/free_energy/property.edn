@@ -1,5 +1,5 @@
 {
-  "property-id" "tag:staff@noreply.openkim.org,2024-03-11:property/free_energy"
+  "property-id" "tag:staff@noreply.openkim.org,2024-03-11:property/free-energy"
 
   "property-title" "Free energy of crystal"
 
@@ -16,7 +16,7 @@
     "has-unit"     true
     "extent"       []
     "required"     true
-    "description" "Gibbs free energy per unit cell of crystal."
+    "description" "Gibbs free energy (in eV) per unit cell of crystal."
   }
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
