@@ -68,7 +68,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         free_energy = self._FL()
 
         # Convert to eV/cell
-        # free_energy = free_energy * len(self.atoms) / np.prod(size)
+        free_energy = free_energy * len(self.supercell) / np.prod(size)
 
         # Print results
         print("####################################")
