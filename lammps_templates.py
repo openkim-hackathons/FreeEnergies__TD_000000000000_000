@@ -43,8 +43,10 @@ class LammpsTemplates:
         # Initialize velocities.
         velocity      all create ${temp_converted} ${temperature_seed}
 
-        # Set thermodynamic ensemble
+        # Set thermodynamic ensemble (barostat type depends on box type)
         fix          ensemble all npt temp ${temp_converted} ${temp_converted} ${Tdamp_converted} aniso ${press_converted} ${press_converted} ${Pdamp_converted}
+        compute cl all temp/com
+        fix_modify ensemble temp cl
 
         # compute box information
         variable       lx_metal equal lx/${_u_distance}
@@ -160,9 +162,7 @@ class LammpsTemplates:
         {fix_springs}
 
         # set langevin thermostat (NVE-Langevin samples spring system more accurately than NVT)
-        fix           thermostat all langevin ${temp_converted} ${temp_converted} ${Tdamp_converted} ${temperature_seed}
-        compute       cl all temp/com
-        fix_modify    thermostat temp cl
+        fix           thermostat all langevin ${temp_converted} ${temp_converted} ${Tdamp_converted} ${temperature_seed} zero yes
 
         # print data to logfile every 1000 timesteps
         variable      etotal_metal equal etotal/${_u_energy}

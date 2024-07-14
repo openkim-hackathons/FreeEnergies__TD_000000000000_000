@@ -37,13 +37,11 @@
         # Frenkel-Ladd fix
         
         group 1 type 1
-        fix           FL0 1 ti/spring 6.20964807011336 ${t_switch} ${t_equil} function 2
+        fix           FL0 1 ti/spring 6.05372515726812 ${t_switch} ${t_equil} function 2
         
 
         # set langevin thermostat (NVE-Langevin samples spring system more accurately than NVT)
-        fix           thermostat all langevin ${temp_converted} ${temp_converted} ${Tdamp_converted} ${temperature_seed}
-        compute       cl all temp/com
-        fix_modify    thermostat temp cl
+        fix           thermostat all langevin ${temp_converted} ${temp_converted} ${Tdamp_converted} ${temperature_seed} zero yes
 
         # print data to logfile every 1000 timesteps
         variable      etotal_metal equal etotal/${_u_energy}

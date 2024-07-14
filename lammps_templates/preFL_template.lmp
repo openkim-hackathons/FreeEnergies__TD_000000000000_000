@@ -35,8 +35,10 @@
         # Initialize velocities.
         velocity      all create ${temp_converted} ${temperature_seed}
 
-        # Set thermodynamic ensemble
+        # Set thermodynamic ensemble (barostat type depends on box type)
         fix          ensemble all npt temp ${temp_converted} ${temp_converted} ${Tdamp_converted} aniso ${press_converted} ${press_converted} ${Pdamp_converted}
+        compute cl all temp/com
+        fix_modify ensemble temp cl
 
         # compute box information
         variable       lx_metal equal lx/${_u_distance}
