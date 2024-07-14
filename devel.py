@@ -76,7 +76,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         print("# Frenkel Ladd Free Energy Results #")
         print("####################################")
 
-        print(f"G_FL = {free_energy[0]:.5f} (eV/cell)")
+        print(f"G_FL = {free_energy:.5f} (eV/cell)")
 
         # KIM tries to save some coordinate file, disabling it.
         self.poscar = None
@@ -86,7 +86,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
             "free-energy", write_stress=True, write_temp=True
         )
         self._add_key_to_current_property_instance(
-            "free_energy", free_energy[0], "eV/cell"
+            "free_energy", free_energy, "eV/cell"
         )
 
     def _validate_inputs(self):
@@ -217,15 +217,15 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         Work = (W_forw - W_back) / 2
         Dissipation = (W_forw + W_back) / 2
 
-        print(f"Work: {Work:.5f}")
-        print(f"Dissipation: {Dissipation:.5f}")
+        #print(f"Work: {Work:.5f}")
+        #print(f"Dissipation: {Dissipation:.5f}") # should be small
 
         # array of omegas, one per component
         omega = (
             np.sqrt(self.spring_constants * EV / (self.mass * MU)) * 1.0e10
         )  # [rad/s].
 
-        print(f"omega: {omega[0]:.5f}")
+        #print(f"omega: {omega[0]:.5f}")
 
         natoms = len(self.atoms)
 
@@ -238,7 +238,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
             * np.log(HBAR * omega / (KB * self.temperature))
         )  # [eV/atom].
 
-        print(f"F_harm: {F_harm[0]:.5f}")
+        #print(f"F_harm: {F_harm[0]:.5f}")
 
         F_CM = (
             KB
@@ -250,16 +250,18 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
                     * np.pi
                     * KB
                     * self.temperature
-                    / (natoms * np.mean(self.mass) * omega**2)
+                    / (natoms * self.concentration*self.mass * omega**2)
                 )
                 ** (3 / 2)
             )
             / natoms
         )  # correction for fixed center of mass
 
-        print(f"F_CM: {F_CM[0]:.5f}")
+        #  k_B*T*np.log((natoms/V) * (2*np.pi*k_B*T / (natoms*x.mass*omega**2))**(3/2))/natoms # 
 
-        free_energy = np.sum(F_harm) - Work + F_CM
+        print(f"F_CM: {F_CM:.5f}")
+
+        free_energy = np.sum(F_harm) - Work + np.sum(F_CM)
         return free_energy
 
 
