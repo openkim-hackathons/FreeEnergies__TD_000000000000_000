@@ -89,11 +89,6 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
             "free_energy", free_energy, "eV/cell"
         )
 
-        # Write crystal-structure-npt
-        self._add_key_to_current_property_instance(
-            "crystal_structure_npt", free_energy, "eV/cell"
-        )
-
     def _validate_inputs(self):
         if not self.temperature > 0.0:
             raise ValueError("Temperature has to be larger than zero.")
