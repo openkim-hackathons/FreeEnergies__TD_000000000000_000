@@ -19,14 +19,6 @@
     "description" "Gibbs free energy (in eV) per unit cell of crystal."
   }
 
-  "crystal_structure_npt" {
-    "type"         "float"
-    "has-unit"     true
-    "extent"       []
-    "required"     true
-    "description" "Crystal structure at given temperature"
-  }
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; END OF NEW FIELDS TO DEFINE
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
