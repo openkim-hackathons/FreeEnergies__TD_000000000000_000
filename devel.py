@@ -67,14 +67,14 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         free_energy = self._FL()
 
         # Convert to eV/cell
-        free_energy = free_energy * len(self.atoms) / np.prod(size)
+        # free_energy = free_energy * len(self.atoms) / np.prod(size)
 
         # Print results
         print("####################################")
         print("# Frenkel Ladd Free Energy Results #")
         print("####################################")
 
-        print(r"$G_{FL} =$" + f" {free_energy[0]:.5f} (eV/cell)")
+        print(f"G_FL = {free_energy[0]:.5f} (eV/cell)")
 
         # KIM tries to save some coordinate file, disabling it.
         self.poscar = None
@@ -178,7 +178,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
             "pressure": self.pressure,
             "species": " ".join(self.species),
             "t_switch": 10000,
-            "temperature_damping": 1.0,
+            "temperature_damping": 0.1,
             "temperature_seed": np.random.randint(low=100000, high=999999, dtype=int),
             "t_equil": 10000,
             "timestep": 0.001,  # ps
@@ -229,14 +229,20 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
             * KB
             * self.temperature
             * np.log(HBAR * omega / (KB * self.temperature))
-        ) / natoms  # [eV/atom].
+        )  # [eV/atom].
 
         F_CM = (
             KB
             * self.temperature
             * np.log(
                 (natoms / self.volume)
-                * (2 * np.pi * KB * self.temperature / (natoms * np.mean(self.mass) * omega**2))
+                * (
+                    2
+                    * np.pi
+                    * KB
+                    * self.temperature
+                    / (natoms * np.mean(self.mass) * omega**2)
+                )
                 ** (3 / 2)
             )
             / natoms

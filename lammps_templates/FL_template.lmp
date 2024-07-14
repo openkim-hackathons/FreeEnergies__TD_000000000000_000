@@ -37,7 +37,7 @@
         # Frenkel-Ladd fix
         
         group 1 type 1
-        fix           FL0 1 ti/spring 6.05372515726812 ${t_switch} ${t_equil} function 2
+        fix           FL0 1 ti/spring 0.1707750318933 ${t_switch} ${t_equil} function 2
         
 
         # set langevin thermostat (NVE-Langevin samples spring system more accurately than NVT)

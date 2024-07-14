@@ -98,10 +98,10 @@
         # compute spring constant
         variable      kB equal 8.617333262e-5*(v__u_energy/v__u_temperature) # eV/K unless converted
         #variable      MSD equal f_AVG[4]*(v__u_distance)^2
-        #variable      spring_constant equal $(3*v_kB*v_temp_converted/(v_MSD)^2)
+        #variable      spring_constant equal $(3*v_kB*v_temp_converted/(v_MSD))
         
         variable      MSD0 equal f_AVG[7]*(v__u_distance)^2
-        variable      spring_constant_0 equal $(3*v_kB*v_temp_converted/(v_MSD0)^2)
+        variable      spring_constant_0 equal $(3*v_kB*v_temp_converted/(v_MSD0))
         
 
         # Write final averages and spring constant
