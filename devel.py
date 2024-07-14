@@ -216,15 +216,10 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         Work = (W_forw - W_back) / 2
         Dissipation = (W_forw + W_back) / 2
 
-        # print(f"Work: {Work:.5f}")
-        # print(f"Dissipation: {Dissipation:.5f}") # should be small
-
         # array of omegas, one per component
         omega = (
             np.sqrt(self.spring_constants * EV / (self.mass * MU)) * 1.0e10
         )  # [rad/s].
-
-        # print(f"omega: {omega[0]:.5f}")
 
         natoms = len(self.supercell)
 
@@ -237,8 +232,6 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
             * np.log(HBAR * omega / (KB * self.temperature))
         )  # [eV/atom].
 
-        # print(f"F_harm: {F_harm[0]:.5f}")
-        
         F_CM = (
             KB
             * self.temperature
@@ -252,10 +245,6 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
             )
             / natoms
         )  # correction for fixed center of mass
-
-        #  k_B*T*np.log((natoms/V) * (2*np.pi*k_B*T / (natoms*x.mass*omega**2))**(3/2))/natoms #
-
-        print(f"F_CM: {F_CM[0]:.5f}")
 
         free_energy = np.sum(F_harm) - Work + np.sum(F_CM)
         return free_energy
