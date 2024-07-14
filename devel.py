@@ -168,7 +168,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
             "pressure": self.pressure,
             "species": " ".join(self.species),
             "t_switch": 10000,
-            "temperature_damping": 0.01,
+            "temperature_damping": 0.1,
             "temperature_seed": np.random.randint(low=100000, high=999999, dtype=int),
             "t_equil": 10000,
             "timestep": 0.001,  # ps
