@@ -1,4 +1,4 @@
-# FreeEnergies__TD_000000000000_000
+# Free Energy Crystal Genome Test Driver
 
 Gibbs free energy per unit cell of a crystal at constant temperature and pressure using Frenkel-Ladd Hamiltonian integration algorithm. Computed through one equilibrium NPT simulation ('preFL') and one NONequilibrium NVT simulation ('FL').
 
