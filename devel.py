@@ -15,7 +15,6 @@ HBAR = sc.value("Planck constant in eV/Hz") / (2 * np.pi)
 KB = sc.value("Boltzmann constant in eV/K")
 
 
-
 class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
     def _calculate(
         self,
@@ -37,7 +36,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         self._validate_inputs()
 
         # Write initial atomic structure to lammps dump file
-        supercell = self._setup_initial_structure(size)
+        self.supercell = self._setup_initial_structure(size)
 
         # Write initial template file
         self.templates = LammpsTemplates(root="lammps_templates/")
@@ -51,9 +50,9 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         # Rescaling 0K supercell to have equilibrium lattice constant.
         # equilibrium_cell is 3x3 matrix or can also have [len(a), len(b), len(c), angle(b,c), angle(a,c), angle(a,b)]
         # TODO: Divide cell by system size?
-       
-        supercell.set_cell(equilibrium_cell, scale_atoms=True)
-        supercell.write(
+
+        self.supercell.set_cell(equilibrium_cell, scale_atoms=True)
+        self.supercell.write(
             os.path.join(
                 os.path.dirname(os.path.realpath(__file__)),
                 "output/equilibrium_crystal.dump",
@@ -217,17 +216,17 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         Work = (W_forw - W_back) / 2
         Dissipation = (W_forw + W_back) / 2
 
-        #print(f"Work: {Work:.5f}")
-        #print(f"Dissipation: {Dissipation:.5f}") # should be small
+        # print(f"Work: {Work:.5f}")
+        # print(f"Dissipation: {Dissipation:.5f}") # should be small
 
         # array of omegas, one per component
         omega = (
             np.sqrt(self.spring_constants * EV / (self.mass * MU)) * 1.0e10
         )  # [rad/s].
 
-        #print(f"omega: {omega[0]:.5f}")
+        # print(f"omega: {omega[0]:.5f}")
 
-        natoms = len(self.atoms)
+        natoms = len(self.supercell)
 
         # array of harmoinc free energies, one per component
         F_harm = (
@@ -238,28 +237,25 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
             * np.log(HBAR * omega / (KB * self.temperature))
         )  # [eV/atom].
 
-        #print(f"F_harm: {F_harm[0]:.5f}")
-
+        # print(f"F_harm: {F_harm[0]:.5f}")
+        
         F_CM = (
             KB
             * self.temperature
             * np.log(
                 (natoms / self.volume)
                 * (
-                    2
-                    * np.pi
-                    * KB
-                    * self.temperature
-                    / (natoms * self.concentration*self.mass * omega**2)
+                    (2 * np.pi * KB * self.temperature)
+                    / (natoms * self.concentration * self.mass * omega**2)
                 )
                 ** (3 / 2)
             )
             / natoms
         )  # correction for fixed center of mass
 
-        #  k_B*T*np.log((natoms/V) * (2*np.pi*k_B*T / (natoms*x.mass*omega**2))**(3/2))/natoms # 
+        #  k_B*T*np.log((natoms/V) * (2*np.pi*k_B*T / (natoms*x.mass*omega**2))**(3/2))/natoms #
 
-        print(f"F_CM: {F_CM:.5f}")
+        print(f"F_CM: {F_CM[0]:.5f}")
 
         free_energy = np.sum(F_harm) - Work + np.sum(F_CM)
         return free_energy
