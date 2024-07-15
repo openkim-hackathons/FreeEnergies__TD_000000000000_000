@@ -258,7 +258,7 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
 
         PV_term = (
             self.pressure * bar_to_Pa
-            self.volume * A3_to_m3
+            * self.volume * A3_to_m3
             * J_to_eV
         )/natoms
 
