@@ -252,9 +252,18 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
             / natoms
         )  # correction for fixed center of mass
 
-        free_energy = np.sum(F_harm) - Work + np.sum(F_CM)
-        return free_energy
+        bar_to_Pa = 1e5
+        A3_to_m3 = 1e-30
+        J_to_eV = 6.2415e18
 
+        PV_term = (
+            self.pressure * bar_to_Pa
+            self.volume * A3_to_m3
+            * J_to_eV
+        )/natoms
+
+        free_energy = np.sum(F_harm) - Work + np.sum(F_CM) + PV_term
+        return free_energy
 
 if __name__ == "__main__":
     model_name = "LJ_Shifted_Bernardes_1958MedCutoff_Ar__MO_126566794224_004"
