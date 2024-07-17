@@ -26,8 +26,8 @@ class TestDriver(CrystalGenomeTestDriver):
         """Gibbs free energy of a crystal at constant temperature and pressure using Frenkel-Ladd Hamiltonian integration algorithm. Computed through one equilibrium NPT simulation ('preFL') and one NONequilibrium NVT simulation ('FL').
 
         Args:
-            temperature (float): system temperature.
-            pressure (float): system pressure.
+            temperature (float): system temperature in K.
+            pressure (float): system pressure in ??.
             size (Tuple[int, int, int]): system size.
         """
         # Check arguments
