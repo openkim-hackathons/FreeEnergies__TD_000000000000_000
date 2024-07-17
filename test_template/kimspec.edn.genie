@@ -1,0 +1,15 @@
+{
+  "title" "Gibbs free energy for {{stoichiometric_species|join("")}} in AFLOW crystal prototype {{prototype_label}} at temperature T and pressure P"
+  "description" "Given the zero-pressure, zero-temperature structure of {{stoichiometric_species|join("")}} in AFLOW crystal prototype {{prototype_label}}, this Test computes the Gibbs free energy of a crystal at constant temperature and pressure using Frenkel-Ladd Hamiltonian integration algorithm. Computed through one equilibrium NPT simulation ('preFL') and one NONequilibrium NVT simulation ('FL')."
+  "extended-id" "{{TEST_DRIVER_NAME.split('_')[:-4]|join('_')}}_{{prototype_label}}_{{stoichiometric_species|join("")}}__TE_{{kimnum}}_000"
+  "test-driver" "{{TEST_DRIVER_NAME}}"
+  "species" ["{{stoichiometric_species|join('" "')}}"]
+  "contributor-id" "4ad03136-ed7f-4316-b586-1e94ccceb311"
+  "maintainer-id" "4ad03136-ed7f-4316-b586-1e94ccceb311"
+  "executables" ["runner"]
+  "domain" "openkim.org"
+  "matching-models" ["standard-models"]
+  "disclaimer" "Computer generated"
+  "kim-api-version" "2.3"
+  "publication-year" "2024"
+}{# FILENAME = kimspec.edn #}
