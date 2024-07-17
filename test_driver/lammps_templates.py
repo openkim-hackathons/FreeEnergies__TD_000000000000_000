@@ -16,15 +16,6 @@ class LammpsTemplates:
         # Read crystal with 0K lattice parameter.
         read_data output/zero_temperature_crystal.dump
 
-        # Convert box and all atomic positions to the correct units.
-        change_box all x scale ${_u_distance} &
-                       y scale ${_u_distance} &
-                       z scale ${_u_distance} &
-                       xy final $(xy*v__u_distance) &
-                       xz final $(xz*v__u_distance) &
-                       yz final $(yz*v__u_distance) &
-                       remap
-
         # Interatomic potential and neighbor settings
         kim           interactions ${species}
 
