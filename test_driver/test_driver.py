@@ -7,7 +7,7 @@ import numpy as np
 from ase.data import atomic_masses, atomic_numbers
 from kim_tools import CrystalGenomeTestDriver
 import scipy.constants as sc
-from lammps_templates import LammpsTemplates
+from .lammps_templates import LammpsTemplates
 
 EV = sc.value("electron volt")
 MU = sc.value("atomic mass constant")
@@ -15,7 +15,7 @@ HBAR = sc.value("Planck constant in eV/Hz") / (2 * np.pi)
 KB = sc.value("Boltzmann constant in eV/K")
 
 
-class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
+class TestDriver(CrystalGenomeTestDriver):
     def _calculate(
         self,
         temperature: float,
@@ -54,10 +54,11 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
 
         self.supercell.set_cell(equilibrium_cell, scale_atoms=True)
         self.supercell.write(
-            os.path.join(
-                os.path.dirname(os.path.realpath(__file__)),
-                "output/equilibrium_crystal.dump",
-            ),
+            # os.path.join(
+            #     os.path.dirname(os.path.realpath(__file__)),
+            #     "output/equilibrium_crystal.dump",
+            # ),
+            "output/equilibrium_crystal.dump",
             format="lammps-data",
             masses=True,
         )
@@ -127,9 +128,12 @@ class FrenkelLaddFreeEnergies(CrystalGenomeTestDriver):
         self.concentration *= 1 / len(symbols)
 
         # Write lammps file.
-        structure_file = os.path.join(
-            os.path.dirname(os.path.realpath(__file__)), filename
-        )
+        # structure_file = os.path.join(
+        #     os.path.dirname(os.path.realpath(__file__)), filename
+        # )
+        # os.makedirs(os.path.dirname(structure_file),exist_ok=True)
+        structure_file = filename
+        
         atoms_new.write(structure_file, format="lammps-data", masses=True)
 
         angles = self.atoms.get_cell().angles()
@@ -269,7 +273,7 @@ if __name__ == "__main__":
     model_name = "LJ_Shifted_Bernardes_1958MedCutoff_Ar__MO_126566794224_004"
     subprocess.run(f"kimitems install {model_name}", shell=True, check=True)
     subprocess.run("mkdir -p output", shell=True, check=True)
-    test_driver = FrenkelLaddFreeEnergies(model_name)
+    test_driver = TestDriver(model_name)
     test_driver(
         bulk("Ar", "fcc", a=5.248),
         size=(3, 3, 3),
