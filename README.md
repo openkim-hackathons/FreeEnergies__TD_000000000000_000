@@ -7,7 +7,7 @@ Gibbs free energy per unit cell of a crystal at constant temperature and pressur
 model_name = "LJ_Shifted_Bernardes_1958MedCutoff_Ar__MO_126566794224_004"
 subprocess.run(f"kimitems install {model_name}", shell=True, check=True)
 subprocess.run("mkdir -p output", shell=True, check=True)
-test_driver = FrenkelLaddFreeEnergies(model_name)
+test_driver = TestDriver(model_name)
 test_driver(
     bulk("Ar", "fcc", a=5.248),
     size=(3, 3, 3),
