@@ -80,7 +80,7 @@ test_driver(
 # other keys in the same way.
 print("\n--------------------------------------")
 print(
-    "Free energy G_FL (eV/cell): %f"
+    "Free energy G_FL (eV/cell): %f %s"
     % (
         test_driver.property_instances[0]["free_energy"]["source-value"],
         test_driver.property_instances[0]["free_energy"]["source-unit"],
