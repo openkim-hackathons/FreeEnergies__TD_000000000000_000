@@ -18,9 +18,9 @@ KB = sc.value("Boltzmann constant in eV/K")
 class TestDriver(CrystalGenomeTestDriver):
     def _calculate(
         self,
-        temperature: float,
-        pressure: float,
-        size: Tuple[int, int, int],
+        temperature: float = 20.0,
+        pressure: float = 0.0,
+        size: Tuple[int, int, int] = (3, 3, 3),
         **kwargs,
     ) -> None:
         """Gibbs free energy of a crystal at constant temperature and pressure using Frenkel-Ladd Hamiltonian integration algorithm. Computed through one equilibrium NPT simulation ('preFL') and one NONequilibrium NVT simulation ('FL').
@@ -170,8 +170,11 @@ class TestDriver(CrystalGenomeTestDriver):
         # Analyse lammps outputs
         data = np.loadtxt("output/lammps_preFL.dat", unpack=True)
         # xx, xy, xz, yx, yy, yz, zx, zy, zz, spring_constants = data
-        
-        (lx, ly, lz, xy, yz, xz, volume), spring_constants = data[:-len(self.species)],data[-len(self.species):]
+
+        (lx, ly, lz, xy, yz, xz, volume), spring_constants = (
+            data[: -len(self.species)],
+            data[-len(self.species) :],
+        )
 
         if isinstance(spring_constants, float):
             spring_constants = [spring_constants]
