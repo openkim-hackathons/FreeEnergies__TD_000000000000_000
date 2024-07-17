@@ -2,7 +2,6 @@
 *log*
 output/*
 *.out
-lammps_template/
 
 
 # Byte-compiled / optimized / DLL files
