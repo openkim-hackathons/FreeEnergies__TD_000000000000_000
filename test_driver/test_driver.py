@@ -179,7 +179,7 @@ class TestDriver(CrystalGenomeTestDriver):
         if isinstance(spring_constants, float):
             spring_constants = [spring_constants]
 
-        equilibrium_cell = np.array([[lx, xy, xz], [xy, ly, yz], [xz, yz, lz]])
+        equilibrium_cell = np.array([[lx, 0, 0], [xy, ly, 0], [xz, yz, lz]])
 
         return equilibrium_cell, np.array(spring_constants), volume
 

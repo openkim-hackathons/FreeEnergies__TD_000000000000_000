@@ -64,7 +64,7 @@ atoms = bulk("ZnS", "wurtzite", a=3.8)
 print("\nRUNNING TEST DRIVER ON WURTZITE ATOMS OBJECT\n")
 test_driver(
     atoms,
-    size=(3, 3, 3),
+    size=(5, 5, 5),
     temperature=20.0,
     pressure=0.0,
 )
@@ -142,7 +142,7 @@ for queried_structure in list_of_queried_structures:
     print("\nRUNNING TEST DRIVER ON QUERIED STRUCTURE\n")
     test_driver(
         **queried_structure,
-        size=(3, 3, 3),
+        size=(5, 5, 5),
         temperature=20.0,
         pressure=0.0,
     )

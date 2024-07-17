@@ -17,13 +17,13 @@ class LammpsTemplates:
         read_data output/zero_temperature_crystal.dump
 
         # Convert box and all atomic positions to the correct units.
-        #change_box all x scale ${_u_distance} &
-        #               y scale ${_u_distance} &
-        #               z scale ${_u_distance} &
-        #               xy final $(xy*v__u_distance) &
-        #               xz final $(xz*v__u_distance) &
-        #               yz final $(yz*v__u_distance) &
-        #               remap
+        change_box all x scale ${_u_distance} &
+                       y scale ${_u_distance} &
+                       z scale ${_u_distance} &
+                       xy final $(xy*v__u_distance) &
+                       xz final $(xz*v__u_distance) &
+                       yz final $(yz*v__u_distance) &
+                       remap
 
         # Interatomic potential and neighbor settings
         kim           interactions ${species}
@@ -32,19 +32,29 @@ class LammpsTemplates:
         variable      timestep_converted equal ${timestep}*${_u_time}
         timestep      ${timestep_converted}
 
-        # Leaving pressure variables just in case we need to compute lattice parameters
+        # Convert temperature and pressure units
         variable      temp_converted equal ${temperature}*${_u_temperature}
         variable      Tdamp_converted equal ${temperature_damping}*${_u_time}
         variable      press_converted equal ${pressure}*${_u_pressure}
         variable      Pdamp_converted equal ${pressure_damping}*${_u_time}
 
+        # Relax the structure
+        minimize      1.0e-08 0 10000 10000
+
         # Initialize velocities.
         velocity      all create ${temp_converted} ${temperature_seed}
 
-        # Set thermodynamic ensemble (barostat type depends on box type)
+        # Equilibrate in NVT ensemble
+        #fix          ensemble all nvt temp ${temp_converted} ${temp_converted} ${Tdamp_converted}
+        #compute      cl all temp/com
+        #fix_modify   ensemble temp cl
+        #run 25000
+        #unfix ensemble
+
+        # Run NPT ensemble (barostat type depends on box type)
         fix          ensemble all npt temp ${temp_converted} ${temp_converted} ${Tdamp_converted} {cell_type} ${press_converted} ${press_converted} ${Pdamp_converted}
-        compute cl all temp/com
-        fix_modify ensemble temp cl
+        compute      cl all temp/com
+        fix_modify   ensemble temp cl
 
         # compute box information
         variable       lx_metal equal lx/${_u_distance}
@@ -54,41 +64,35 @@ class LammpsTemplates:
         variable       yz_metal equal yz/${_u_distance}
         variable       xz_metal equal xz/${_u_distance}
 
-        # compute mean squared displacement
-        #compute       MSD all msd com yes average yes
-        {compute_msd}
-
         # Temperature may be off because of rigid bodies or SHAKE constraints. See https://docs.lammps.org/velocity.html
-        #run 0
-        #velocity all scale $(v_temperature*v__u_temperature)
+        run 0
+        velocity all scale $(v_temperature*v__u_temperature)
 
-        # Initialize measurement of box vectors
+        # Thermodynamic output
         #thermo_style custom avecx avecy avecz bvecx bvecy bvecz cvecx cvecy cvecz temp press vol etotal step
-        #thermo_style custom lx ly lz xy yz xz temp press vol etotal c_MSD0[4] c_MSD1[4] step
-        {thermo_template}
+        thermo_style custom lx ly lz xy yz xz temp press vol etotal step
         thermo 1000
 
-        # Set up convergence check with kim-convergence.
-        # Alternative is to set a safe general equilibration time
-        # More important for expensive potentials
-        #python run_length_control input 6 SELF 1 variable msd_metal format pissss file run_length_control_preFL.py
-
-        # Run until converged.
-        #python run_length_control invoke
-
-        # Equilibration
-        #run 10000
-
-        variable N_every equal 100
-        variable run_time equal 20000
-        variable N_repeat equal v_run_time/(2*v_N_every)
+        # Define variables for fix ave/time
+        variable N_every equal 100 # sample msd at intervals of this many steps
+        variable run_time equal 50000 # can be an input variable
+        variable N_repeat equal v_run_time/(2*v_N_every) # 
         variable N_start equal v_run_time/2
 
-        # compute averages of above variables
-        #fix           AVG all ave/time ${N_every} ${N_repeat} ${run_time} v_lx_metal v_ly_metal v_lz_metal c_MSD[4] ave running start ${N_start}
-                                                    #v_bvecx_metal v_bvecy_metal v_bvecz_metal &
-                                                    #v_cvecx_metal v_cvecy_metal v_cvecz_metal &
-                                                    #c_MSD[4] ave running
+        # Equilibration (first 20 ps of full NPT run, no msd)
+        run 20000
+
+        # Compute mean squared displacement
+        # NOTE: the "average yes" option inflates msd in triclinic boxes. Can't compute from the start because of box expansion.
+        # The work around is to only start computing msd partway through the NPT run.
+        set group all image 0 0 0
+        {compute_msd}
+
+        # New set of values to print to log file (added msd)
+        {thermo_template}
+
+        # compute averages of box vectors and msd
+        #fix           AVG all ave/time ${N_every} ${N_repeat} ${run_time} v_lx_metal v_ly_metal v_lz_metal ... c_MSD0[4] c_MSD1[4] ave running start ${N_start}
         {avg_template}
 
         # Run steps in the converged regime.
@@ -101,10 +105,7 @@ class LammpsTemplates:
         {k_lines}
 
         # Write final averages and spring constant
-        #print "# xx | xy | xz | yx | yy | yz | zx | zy | zz | spring constant [eV/Ang^2]" file ${output_filename}
-        #print "$(f_AVG[1]) $(f_AVG[2]) $(f_AVG[3]) $(f_AVG[4]) $(f_AVG[5]) $(f_AVG[6]) $(f_AVG[7]) $(f_AVG[8]) $(f_AVG[9]) ${spring_constant}" screen no append ${output_filename}
         print "# lx | ly | lz [Ang] | vol [Ang^3] | spring constant [eV/Ang^2]" file ${output_filename}
-        #print "$(f_AVG[1]) $(f_AVG[2]) $(f_AVG[3]) $(vol) ${spring_constant}" screen no append ${output_filename}
         {print_template}
 
         # Reset.
@@ -241,7 +242,7 @@ class LammpsTemplates:
     def _add_msd_fix_for_multicomponent(self, nspecies: int, is_triclinic: bool):
         compute_msd_template = """
         group {group} type {group}
-        compute           {compute_name} {group} msd com yes average yes
+        compute           {compute_name} {group} msd com yes
         """
 
         compute_entries = [
