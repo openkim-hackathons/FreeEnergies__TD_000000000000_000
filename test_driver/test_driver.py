@@ -133,7 +133,7 @@ class TestDriver(CrystalGenomeTestDriver):
         # )
         # os.makedirs(os.path.dirname(structure_file),exist_ok=True)
         structure_file = filename
-        
+
         atoms_new.write(structure_file, format="lammps-data", masses=True)
 
         angles = self.atoms.get_cell().angles()
@@ -170,7 +170,8 @@ class TestDriver(CrystalGenomeTestDriver):
         # Analyse lammps outputs
         data = np.loadtxt("output/lammps_preFL.dat", unpack=True)
         # xx, xy, xz, yx, yy, yz, zx, zy, zz, spring_constants = data
-        lx, ly, lz, xy, yz, xz, volume, spring_constants = data
+        
+        (lx, ly, lz, xy, yz, xz, volume), spring_constants = data[:-len(self.species)],data[-len(self.species):]
 
         if isinstance(spring_constants, float):
             spring_constants = [spring_constants]
@@ -261,13 +262,12 @@ class TestDriver(CrystalGenomeTestDriver):
         J_to_eV = 6.2415e18
 
         PV_term = (
-            self.pressure * bar_to_Pa
-            * self.volume * A3_to_m3
-            * J_to_eV
-        )/natoms
+            self.pressure * bar_to_Pa * self.volume * A3_to_m3 * J_to_eV
+        ) / natoms
 
         free_energy = np.sum(F_harm) - Work + np.sum(F_CM) + PV_term
         return free_energy
+
 
 if __name__ == "__main__":
     model_name = "LJ_Shifted_Bernardes_1958MedCutoff_Ar__MO_126566794224_004"
