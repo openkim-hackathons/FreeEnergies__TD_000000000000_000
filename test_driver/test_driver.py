@@ -61,7 +61,7 @@ class TestDriver(CrystalGenomeTestDriver):
                 masses=True,
                 atom_style=atom_style,
             )
-            self._preFL()
+            equilibrium_cell, self.spring_constants, self.volume = self._preFL()
         assert len(self.species) == len(self.spring_constants)
 
         # Rescaling 0K supercell to have equilibrium lattice constant.
