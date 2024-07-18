@@ -183,21 +183,26 @@ class TestDriver(CrystalGenomeTestDriver):
         )
         subprocess.run(command, check=True, shell=True)
 
-        # Analyse lammps outputs
-        data = np.loadtxt("output/lammps_preFL.dat", unpack=True)
-        # xx, xy, xz, yx, yy, yz, zx, zy, zz, spring_constants = data
+        # handling the case where it did not create lammps_reFL
+        try:
 
-        (lx, ly, lz, xy, yz, xz, volume), spring_constants = (
-            data[: -len(self.species)],
-            data[-len(self.species) :],
-        )
+            # Analyse lammps outputs
+            data = np.loadtxt("output/lammps_preFL.dat", unpack=True)
+            # xx, xy, xz, yx, yy, yz, zx, zy, zz, spring_constants = data
 
-        if isinstance(spring_constants, float):
-            spring_constants = [spring_constants]
+            (lx, ly, lz, xy, yz, xz, volume), spring_constants = (
+                data[: -len(self.species)],
+                data[-len(self.species) :],
+            )
 
-        equilibrium_cell = np.array([[lx, 0, 0], [xy, ly, 0], [xz, yz, lz]])
+            if isinstance(spring_constants, float):
+                spring_constants = [spring_constants]
 
-        return equilibrium_cell, np.array(spring_constants), volume
+            equilibrium_cell = np.array([[lx, 0, 0], [xy, ly, 0], [xz, yz, lz]])
+
+            return equilibrium_cell, np.array(spring_constants), volume
+        except: 
+            return None
 
     def _FL(
         self,
