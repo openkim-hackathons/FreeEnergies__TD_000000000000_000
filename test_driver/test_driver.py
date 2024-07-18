@@ -282,7 +282,7 @@ class TestDriver(CrystalGenomeTestDriver):
         free_energy = np.sum(F_harm) - Work + np.sum(F_CM) + PV_term
         return free_energy
 
-    def _check_if_lammps_run_to_completiton(lammps_log:str):
+    def _check_if_lammps_run_to_completiton(self,lammps_log:str):
         try:
             with open(lammps_log, 'r') as file:
                 lines = file.readlines()
