@@ -47,7 +47,7 @@ class TestDriver(CrystalGenomeTestDriver):
         # preFL computes the equilibrium lattice parameter and spring constants for a given temperature and pressure.
         # TODO: This should probably be replaced with its own test driver, which compute equilibrium lattice constants, and which can handles arbitrary crystal structures. Then we can get spring constants.
         equilibrium_cell, self.spring_constants, self.volume = self._preFL()
-        assert len(self.species) == len(self.spring_constants)
+        
 
         # Some models want atom_style="charge", others want "atomic"
         # We tried with 'atomic', if it fails, try 'charge'
@@ -62,6 +62,8 @@ class TestDriver(CrystalGenomeTestDriver):
                 masses=True,
                 atom_style=atom_style,
             )
+            self._preFL()
+        assert len(self.species) == len(self.spring_constants)
 
         # Rescaling 0K supercell to have equilibrium lattice constant.
         # equilibrium_cell is 3x3 matrix or can also have [len(a), len(b), len(c), angle(b,c), angle(a,c), angle(a,b)]
