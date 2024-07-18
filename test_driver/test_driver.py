@@ -290,7 +290,7 @@ class TestDriver(CrystalGenomeTestDriver):
                 if not lines:
                     return False
                 
-                last_line = lines[-1].strip()  # Remove any trailing whitespace
+                last_line = lines[-1].strip()
                 
                 return last_line.startswith("Total wall time:")
     
