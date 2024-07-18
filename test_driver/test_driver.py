@@ -48,6 +48,16 @@ class TestDriver(CrystalGenomeTestDriver):
         # TODO: This should probably be replaced with its own test driver, which compute equilibrium lattice constants, and which can handles arbitrary crystal structures. Then we can get spring constants.
         equilibrium_cell, self.spring_constants, self.volume = self._preFL()
         assert len(self.species) == len(self.spring_constants)
+        
+        # Some models want atom_style="charge", others want "atomic"
+        # We tried with 'atomic', if it fails, try 'charge'
+        atom_style = 'atomic'
+        if not self._check_if_lammps_run_to_completiton(lammps_log='output/lammps_preFL.log'):
+            atom_style = 'charge'
+            self.supercell.write(self.zero_k_structure_path, format="lammps-data",
+            masses=True,atom_style=atom_style)
+
+
 
         # Rescaling 0K supercell to have equilibrium lattice constant.
         # equilibrium_cell is 3x3 matrix or can also have [len(a), len(b), len(c), angle(b,c), angle(a,c), angle(a,b)]
@@ -61,6 +71,7 @@ class TestDriver(CrystalGenomeTestDriver):
             "output/equilibrium_crystal.dump",
             format="lammps-data",
             masses=True,
+            atom_style=atom_style
         )
 
         # FL computes the free energy at a given pressure and temperature.
@@ -104,6 +115,7 @@ class TestDriver(CrystalGenomeTestDriver):
     ) -> Atoms:
         # Copy original atoms so that their information does not get lost when the new atoms are modified.
         atoms_new = self.atoms.copy()
+    
 
         # Build supercell
         atoms_new = atoms_new.repeat(size)
@@ -135,6 +147,7 @@ class TestDriver(CrystalGenomeTestDriver):
         structure_file = filename
 
         atoms_new.write(structure_file, format="lammps-data", masses=True)
+        self.zero_k_structure_path = structure_file
 
         angles = self.atoms.get_cell().angles()
         self.is_triclinic = (
@@ -142,8 +155,6 @@ class TestDriver(CrystalGenomeTestDriver):
         )
 
         return atoms_new
-
-    ####################################
 
     def _preFL(self) -> Tuple[List[float], List[float]]:
         variables = {
@@ -271,7 +282,21 @@ class TestDriver(CrystalGenomeTestDriver):
         free_energy = np.sum(F_harm) - Work + np.sum(F_CM) + PV_term
         return free_energy
 
-
+    def _check_if_lammps_run_to_completiton(lammps_log:str):
+        try:
+            with open(lammps_log, 'r') as file:
+                lines = file.readlines()
+                
+                if not lines:
+                    return False
+                
+                last_line = lines[-1].strip()  # Remove any trailing whitespace
+                
+                return last_line.startswith("Total wall time:")
+    
+        except FileNotFoundError:
+            print(f"The file {lammps_log} does not exist.")
+            return False 
 if __name__ == "__main__":
     model_name = "LJ_Shifted_Bernardes_1958MedCutoff_Ar__MO_126566794224_004"
     subprocess.run(f"kimitems install {model_name}", shell=True, check=True)
