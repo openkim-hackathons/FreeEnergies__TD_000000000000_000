@@ -47,7 +47,6 @@ class TestDriver(CrystalGenomeTestDriver):
         # preFL computes the equilibrium lattice parameter and spring constants for a given temperature and pressure.
         # TODO: This should probably be replaced with its own test driver, which compute equilibrium lattice constants, and which can handles arbitrary crystal structures. Then we can get spring constants.
         equilibrium_cell, self.spring_constants, self.volume = self._preFL()
-        
 
         # Some models want atom_style="charge", others want "atomic"
         # We tried with 'atomic', if it fails, try 'charge'
@@ -181,28 +180,28 @@ class TestDriver(CrystalGenomeTestDriver):
             + " -log output/lammps_preFL.log"
             + f" -in {self.templates.root}preFL_template.lmp"
         )
-        subprocess.run(command, check=True, shell=True)
-
-        # handling the case where it did not create lammps_reFL
         try:
+            subprocess.run(command, check=True, shell=True)
+        except:
+            return (None, None, None)
 
-            # Analyse lammps outputs
-            data = np.loadtxt("output/lammps_preFL.dat", unpack=True)
-            # xx, xy, xz, yx, yy, yz, zx, zy, zz, spring_constants = data
+        # handling the case where it did not create lammps_preFL (e.g, when atomic style needs to be charge)
 
-            (lx, ly, lz, xy, yz, xz, volume), spring_constants = (
-                data[: -len(self.species)],
-                data[-len(self.species) :],
-            )
+        # Analyse lammps outputs
+        data = np.loadtxt("output/lammps_preFL.dat", unpack=True)
+        # xx, xy, xz, yx, yy, yz, zx, zy, zz, spring_constants = data
 
-            if isinstance(spring_constants, float):
-                spring_constants = [spring_constants]
+        (lx, ly, lz, xy, yz, xz, volume), spring_constants = (
+            data[: -len(self.species)],
+            data[-len(self.species) :],
+        )
 
-            equilibrium_cell = np.array([[lx, 0, 0], [xy, ly, 0], [xz, yz, lz]])
+        if isinstance(spring_constants, float):
+            spring_constants = [spring_constants]
 
-            return equilibrium_cell, np.array(spring_constants), volume
-        except: 
-            return None
+        equilibrium_cell = np.array([[lx, 0, 0], [xy, ly, 0], [xz, yz, lz]])
+
+        return equilibrium_cell, np.array(spring_constants), volume
 
     def _FL(
         self,
