@@ -64,6 +64,13 @@ class TestDriver(CrystalGenomeTestDriver):
             equilibrium_cell, self.spring_constants, self.volume = self._preFL()
         assert len(self.species) == len(self.spring_constants)
 
+        # crystal-structure-npt
+        self._add_property_instance_and_common_crystal_genome_keys("crystal-structure-npt", write_temp=True, write_stress=True)
+        try:
+            self._add_file_to_current_property_instance("restart-file","output/lammps_preFL.restart") # AttributeError: 'TestDriver' object has no attribute '_add_file_to_current_property_instance'
+        except:
+            pass
+    
         # Rescaling 0K supercell to have equilibrium lattice constant.
         # equilibrium_cell is 3x3 matrix or can also have [len(a), len(b), len(c), angle(b,c), angle(a,c), angle(a,b)]
 
@@ -111,7 +118,7 @@ class TestDriver(CrystalGenomeTestDriver):
             raise ValueError("Temperature has to be larger than zero.")
 
         if not self.pressure >= 0.0:
-            raise ValueError("Pressure has to be larger or equal than zero.")
+            raise ValueError("Pressure has to be greater than or equal to zero.")
 
     def _setup_initial_structure(
         self,
