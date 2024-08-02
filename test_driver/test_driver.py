@@ -66,10 +66,7 @@ class TestDriver(CrystalGenomeTestDriver):
 
         # crystal-structure-npt
         self._add_property_instance_and_common_crystal_genome_keys("crystal-structure-npt", write_temp=True, write_stress=True)
-        try:
-            self._add_file_to_current_property_instance("restart-file","output/lammps_preFL.restart") # AttributeError: 'TestDriver' object has no attribute '_add_file_to_current_property_instance'
-        except:
-            pass
+        self._add_file_to_current_property_instance("restart-file","output/lammps_preFL.restart")
     
         # Rescaling 0K supercell to have equilibrium lattice constant.
         # equilibrium_cell is 3x3 matrix or can also have [len(a), len(b), len(c), angle(b,c), angle(a,c), angle(a,b)]
