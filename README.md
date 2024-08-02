@@ -1,6 +1,6 @@
 # Free Energy Crystal Genome Test Driver
 
-Gibbs free energy per unit cell of a crystal at constant temperature and pressure using Frenkel-Ladd Hamiltonian integration algorithm. Computed through one equilibrium NPT simulation ('preFL') and one NONequilibrium NVT simulation ('FL').
+Gibbs free energy per conventional unit cell, with rhombohedral crystals using the hexagonal cell, of a crystal at constant temperature and pressure using the Frenkel-Ladd Hamiltonian integration algorithm (Freitas, R., Asta, M. & de Koning, M. Nonequilibrium free-energy calculation of solids using LAMMPS. Computational Materials Science 112, 333–341 (2016)). The free energy is computed through one equilibrium NPT simulation ('preFL') and one NONequilibrium NVT simulation ('FL').
 
 ## Example of usage 
 ```python 
