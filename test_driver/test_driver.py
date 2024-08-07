@@ -3,11 +3,13 @@ import subprocess
 from typing import List, Tuple
 from ase.build import bulk
 from ase import Atoms
+from ase import io
 import numpy as np
 from ase.data import atomic_masses, atomic_numbers
 from kim_tools import CrystalGenomeTestDriver
 import scipy.constants as sc
 from .lammps_templates import LammpsTemplates
+from .helper_functions import reduce_and_avg
 
 EV = sc.value("electron volt")
 MU = sc.value("atomic mass constant")
@@ -63,6 +65,20 @@ class TestDriver(CrystalGenomeTestDriver):
             )
             equilibrium_cell, self.spring_constants, self.volume = self._preFL()
         assert len(self.species) == len(self.spring_constants)
+
+        # Read lammps dump file of average positions
+        atoms_npt = io.read("output/lammps_preFL.data", format='lammps-data')
+
+        # Reduce to unit cell
+        reduced_atoms = reduce_and_avg(atoms_npt, size)
+
+        # Check symmetry
+        try:
+            crystal_genome_designation = self._get_crystal_genome_designation_from_atoms_and_verify_unchanged_symmetry(
+                reduced_atoms, loose_triclinic_and_monoclinic=True) # 'True' fails for FCC Aluminum test (prototype label A_cF4_225_a)
+        except:
+            crystal_genome_designation = self._get_crystal_genome_designation_from_atoms_and_verify_unchanged_symmetry(
+                reduced_atoms, loose_triclinic_and_monoclinic=False)
 
         # crystal-structure-npt
         self._add_property_instance_and_common_crystal_genome_keys("crystal-structure-npt", write_temp=True, write_stress=True)
@@ -176,6 +192,7 @@ class TestDriver(CrystalGenomeTestDriver):
             "species": " ".join(self.species),
             "output_filename": "output/lammps_preFL.dat",
             "write_restart_filename": "output/lammps_preFL.restart",
+            "write_data_filename": "output/lammps_preFL.data",
         }
         # TODO: Possibly run MPI version of Lammps if available.
         command = (

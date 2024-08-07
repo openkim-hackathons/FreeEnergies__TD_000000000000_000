@@ -86,6 +86,14 @@ class LammpsTemplates:
         #fix           AVG all ave/time ${N_every} ${N_repeat} ${run_time} v_lx_metal v_ly_metal v_lz_metal ... c_MSD0[4] c_MSD1[4] ave running start ${N_start}
         {avg_template}
 
+        # Compute unwrapped atom positions
+        compute unwrapped all property/atom xu yu zu
+
+        # Average unwrapped atom positions
+        fix ave_x all ave/atom ${N_every} ${N_repeat} ${run_time} c_unwrapped[1]
+        fix ave_y all ave/atom ${N_every} ${N_repeat} ${run_time} c_unwrapped[2]
+        fix ave_z all ave/atom ${N_every} ${N_repeat} ${run_time} c_unwrapped[3]
+
         # Run steps in the converged regime.
         run ${run_time}
 
@@ -99,14 +107,28 @@ class LammpsTemplates:
         print "# lx | ly | lz [Ang] | vol [Ang^3] | spring constant [eV/Ang^2]" file ${output_filename}
         {print_template}
 
+        # Write the initial starting file for a true simulation.
+        write_restart ${write_restart_filename}
+
+        # Create per-atom variables for averaged positions
+        variable ave_x atom f_ave_x
+        variable ave_y atom f_ave_y
+        variable ave_z atom f_ave_z
+
+        # Set atom positions to time-averaged positions
+        set group all x v_ave_x y v_ave_y z v_ave_z
+
         # Reset.
         unfix ensemble
         unfix AVG
+        unfix ave_x
+        unfix ave_y
+        unfix ave_z
         #unfix cr_fix  # From run_length_control.py
         reset_timestep 0
 
-        # Write the initial starting file for a true simulation.
-        write_restart ${write_restart_filename}
+        # Write data file of averaged positions
+        write_data ${write_data_filename}
         """
 
         self.fl = """
