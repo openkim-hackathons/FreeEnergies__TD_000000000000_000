@@ -1,0 +1,7 @@
+Assigned prototype labels:
+AB_aP26_1_13a_13a
+AB_aP78_1_39a_39a
+AB_aP78_2_a19i_b19i
+
+Target prototype label:
+AB_hR26_148_a2f_b2f

@@ -4,6 +4,7 @@ from typing import List, Tuple
 from ase.build import bulk
 from ase import Atoms
 from ase import io
+from ase.io import read, write
 import numpy as np
 from ase.data import atomic_masses, atomic_numbers
 from kim_tools import CrystalGenomeTestDriver
@@ -72,13 +73,26 @@ class TestDriver(CrystalGenomeTestDriver):
         # Reduce to unit cell
         reduced_atoms = reduce_and_avg(atoms_npt, size)
 
+        # Print reduced_atoms for verification
+        write('output/reduced_atoms.data', reduced_atoms, format='lammps-data')
+
         # Check symmetry
         try:
             crystal_genome_designation = self._get_crystal_genome_designation_from_atoms_and_verify_unchanged_symmetry(
                 reduced_atoms, loose_triclinic_and_monoclinic=True) # 'True' fails for FCC Aluminum test (prototype label A_cF4_225_a)
         except:
+            print("True = Failed")
+        
+        try:
             crystal_genome_designation = self._get_crystal_genome_designation_from_atoms_and_verify_unchanged_symmetry(
                 reduced_atoms, loose_triclinic_and_monoclinic=False)
+        except:
+            print("False = Failed")
+
+        crystal_genome_designation = self._get_crystal_genome_designation_from_atoms_and_verify_unchanged_symmetry(
+                reduced_atoms, loose_triclinic_and_monoclinic=False)
+
+        exit()
 
         # crystal-structure-npt
         self._add_property_instance_and_common_crystal_genome_keys("crystal-structure-npt", write_temp=True, write_stress=True)

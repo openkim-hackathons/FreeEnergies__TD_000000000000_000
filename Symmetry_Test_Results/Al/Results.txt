@@ -1,0 +1,12 @@
+Failed
+Assigned prototype labels:
+A_aP2_2_i
+A_aP1_2_a
+A_mC4_12_i
+A_oP4_49_q
+A_oI2_71_a
+A_tP4_111_n
+A_tP2_129_c
+
+Target prototype label:
+A_cF4_225_a
