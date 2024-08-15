@@ -15,9 +15,9 @@ MAX_RUN_LENGTH: int = 1000 * INITIAL_RUN_LENGTH
 # algorithm finds equilibration_step greater than this limit it will fail.
 # For the default None, the function is using `maximum_run_length // 2` as
 # the maximum equilibration step.
-MAX_EQUILIBRATION_STEP: Optional[int] = 500 * INITIAL_RUN_LENGTH
+MAX_EQUILIBRATION_STEP: Optional[int] = None
 # Maximum number of independent samples.
-MINIMUM_NUMBER_OF_INDEPENDENT_SAMPLES: Optional[int] = 300
+MINIMUM_NUMBER_OF_INDEPENDENT_SAMPLES: Optional[int] = 100
 # A relative half-width requirement or the accuracy parameter. Target value
 # for the ratio of halfwidth to sample mean. If n_variables > 1,
 # relative_accuracy can be a scalar to be used for all variables or a 1darray
@@ -31,7 +31,6 @@ CONFIDENCE: float = 0.95
 UCL_METHOD: str = "uncorrelated_sample"
 # if ``True``, dump the final trajectory data to a file.
 DUMP_TRAJECTORY: bool = False
-
 
 # Do not modify
 _LAMMPS_ARGUMENTS = (

@@ -77,22 +77,8 @@ class TestDriver(CrystalGenomeTestDriver):
         write('output/reduced_atoms.data', reduced_atoms, format='lammps-data')
 
         # Check symmetry
-        try:
-            crystal_genome_designation = self._get_crystal_genome_designation_from_atoms_and_verify_unchanged_symmetry(
-                reduced_atoms, loose_triclinic_and_monoclinic=True) # 'True' fails for FCC Aluminum test (prototype label A_cF4_225_a)
-        except:
-            print("True = Failed")
-        
-        try:
-            crystal_genome_designation = self._get_crystal_genome_designation_from_atoms_and_verify_unchanged_symmetry(
-                reduced_atoms, loose_triclinic_and_monoclinic=False)
-        except:
-            print("False = Failed")
-
         crystal_genome_designation = self._get_crystal_genome_designation_from_atoms_and_verify_unchanged_symmetry(
-                reduced_atoms, loose_triclinic_and_monoclinic=False)
-
-        exit()
+                reduced_atoms, loose_triclinic_and_monoclinic=True)
 
         # crystal-structure-npt
         self._add_property_instance_and_common_crystal_genome_keys("crystal-structure-npt", write_temp=True, write_stress=True)

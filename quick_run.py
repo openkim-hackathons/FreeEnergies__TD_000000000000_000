@@ -3,7 +3,7 @@ from test_driver.test_driver import TestDriver
 import subprocess
 from kim_tools import query_crystal_genome_structures
 
-kim_model_name ="EDIP_LAMMPS_Marks_2000_C__MO_374144505645_000"
+kim_model_name ="EAM_Dynamo_ErcolessiAdams_1994_Al__MO_123629422045_005"
 #kim_model_name = "SW_StillingerWeber_1985_Si__MO_405512056662_006" # Stillinger-Weber
 #kim_model_name = "EDIP_JustoBazantKaxiras_1998_Si__MO_958932894036_002" # EDIP
 #kim_model_name = "SNAP_ZuoChenLi_2019_Si__MO_869330304805_000" # SNAP
@@ -13,8 +13,8 @@ test_driver = TestDriver(kim_model_name)
 
 list_of_queried_structures = query_crystal_genome_structures(
     kim_model_name=kim_model_name,
-    stoichiometric_species=['C'],
-    prototype_label="A_mC16_12_4i",
+    stoichiometric_species=['Al'],
+    prototype_label="A_cF4_225_a",
     #prototype_label="A_cF8_227_a", # cubic diamond
     #prototype_label="A_hP4_194_f", # hexagonal diamond
 )
@@ -23,7 +23,7 @@ for queried_structure in list_of_queried_structures:
     print("\nRUNNING TEST DRIVER ON QUERIED STRUCTURE\n")
     test_driver(
         **queried_structure,
-        size=(2,2,2),
+        size=(5,5,5),
         temperature=100,
         pressure=0.0,
     )

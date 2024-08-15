@@ -16,6 +16,9 @@ class LammpsTemplates:
         # Read crystal with 0K lattice parameter.
         read_data output/zero_temperature_crystal.dump
 
+        # Change to triclinic box.
+        change_box all triclinic
+
         # Interatomic potential and neighbor settings
         kim           interactions ${species}
 
@@ -35,25 +38,10 @@ class LammpsTemplates:
         # Initialize velocities.
         velocity      all create ${temp_converted} ${temperature_seed}
 
-        # Equilibrate in NVT ensemble
-        #fix          ensemble all nvt temp ${temp_converted} ${temp_converted} ${Tdamp_converted}
-        #compute      cl all temp/com
-        #fix_modify   ensemble temp cl
-        #run 25000
-        #unfix ensemble
-
         # Run NPT ensemble (barostat type depends on box type)
         fix          ensemble all npt temp ${temp_converted} ${temp_converted} ${Tdamp_converted} {cell_type} ${press_converted} ${press_converted} ${Pdamp_converted}
         compute      cl all temp/com
         fix_modify   ensemble temp cl
-
-        # compute box information
-        variable       lx_metal equal lx/${_u_distance}
-        variable       ly_metal equal ly/${_u_distance}
-        variable       lz_metal equal lz/${_u_distance}
-        variable       xy_metal equal xy/${_u_distance}
-        variable       yz_metal equal yz/${_u_distance}
-        variable       xz_metal equal xz/${_u_distance}
 
         # Temperature may be off because of rigid bodies or SHAKE constraints. See https://docs.lammps.org/velocity.html
         run 0
@@ -64,35 +52,53 @@ class LammpsTemplates:
         thermo_style custom lx ly lz xy yz xz temp press vol etotal step
         thermo 1000
 
-        # Define variables for fix ave/time
-        variable N_every equal 100 # sample msd at intervals of this many steps
-        variable run_time equal 50000 # can be an input variable
-        variable N_repeat equal v_run_time/(2*v_N_every) # 
-        variable N_start equal v_run_time/2
+        # compute box information
+        variable       lx_metal equal lx/${_u_distance}
+        variable       ly_metal equal ly/${_u_distance}
+        variable       lz_metal equal lz/${_u_distance}
+        variable       xy_metal equal xy/${_u_distance}
+        variable       yz_metal equal yz/${_u_distance}
+        variable       xz_metal equal xz/${_u_distance}
+        variable       vol_metal equal vol/${_u_distance}/${_u_distance}/${_u_distance}
 
-        # Equilibration (first 20 ps of full NPT run, no msd)
-        run 20000
+        # Set up convergence check with kim-convergence.
+        python run_length_control input 8 SELF 1 variable lx_metal variable ly_metal variable lz_metal format pissssss file run_length_control_preFL.py
+
+        # Run until converged (minimum runtime 30000 steps)
+        python run_length_control invoke
+
+        unfix cr_fix # From run_length_control.py
+        reset_timestep 0
 
         # Compute mean squared displacement
-        # NOTE: the "average yes" option inflates msd in triclinic boxes. Can't compute from the start because of box expansion.
-        # The work around is to only start computing msd partway through the NPT run.
-        set group all image 0 0 0
+        #set group all image 0 0 0
         {compute_msd}
 
         # New set of values to print to log file (added msd)
         {thermo_template}
 
+        # Define variables for fix ave/time
+        variable N_every equal 100 # sample msd at intervals of this many steps
+        variable run_time equal 200000 # can be an input variable
+        variable N_repeat equal v_run_time/(2*v_N_every)
+        variable N_start equal v_run_time/2
+
         # compute averages of box vectors and msd
-        #fix           AVG all ave/time ${N_every} ${N_repeat} ${run_time} v_lx_metal v_ly_metal v_lz_metal ... c_MSD0[4] c_MSD1[4] ave running start ${N_start}
+        #fix           AVG all ave/time ${N_every} ${N_repeat} ${run_time} v_lx_metal v_ly_metal v_lz_metal ... c_MSD0[4] c_MSD1[4] ave running
         {avg_template}
 
         # Compute unwrapped atom positions
         compute unwrapped all property/atom xu yu zu
 
+        variable xu atom c_unwrapped[1]
+        variable yu atom c_unwrapped[2]
+        variable zu atom c_unwrapped[3]
+
         # Average unwrapped atom positions
-        fix ave_x all ave/atom ${N_every} ${N_repeat} ${run_time} c_unwrapped[1]
-        fix ave_y all ave/atom ${N_every} ${N_repeat} ${run_time} c_unwrapped[2]
-        fix ave_z all ave/atom ${N_every} ${N_repeat} ${run_time} c_unwrapped[3]
+        #fix ave_x all ave/atom ${N_every} $(v_run_time/v_N_every) ${run_time} c_unwrapped[1]
+        #fix ave_y all ave/atom ${N_every} $(v_run_time/v_N_every) ${run_time} c_unwrapped[2]
+        #fix ave_z all ave/atom ${N_every} $(v_run_time/v_N_every) ${run_time} c_unwrapped[3]
+        fix avePos all ave/atom ${N_every} $(v_run_time/v_N_every) ${run_time} v_xu v_yu v_zu
 
         # Run steps in the converged regime.
         run ${run_time}
@@ -111,9 +117,9 @@ class LammpsTemplates:
         write_restart ${write_restart_filename}
 
         # Create per-atom variables for averaged positions
-        variable ave_x atom f_ave_x
-        variable ave_y atom f_ave_y
-        variable ave_z atom f_ave_z
+        variable ave_x atom f_avePos[1]
+        variable ave_y atom f_avePos[2]
+        variable ave_z atom f_avePos[3]
 
         # Set atom positions to time-averaged positions
         set group all x v_ave_x y v_ave_y z v_ave_z
@@ -121,9 +127,10 @@ class LammpsTemplates:
         # Reset.
         unfix ensemble
         unfix AVG
-        unfix ave_x
-        unfix ave_y
-        unfix ave_z
+        #unfix ave_x
+        #unfix ave_y
+        #unfix ave_z
+        unfix avePos
         #unfix cr_fix  # From run_length_control.py
         reset_timestep 0
 
