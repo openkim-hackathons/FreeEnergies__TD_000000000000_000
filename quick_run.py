@@ -23,7 +23,7 @@ for queried_structure in list_of_queried_structures:
     print("\nRUNNING TEST DRIVER ON QUERIED STRUCTURE\n")
     test_driver(
         **queried_structure,
-        size=(5,5,5),
+        size=(4,4,4),
         temperature=100,
         pressure=0.0,
     )

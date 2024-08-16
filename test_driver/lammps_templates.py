@@ -79,7 +79,7 @@ class LammpsTemplates:
 
         # Define variables for fix ave/time
         variable N_every equal 100 # sample msd at intervals of this many steps
-        variable run_time equal 200000 # can be an input variable
+        variable run_time equal 50000 # can be an input variable
         variable N_repeat equal v_run_time/(2*v_N_every)
         variable N_start equal v_run_time/2
 
@@ -121,6 +121,9 @@ class LammpsTemplates:
         variable ave_y atom f_avePos[2]
         variable ave_z atom f_avePos[3]
 
+        # Set box dimensions to time-averaged dimensions
+        change_box all x scale $(f_AVG[1]/lx) y scale $(f_AVG[2]/ly) z scale $(f_AVG[3]/lz) xy final $(f_AVG[4]) yz final $(f_AVG[5]) xz final $(f_AVG[6]) remap
+
         # Set atom positions to time-averaged positions
         set group all x v_ave_x y v_ave_y z v_ave_z
 
@@ -134,7 +137,7 @@ class LammpsTemplates:
         #unfix cr_fix  # From run_length_control.py
         reset_timestep 0
 
-        # Write data file of averaged positions
+        # Write data file of averaged positions and box dimensions
         write_data ${write_data_filename}
         """
 
