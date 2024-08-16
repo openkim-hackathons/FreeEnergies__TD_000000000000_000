@@ -1,5 +1,0 @@
-Assigned prototype label:
-A_mP16_11_8e
-
-Target prototype label:
-A_mC16_12_4i

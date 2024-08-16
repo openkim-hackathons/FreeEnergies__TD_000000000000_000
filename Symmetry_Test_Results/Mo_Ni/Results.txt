@@ -1,5 +1,0 @@
-Assigned prototype label:
-AB4_mC10_8_a_4a instead of
-
-Target prototype label:
-AB4_tI10_87_a_h
