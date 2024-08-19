@@ -3,7 +3,7 @@
 
   "property-title" "Free energy of crystal at constant temperature and pressure"
 
-  "property-description" "Gibbs free energy per conventional unit cell, with rhombohedral crystals using the hexagonal cell, of a crystal at constant temperature and pressure using
+  "property-description" "Gibbs free energy of a crystal at constant temperature and pressure using
   the Frenkel-Ladd Hamiltonian integration algorithm (Freitas, R., Asta, M. & de Koning, M. Nonequilibrium free-energy calculation of solids using LAMMPS. Computational Materials Science 112, 333–341 (2016)).
   The free energy is computed through one equilibrium NPT simulation ('preFL') and one NONequilibrium NVT simulation ('FL')."
 
@@ -11,12 +11,26 @@
 ; CHANGE THE SECTION BELOW WHEN CREATING NEW PROPERTIES
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-  "free_energy" {
+  "gibbs_free_energy_per_atom" {
     "type"         "float"
     "has-unit"     true
     "extent"       []
     "required"     true
-    "description" "Gibbs free energy per conventional unit cell, with rhombohedral crystals using the hexagonal cell."
+    "description" "Gibbs free energy per atom."
+  }
+  "gibbs_free_energy_per_formula" {
+    "type"         "float"
+    "has-unit"     true
+    "extent"       []
+    "required"     true
+    "description" "Gibbs free energy formula unit."
+  }
+  "specific_gibbs_free_energy" {
+    "type"         "float"
+    "has-unit"     true
+    "extent"       []
+    "required"     true
+    "description" "Gibbs free energy per atomic mass unit."
   }
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

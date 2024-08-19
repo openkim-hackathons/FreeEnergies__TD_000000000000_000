@@ -7,7 +7,7 @@ from ase import io
 from ase.io import read, write
 import numpy as np
 from ase.data import atomic_masses, atomic_numbers
-from kim_tools import CrystalGenomeTestDriver
+from kim_tools import CrystalGenomeTestDriver, get_stoich_reduced_list_from_prototype
 import scipy.constants as sc
 from .lammps_templates import LammpsTemplates
 from .helper_functions import reduce_and_avg
@@ -103,27 +103,51 @@ class TestDriver(CrystalGenomeTestDriver):
         self.templates._write_fl_lammps_templates(
             spring_constants=self.spring_constants
         )
-        free_energy = self._FL()
+        free_energy_per_atom = self._FL()
 
-        # Convert to eV/cell
-        free_energy = free_energy * len(self.supercell) / np.prod(size)
+        # Convert to eV/formula (originally in eV/atom)
+        # get_stoich_reduced_list_from_prototype returns a list corresponding to the stoichiometry of the prototype label, e.g. "A2B_hP9_152_c_a" -> [2,1]
+        num_atoms_in_formula = sum(get_stoich_reduced_list_from_prototype(self.prototype_label))
+        free_energy_per_formula = free_energy_per_atom * num_atoms_in_formula
+
+        # Convert to eV/amu (originally in eV/atom)
+        atoms_per_cell = len(reduced_atoms.get_masses())
+        mass_per_cell = sum(reduced_atoms.get_masses())
+        free_energy_per_cell = free_energy_per_atom * atoms_per_cell
+        specific_free_energy = free_energy_per_cell / mass_per_cell
 
         # Print results
         print("####################################")
         print("# Frenkel Ladd Free Energy Results #")
         print("####################################")
 
-        print(f"G_FL = {free_energy:.5f} (eV/cell)")
+        print(f"G_FL = {free_energy_per_atom:.5f} (eV/atom)")
 
         # KIM tries to save some coordinate file, disabling it.
         self.poscar = None
 
-        # Write free energy
+        # Write gibbs_free_energy_per_atom
         self._add_property_instance_and_common_crystal_genome_keys(
-            "free-energy", write_stress=True, write_temp=True
+            "gibbs_free_energy_per_atom", write_stress=True, write_temp=True
         )
         self._add_key_to_current_property_instance(
-            "free_energy", free_energy, "eV/cell"
+            "gibbs_free_energy_per_atom", free_energy_per_atom, "eV/atom"
+        )
+
+        # Write gibbs_free_energy_per_formula
+        self._add_property_instance_and_common_crystal_genome_keys(
+            "gibbs_free_energy_per_formula", write_stress=True, write_temp=True
+        )
+        self._add_key_to_current_property_instance(
+            "gibbs_free_energy_per_formula", free_energy_per_formula, "eV/formula"
+        )
+
+        # Write specific_gibbs_free_energy
+        self._add_property_instance_and_common_crystal_genome_keys(
+            "specific_gibbs_free_energy", write_stress=True, write_temp=True
+        )
+        self._add_key_to_current_property_instance(
+            "specific_gibbs_free_energy", specific_free_energy, "eV/amu"
         )
 
     def _validate_inputs(self):
