@@ -1,0 +1,318 @@
+[
+    {
+        "property-id" "tag:staff@noreply.openkim.org,2023-02-21:property/crystal-structure-npt" 
+        "instance-id" 1 
+        "prototype-label" {
+            "source-value" "AB3C_aP30_2_3i_9i_3i"
+        } 
+        "stoichiometric-species" {
+            "source-value" [
+                "Ca" 
+                "O" 
+                "Si"
+            ]
+        } 
+        "a" {
+            "source-value" 7.9182 
+            "source-unit" "angstrom"
+        } 
+        "parameter-names" {
+            "source-value" [
+                "b/a" 
+                "c/a" 
+                "alpha" 
+                "beta" 
+                "gamma" 
+                "x1" 
+                "y1" 
+                "z1" 
+                "x2" 
+                "y2" 
+                "z2" 
+                "x3" 
+                "y3" 
+                "z3" 
+                "x4" 
+                "y4" 
+                "z4" 
+                "x5" 
+                "y5" 
+                "z5" 
+                "x6" 
+                "y6" 
+                "z6" 
+                "x7" 
+                "y7" 
+                "z7" 
+                "x8" 
+                "y8" 
+                "z8" 
+                "x9" 
+                "y9" 
+                "z9" 
+                "x10" 
+                "y10" 
+                "z10" 
+                "x11" 
+                "y11" 
+                "z11" 
+                "x12" 
+                "y12" 
+                "z12" 
+                "x13" 
+                "y13" 
+                "z13" 
+                "x14" 
+                "y14" 
+                "z14" 
+                "x15" 
+                "y15" 
+                "z15"
+            ]
+        } 
+        "parameter-values" {
+            "source-value" [
+                0.92892324 
+                0.90761789 
+                89.9446 
+                93.4146 
+                103.4588 
+                0.99754341 
+                0.24822635 
+                0.98831221 
+                0.70721965 
+                0.93057041 
+                0.25782861 
+                0.72177337 
+                0.42573141 
+                0.2556773 
+                0.079215845 
+                0.2647176 
+                0.67267733 
+                0.067080938 
+                0.77209948 
+                0.68228422 
+                0.20599094 
+                0.057407536 
+                0.056137114 
+                0.20334918 
+                0.54404722 
+                0.061438083 
+                0.51530611 
+                0.14006446 
+                0.23778898 
+                0.51467758 
+                0.61413553 
+                0.24958675 
+                0.22481635 
+                0.13256651 
+                0.40847396 
+                0.21645234 
+                0.48016238 
+                0.41069868 
+                0.30911021 
+                0.82746609 
+                0.28452351 
+                0.31633335 
+                0.044252364 
+                0.24630652 
+                0.3157274 
+                0.61301187 
+                0.25098233 
+                0.1010938 
+                0.27304873 
+                0.45591691
+            ]
+        } 
+        "library-prototype-label" {
+            "source-value" "AB3C_aP30_2_3i_9i_3i-001"
+        } 
+        "short-name" {
+            "source-value" [
+                "CaO3Si, ICSD #201537"
+            ]
+        } 
+        "cell-cauchy-stress" {
+            "source-value" [
+                0.0 
+                0.0 
+                0.0 
+                0.0 
+                0.0 
+                0.0
+            ] 
+            "source-unit" "eV/angstrom^3"
+        } 
+        "temperature" {
+            "source-value" 0.0 
+            "source-unit" "K"
+        } 
+        "coordinates-file" {
+            "source-value" "instance-1.poscar"
+        } 
+        "restart-file" {
+            "source-value" "output/lammps_preFL-1.restart"
+        }
+    } 
+    {
+        "property-id" "tag:staff@noreply.openkim.org,2024-03-11:property/free-energy" 
+        "instance-id" 2 
+        "prototype-label" {
+            "source-value" "AB3C_aP30_2_3i_9i_3i"
+        } 
+        "stoichiometric-species" {
+            "source-value" [
+                "Ca" 
+                "O" 
+                "Si"
+            ]
+        } 
+        "a" {
+            "source-value" 7.9182 
+            "source-unit" "angstrom"
+        } 
+        "parameter-names" {
+            "source-value" [
+                "b/a" 
+                "c/a" 
+                "alpha" 
+                "beta" 
+                "gamma" 
+                "x1" 
+                "y1" 
+                "z1" 
+                "x2" 
+                "y2" 
+                "z2" 
+                "x3" 
+                "y3" 
+                "z3" 
+                "x4" 
+                "y4" 
+                "z4" 
+                "x5" 
+                "y5" 
+                "z5" 
+                "x6" 
+                "y6" 
+                "z6" 
+                "x7" 
+                "y7" 
+                "z7" 
+                "x8" 
+                "y8" 
+                "z8" 
+                "x9" 
+                "y9" 
+                "z9" 
+                "x10" 
+                "y10" 
+                "z10" 
+                "x11" 
+                "y11" 
+                "z11" 
+                "x12" 
+                "y12" 
+                "z12" 
+                "x13" 
+                "y13" 
+                "z13" 
+                "x14" 
+                "y14" 
+                "z14" 
+                "x15" 
+                "y15" 
+                "z15"
+            ]
+        } 
+        "parameter-values" {
+            "source-value" [
+                0.92892324 
+                0.90761789 
+                89.9446 
+                93.4146 
+                103.4588 
+                0.99754341 
+                0.24822635 
+                0.98831221 
+                0.70721965 
+                0.93057041 
+                0.25782861 
+                0.72177337 
+                0.42573141 
+                0.2556773 
+                0.079215845 
+                0.2647176 
+                0.67267733 
+                0.067080938 
+                0.77209948 
+                0.68228422 
+                0.20599094 
+                0.057407536 
+                0.056137114 
+                0.20334918 
+                0.54404722 
+                0.061438083 
+                0.51530611 
+                0.14006446 
+                0.23778898 
+                0.51467758 
+                0.61413553 
+                0.24958675 
+                0.22481635 
+                0.13256651 
+                0.40847396 
+                0.21645234 
+                0.48016238 
+                0.41069868 
+                0.30911021 
+                0.82746609 
+                0.28452351 
+                0.31633335 
+                0.044252364 
+                0.24630652 
+                0.3157274 
+                0.61301187 
+                0.25098233 
+                0.1010938 
+                0.27304873 
+                0.45591691
+            ]
+        } 
+        "library-prototype-label" {
+            "source-value" "AB3C_aP30_2_3i_9i_3i-001"
+        } 
+        "short-name" {
+            "source-value" [
+                "CaO3Si, ICSD #201537"
+            ]
+        } 
+        "cell-cauchy-stress" {
+            "source-value" [
+                0.0 
+                0.0 
+                0.0 
+                0.0 
+                0.0 
+                0.0
+            ] 
+            "source-unit" "eV/angstrom^3"
+        } 
+        "temperature" {
+            "source-value" 0.0 
+            "source-unit" "K"
+        } 
+        "gibbs_free_energy_per_atom" {
+            "source-value" -14.64307395004731 
+            "source-unit" "eV/atom"
+        } 
+        "gibbs_free_energy_per_formula" {
+            "source-value" -73.21536975023655 
+            "source-unit" "eV/formula"
+        } 
+        "specific_gibbs_free_energy" {
+            "source-value" -0.6302976045991432 
+            "source-unit" "eV/amu"
+        }
+    }
+]

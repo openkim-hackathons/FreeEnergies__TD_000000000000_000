@@ -126,25 +126,15 @@ class TestDriver(CrystalGenomeTestDriver):
         # KIM tries to save some coordinate file, disabling it.
         self.poscar = None
 
-        # Write gibbs_free_energy_per_atom
+        # Write keys to property
         self._add_property_instance_and_common_crystal_genome_keys(
-            "gibbs_free_energy_per_atom", write_stress=True, write_temp=True
+            "free-energy", write_stress=True, write_temp=True
         )
         self._add_key_to_current_property_instance(
             "gibbs_free_energy_per_atom", free_energy_per_atom, "eV/atom"
         )
-
-        # Write gibbs_free_energy_per_formula
-        self._add_property_instance_and_common_crystal_genome_keys(
-            "gibbs_free_energy_per_formula", write_stress=True, write_temp=True
-        )
         self._add_key_to_current_property_instance(
             "gibbs_free_energy_per_formula", free_energy_per_formula, "eV/formula"
-        )
-
-        # Write specific_gibbs_free_energy
-        self._add_property_instance_and_common_crystal_genome_keys(
-            "specific_gibbs_free_energy", write_stress=True, write_temp=True
         )
         self._add_key_to_current_property_instance(
             "specific_gibbs_free_energy", specific_free_energy, "eV/amu"
