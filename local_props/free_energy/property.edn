@@ -3,7 +3,7 @@
 
   "property-title" "Free energy of crystal at constant temperature and pressure"
 
-  "property-description" "Gibbs free energy of a crystal at constant temperature and pressure using
+  "property-description" "Gibbs free energy (relative to the Gibbs free energies of the isolated constituent particles) of a crystal at constant temperature and pressure using
   the Frenkel-Ladd Hamiltonian integration algorithm (Freitas, R., Asta, M. & de Koning, M. Nonequilibrium free-energy calculation of solids using LAMMPS. Computational Materials Science 112, 333–341 (2016)).
   The free energy is computed through one equilibrium NPT simulation ('preFL') and one NONequilibrium NVT simulation ('FL')."
 

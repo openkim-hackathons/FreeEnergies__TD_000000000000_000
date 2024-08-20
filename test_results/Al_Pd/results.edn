@@ -1,0 +1,168 @@
+[
+    {
+        "property-id" "tag:staff@noreply.openkim.org,2023-02-21:property/crystal-structure-npt" 
+        "instance-id" 1 
+        "prototype-label" {
+            "source-value" "AB_hR26_148_a2f_b2f"
+        } 
+        "stoichiometric-species" {
+            "source-value" [
+                "Al" 
+                "Pd"
+            ]
+        } 
+        "a" {
+            "source-value" 15.446667 
+            "source-unit" "angstrom"
+        } 
+        "parameter-names" {
+            "source-value" [
+                "c/a" 
+                "x3" 
+                "y3" 
+                "z3" 
+                "x4" 
+                "y4" 
+                "z4" 
+                "x5" 
+                "y5" 
+                "z5" 
+                "x6" 
+                "y6" 
+                "z6"
+            ]
+        } 
+        "parameter-values" {
+            "source-value" [
+                0.32983558 
+                0.15130381 
+                0.44118576 
+                0.40089262 
+                0.34703815 
+                0.74890598 
+                0.9048965 
+                0.65158154 
+                0.94529526 
+                0.89991805 
+                0.84657478 
+                0.2463924 
+                0.4027634
+            ]
+        } 
+        "library-prototype-label" {
+            "source-value" "AB_hR26_148_b2f_a2f-001"
+        } 
+        "short-name" {
+            "source-value" [
+                "PdAl"
+            ]
+        } 
+        "cell-cauchy-stress" {
+            "source-value" [
+                0.0 
+                0.0 
+                0.0 
+                0.0 
+                0.0 
+                0.0
+            ] 
+            "source-unit" "eV/angstrom^3"
+        } 
+        "temperature" {
+            "source-value" 0.0 
+            "source-unit" "K"
+        } 
+        "coordinates-file" {
+            "source-value" "instance-1.poscar"
+        } 
+        "restart-file" {
+            "source-value" "output/lammps_preFL-1.restart"
+        }
+    } 
+    {
+        "property-id" "tag:staff@noreply.openkim.org,2024-03-11:property/free-energy" 
+        "instance-id" 2 
+        "prototype-label" {
+            "source-value" "AB_hR26_148_a2f_b2f"
+        } 
+        "stoichiometric-species" {
+            "source-value" [
+                "Al" 
+                "Pd"
+            ]
+        } 
+        "a" {
+            "source-value" 15.446667 
+            "source-unit" "angstrom"
+        } 
+        "parameter-names" {
+            "source-value" [
+                "c/a" 
+                "x3" 
+                "y3" 
+                "z3" 
+                "x4" 
+                "y4" 
+                "z4" 
+                "x5" 
+                "y5" 
+                "z5" 
+                "x6" 
+                "y6" 
+                "z6"
+            ]
+        } 
+        "parameter-values" {
+            "source-value" [
+                0.32983558 
+                0.15130381 
+                0.44118576 
+                0.40089262 
+                0.34703815 
+                0.74890598 
+                0.9048965 
+                0.65158154 
+                0.94529526 
+                0.89991805 
+                0.84657478 
+                0.2463924 
+                0.4027634
+            ]
+        } 
+        "library-prototype-label" {
+            "source-value" "AB_hR26_148_b2f_a2f-001"
+        } 
+        "short-name" {
+            "source-value" [
+                "PdAl"
+            ]
+        } 
+        "cell-cauchy-stress" {
+            "source-value" [
+                0.0 
+                0.0 
+                0.0 
+                0.0 
+                0.0 
+                0.0
+            ] 
+            "source-unit" "eV/angstrom^3"
+        } 
+        "temperature" {
+            "source-value" 0.0 
+            "source-unit" "K"
+        } 
+        "gibbs_free_energy_per_atom" {
+            "source-value" -4.195423897204294 
+            "source-unit" "eV/atom"
+        } 
+        "gibbs_free_energy_per_formula" {
+            "source-value" -8.390847794408588 
+            "source-unit" "eV/formula"
+        } 
+        "specific_gibbs_free_energy" {
+            "source-value" -0.06289918308857124 
+            "source-unit" "eV/amu"
+        }
+    }
+]

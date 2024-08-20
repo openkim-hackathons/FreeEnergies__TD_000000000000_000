@@ -11,6 +11,7 @@ from kim_tools import CrystalGenomeTestDriver, get_stoich_reduced_list_from_prot
 import scipy.constants as sc
 from .lammps_templates import LammpsTemplates
 from .helper_functions import reduce_and_avg
+from kim_python_utils.ase import get_isolated_energy_per_atom
 
 EV = sc.value("electron volt")
 MU = sc.value("atomic mass constant")
@@ -99,15 +100,31 @@ class TestDriver(CrystalGenomeTestDriver):
             atom_style=atom_style,
         )
 
+        # Collect the energies of isolated atoms to subtract from final values
+        isolated_atom_energy_list = []
+
+        # List of unique elements (strings) in the "reduced_atoms" ASE atoms object
+        element_list = list(dict.fromkeys(reduced_atoms.get_chemical_symbols()))
+
+        # List of stoichiometric coefficients (should line up with "element_list" if everything is in alphabetical order)
+        stoichiometry = get_stoich_reduced_list_from_prototype(self.prototype_label)
+        
+        # Append correct number of each isolated atom energy according to stoichiometric coefficients
+        for element,stoich in zip(element_list,stoichiometry):
+            isolated_atom_energy_list.append(stoich * get_isolated_energy_per_atom(self.kim_model_name, element)) # appends as many as exist in one formula unit
+
+        # Take the mean of the energies to subtract from the per-atom free energy
+        isolated_atom_energy = np.mean(isolated_atom_energy_list)
+
         # FL computes the free energy at a given pressure and temperature.
         self.templates._write_fl_lammps_templates(
             spring_constants=self.spring_constants
         )
-        free_energy_per_atom = self._FL()
+        free_energy_per_atom = self._FL() - isolated_atom_energy
 
         # Convert to eV/formula (originally in eV/atom)
         # get_stoich_reduced_list_from_prototype returns a list corresponding to the stoichiometry of the prototype label, e.g. "A2B_hP9_152_c_a" -> [2,1]
-        num_atoms_in_formula = sum(get_stoich_reduced_list_from_prototype(self.prototype_label))
+        num_atoms_in_formula = sum(stoichiometry)
         free_energy_per_formula = free_energy_per_atom * num_atoms_in_formula
 
         # Convert to eV/amu (originally in eV/atom)
