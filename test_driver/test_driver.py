@@ -318,6 +318,8 @@ class TestDriver(CrystalGenomeTestDriver):
             * np.log(HBAR * omega / (KB * self.temperature))
         )  # [eV/atom].
 
+        total_mass = np.sum(natom * self.concentration * self.mass)
+
         F_CM = (
             KB
             * self.temperature
@@ -325,7 +327,9 @@ class TestDriver(CrystalGenomeTestDriver):
                 (natoms / self.volume)
                 * (
                     (2 * np.pi * KB * self.temperature)
-                    / (natoms * self.concentration * self.mass * omega**2)
+                    #/ (natoms * self.concentration * self.mass * omega**2)
+                    / (np.sum(natom * self.concentration * total_mass**2 * self.spring_constants * EV
+                              / self.mass**2)) # Khanna 2021, J. Chem. Phys., eq. 10
                 )
                 ** (3 / 2)
             )
@@ -340,7 +344,7 @@ class TestDriver(CrystalGenomeTestDriver):
             self.pressure * bar_to_Pa * self.volume * A3_to_m3 * J_to_eV
         ) / natoms
 
-        free_energy = np.sum(F_harm) - Work + np.sum(F_CM) + PV_term
+        free_energy = np.sum(F_harm) - Work + F_CM + PV_term
         return free_energy
 
     def _check_if_lammps_run_to_completiton(self, lammps_log: str):
