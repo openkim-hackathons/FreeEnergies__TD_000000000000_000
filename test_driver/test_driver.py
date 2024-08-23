@@ -329,7 +329,7 @@ class TestDriver(CrystalGenomeTestDriver):
                     (2 * np.pi * KB * self.temperature)
                     #/ (natoms * self.concentration * self.mass * omega**2)
                     / (np.sum(natom * self.concentration * total_mass**2 * self.spring_constants * EV
-                              / self.mass**2)) # Khanna 2021, J. Chem. Phys., eq. 10
+                              / (self.mass*MU)**2)) # Khanna 2021, J. Chem. Phys., eq. 10
                 )
                 ** (3 / 2)
             )
