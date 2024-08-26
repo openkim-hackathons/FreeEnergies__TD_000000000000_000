@@ -160,6 +160,9 @@ class TestDriver(CrystalGenomeTestDriver):
         self._add_key_to_current_property_instance(
             "specific_gibbs_free_energy", specific_free_energy, "eV/amu"
         )
+        self._add_key_to_current_property_instance(
+            "specific_gibbs_free_energy", specific_free_energy, "eV/amu"
+        )
 
     def _validate_inputs(self):
         if not self.temperature > 0.0:
