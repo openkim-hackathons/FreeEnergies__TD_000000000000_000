@@ -24,7 +24,7 @@ class TestDriver(CrystalGenomeTestDriver):
         self,
         temperature: float = 20.0,
         pressure: float = 0.0,
-        size: Tuple[int, int, int] = (18,18,18),
+        size: Tuple[int, int, int] = (0,0,0),
         **kwargs,
     ) -> None:
         """Gibbs free energy of a crystal at constant temperature and pressure using Frenkel-Ladd Hamiltonian integration algorithm. Computed through one equilibrium NPT simulation ('preFL') and one NONequilibrium NVT simulation ('FL').
@@ -40,6 +40,10 @@ class TestDriver(CrystalGenomeTestDriver):
         self._validate_inputs()
 
         # Write initial atomic structure to lammps dump file
+        if size == (0,0,0):
+            # Get a size close to 10K atoms (shown to give good convergence)
+            x = int(np.ceil(np.cbrt(10_000 / len(self.atoms))))
+            size = (x,x,x)
         self.supercell = self._setup_initial_structure(size)
 
         # Write initial template file
