@@ -3,6 +3,7 @@
 output/*
 *.out
 lammps_templates/*
+test_results/*
 
 
 # Byte-compiled / optimized / DLL files
