@@ -4,6 +4,7 @@ output/*
 *.out
 lammps_templates/*
 test_results/*
+.vscode
 
 
 # Byte-compiled / optimized / DLL files
