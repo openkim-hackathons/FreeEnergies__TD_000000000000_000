@@ -22,7 +22,7 @@ list_of_queried_structures = query_crystal_genome_structures(
 print("\nRUNNING TEST DRIVER ON QUERIED STRUCTURE\n")
 test_driver(
     **list_of_queried_structures[0],
-    size=(3,3,3),
+    size=(4,4,4),
     temperature=100,
     pressure=0.0,
 )
