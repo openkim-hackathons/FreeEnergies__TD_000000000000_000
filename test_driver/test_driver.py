@@ -83,7 +83,7 @@ class TestDriver(CrystalGenomeTestDriver):
 
         # Check symmetry
         crystal_genome_designation = self._get_crystal_genome_designation_from_atoms_and_verify_unchanged_symmetry(
-                reduced_atoms, loose_triclinic_and_monoclinic=True)
+                reduced_atoms, loose_triclinic_and_monoclinic=False)
 
         # crystal-structure-npt
         self._add_property_instance_and_common_crystal_genome_keys("crystal-structure-npt", write_temp=True, write_stress=True)
