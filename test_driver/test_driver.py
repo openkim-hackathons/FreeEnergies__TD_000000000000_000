@@ -1,5 +1,6 @@
 import os
 import subprocess
+import shutil
 from typing import List, Tuple
 from ase.build import bulk
 from ase import Atoms
@@ -45,6 +46,12 @@ class TestDriver(CrystalGenomeTestDriver):
             x = int(np.ceil(np.cbrt(10_000 / len(self.atoms))))
             size = (x,x,x)
         self.supercell = self._setup_initial_structure(size)
+
+        # Choose the correct accuracies file for kim-convergence based on whether the cell is orthogonal or not.
+        if self.supercell.get_cell().orthorhombic:
+            shutil.copyfile("accuracies_orthogonal.py", "accuracies.py")
+        else:
+            shutil.copyfile("accuracies_non_orthogonal.py", "accuracies.py")
 
         # Write initial template file
         self.templates = LammpsTemplates(root="lammps_templates/")
@@ -227,10 +234,10 @@ class TestDriver(CrystalGenomeTestDriver):
         variables = {
             "modelname": self.kim_model_name,
             "temperature": self.temperature,
-            "temperature_damping": 0.1,
+            "temperature_damping": 0.1, # ps
             "temperature_seed": np.random.randint(low=100000, high=999999, dtype=int),
             "pressure": self.pressure,
-            "pressure_damping": 1.0,
+            "pressure_damping": 0.1, # ps
             "timestep": 0.001,  # ps
             "species": " ".join(self.species),
             "output_filename": "output/lammps_preFL.dat",

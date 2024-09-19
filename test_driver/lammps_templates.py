@@ -39,16 +39,15 @@ class LammpsTemplates:
         velocity      all create ${temp_converted} ${temperature_seed}
 
         # Run NPT ensemble (barostat type depends on box type)
-        fix          ensemble all npt temp ${temp_converted} ${temp_converted} ${Tdamp_converted} {cell_type} ${press_converted} ${press_converted} ${Pdamp_converted}
+        fix          ensemble all npt temp ${temp_converted} ${temp_converted} ${Tdamp_converted} tri ${press_converted} ${press_converted} ${Pdamp_converted}
         compute      cl all temp/com
         fix_modify   ensemble temp cl
 
         # Temperature may be off because of rigid bodies or SHAKE constraints. See https://docs.lammps.org/velocity.html
         run 0
-        velocity all scale $(v_temperature*v__u_temperature)
+        velocity all scale ${temp_converted}
 
         # Thermodynamic output
-        #thermo_style custom avecx avecy avecz bvecx bvecy bvecz cvecx cvecy cvecz temp press vol etotal step
         thermo_style custom lx ly lz xy yz xz temp press vol etotal step
         thermo 1000
 
@@ -59,10 +58,10 @@ class LammpsTemplates:
         variable       xy_metal equal xy/${_u_distance}
         variable       yz_metal equal yz/${_u_distance}
         variable       xz_metal equal xz/${_u_distance}
-        variable       vol_metal equal vol/${_u_distance}/${_u_distance}/${_u_distance}
+        variable       vol_metal equal vol/(${_u_distance}^3)
 
         # Set up convergence check with kim-convergence.
-        python run_length_control input 8 SELF 1 variable lx_metal variable ly_metal variable lz_metal format pissssss file run_length_control_preFL.py
+        python run_length_control input 18 SELF 1 variable vol_metal variable temp_converted variable lx_metal variable ly_metal variable lz_metal variable xy_metal variable yz_metal variable xz_metal format pissssssssssssssss file run_length_control_preFL.py
 
         # Run until converged (minimum runtime 30000 steps)
         python run_length_control invoke
@@ -84,7 +83,6 @@ class LammpsTemplates:
         variable N_start equal v_run_time/2
 
         # compute averages of box vectors and msd
-        #fix           AVG all ave/time ${N_every} ${N_repeat} ${run_time} v_lx_metal v_ly_metal v_lz_metal ... c_MSD0[4] c_MSD1[4] ave running
         {avg_template}
 
         # Compute unwrapped atom positions
@@ -95,18 +93,13 @@ class LammpsTemplates:
         variable zu atom c_unwrapped[3]
 
         # Average unwrapped atom positions
-        #fix ave_x all ave/atom ${N_every} $(v_run_time/v_N_every) ${run_time} c_unwrapped[1]
-        #fix ave_y all ave/atom ${N_every} $(v_run_time/v_N_every) ${run_time} c_unwrapped[2]
-        #fix ave_z all ave/atom ${N_every} $(v_run_time/v_N_every) ${run_time} c_unwrapped[3]
         fix avePos all ave/atom ${N_every} $(v_run_time/v_N_every) ${run_time} v_xu v_yu v_zu
 
         # Run steps in the converged regime.
         run ${run_time}
 
         # compute spring constant
-        variable      kB equal 8.617333262e-5*(v__u_energy/v__u_temperature) # eV/K unless converted
-        #variable      MSD equal f_AVG[4]*(v__u_distance)^2
-        #variable      spring_constant equal $(3*v_kB*v_temp_converted/(v_MSD))
+        variable      kB equal (8.617333262e-5)*(v__u_energy/v__u_temperature) # eV/K unless converted
         {k_lines}
 
         # Write final averages and spring constant
@@ -150,7 +143,6 @@ class LammpsTemplates:
 
         # Read crystal equilibrium crystal.
         read_data output/equilibrium_crystal.dump
-
 
         # Convert box and all atomic positions to the correct units.
         #change_box all x scale ${_u_distance} &
@@ -355,11 +347,13 @@ class LammpsTemplates:
         self.pre_fl = self.pre_fl.replace("{print_template}", print_template)
 
         # determine barostat type based on self.is_triclinic
+        '''
         self.pre_fl = (
             self.pre_fl.replace("{cell_type}", "tri")
             if is_triclinic
             else self.pre_fl.replace("{cell_type}", "aniso")
         )
+        '''
 
     def _write_pre_fl_lammps_templates(self, nspecies: int, is_triclinic: bool):
         self._add_msd_fix_for_multicomponent(nspecies, is_triclinic)
