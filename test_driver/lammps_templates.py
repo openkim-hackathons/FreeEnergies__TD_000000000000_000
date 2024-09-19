@@ -61,7 +61,7 @@ class LammpsTemplates:
         variable       vol_metal equal vol/(${_u_distance}^3)
 
         # Set up convergence check with kim-convergence.
-        python run_length_control input 18 SELF 1 variable vol_metal variable temp_converted variable lx_metal variable ly_metal variable lz_metal variable xy_metal variable yz_metal variable xz_metal format pissssssssssssssss file run_length_control_preFL.py
+        python run_length_control input 16 SELF 1 variable vol_metal variable lx_metal variable ly_metal variable lz_metal variable xy_metal variable xz_metal variable yz_metal format pissssssssssssss file run_length_control_preFL.py
 
         # Run until converged (minimum runtime 30000 steps)
         python run_length_control invoke

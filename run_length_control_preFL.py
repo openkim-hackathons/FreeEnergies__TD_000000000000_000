@@ -17,6 +17,7 @@ MAX_RUN_LENGTH: int = 1000 * INITIAL_RUN_LENGTH
 # For the default None, the function is using `maximum_run_length // 2` as
 # the maximum equilibration step.
 MAX_EQUILIBRATION_STEP: Optional[int] = 500 * INITIAL_RUN_LENGTH
+MAX_EQUILIBRATION_STEP: Optional[int] = 500 * INITIAL_RUN_LENGTH
 # Maximum number of independent samples.
 MINIMUM_NUMBER_OF_INDEPENDENT_SAMPLES: Optional[int] = 1000
 # Probability (or confidence interval) and must be between 0.0 and 1.0, and
