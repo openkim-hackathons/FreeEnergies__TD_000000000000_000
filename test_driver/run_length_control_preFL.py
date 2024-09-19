@@ -4,7 +4,7 @@ import numpy as np
 from typing import Optional, Sequence
 from lammps import lammps
 import kim_convergence as cr
-# from accuracies import RELATIVE_ACCURACY, ABSOLUTE_ACCURACY
+from test_driver.accuracies import RELATIVE_ACCURACY, ABSOLUTE_ACCURACY
 
 
 # Initial run length
