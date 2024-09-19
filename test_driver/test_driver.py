@@ -238,7 +238,7 @@ class TestDriver(CrystalGenomeTestDriver):
             "temperature_damping": 0.1, # ps
             "temperature_seed": np.random.randint(low=100000, high=999999, dtype=int),
             "pressure": self.pressure,
-            "pressure_damping": 0.1, # ps
+            "pressure_damping": 1.0, # ps
             "timestep": 0.001,  # ps
             "species": " ".join(self.species),
             "output_filename": "output/lammps_preFL.dat",
