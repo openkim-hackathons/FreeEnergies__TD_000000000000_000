@@ -4,7 +4,8 @@ import numpy as np
 from typing import Optional, Sequence
 from lammps import lammps
 import kim_convergence as cr
-from accuracies import RELATIVE_ACCURACY, ABSOLUTE_ACCURACY
+# from accuracies import RELATIVE_ACCURACY, ABSOLUTE_ACCURACY
+
 
 # Initial run length
 INITIAL_RUN_LENGTH: int = 10000
@@ -91,6 +92,7 @@ def run_length_control(lmpptr, nevery: int, *argv) -> None:
 
     """
     lmp = lammps(ptr=lmpptr)
+    
 
     cr.cr_check(nevery, 'nevery', int, 1)
 
@@ -377,7 +379,7 @@ def run_length_control(lmpptr, nevery: int, *argv) -> None:
             population_scale[var_name] = value
 
         i += 1
-
+    
     # Run the LAMMPS script
     lmp.command(cmd)
 
@@ -572,6 +574,7 @@ def run_length_control(lmpptr, nevery: int, *argv) -> None:
     }
 
     try:
+
         msg = cr.run_length_control(
             get_trajectory=get_trajectory,
             get_trajectory_args=get_trajectory_args,

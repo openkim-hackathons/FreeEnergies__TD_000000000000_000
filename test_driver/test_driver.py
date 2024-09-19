@@ -49,9 +49,9 @@ class TestDriver(CrystalGenomeTestDriver):
 
         # Choose the correct accuracies file for kim-convergence based on whether the cell is orthogonal or not.
         if self.supercell.get_cell().orthorhombic:
-            shutil.copyfile("accuracies_orthogonal.py", "accuracies.py")
+            shutil.copyfile("test_driver/accuracies_orthogonal.py", "test_driver/accuracies.py")
         else:
-            shutil.copyfile("accuracies_non_orthogonal.py", "accuracies.py")
+            shutil.copyfile("test_driver/accuracies_non_orthogonal.py", "test_driver/accuracies.py")
 
         # Write initial template file
         self.templates = LammpsTemplates(root="lammps_templates/")
@@ -77,6 +77,7 @@ class TestDriver(CrystalGenomeTestDriver):
                 atom_style=atom_style,
             )
             equilibrium_cell, self.spring_constants, self.volume = self._preFL()
+
         assert len(self.species) == len(self.spring_constants)
 
         # Read lammps dump file of average positions
