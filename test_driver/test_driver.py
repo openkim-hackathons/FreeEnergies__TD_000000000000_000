@@ -34,7 +34,7 @@ class TestDriver(CrystalGenomeTestDriver):
 
         Args:
             temperature (float): system temperature in K.
-            pressure (float): system pressure in ??.
+            pressure (float): system pressure in atm.
             size (Tuple[int, int, int]): system size.
         """
         # Check arguments
@@ -49,20 +49,21 @@ class TestDriver(CrystalGenomeTestDriver):
             size = (x,x,x)
         self.supercell = self._setup_initial_structure(size)
 
-        # Start accuracy lists (temperature, x, y, and z are non-zero)
-        relative_accuracy = [0.1, 0.1, 0.1, 0.1]
+        # Start accuracy lists (volume, x, y, and z are normal)
+        relative_accuracy = [0.1, 0.01, 0.01, 0.01]
         absolute_accuracy = [None, None, None, None]
 
-        # Get cell parameters and add appropriate values to accuracy lists (0.1 and None for non-zero tilt factors, vice-versa for zero)
+        # Get cell parameters and add appropriate values to accuracy lists (0.01 and None for non-zero tilt factors, vice-versa for zero)
         # get_cell_lengths_and_angles() returns angles in place of tilt factors. Angle = 90 --> tilt factor = 0.0.
+        # The criterion for an orthogonal tilt factor ("abs(90-angle) < 0.1") can be modified, depending on how small of a tile factor is too small for kim-convergence
         [X_cell, Y_cell, Z_cell, YZ_cell, XZ_cell, XY_cell] = self.supercell.get_cell_lengths_and_angles()
         
         for angle in [XY_cell, XZ_cell, YZ_cell]:
             if abs(90-angle) < 0.1:
                 relative_accuracy.append(None)
-                absolute_accuracy.append(0.1)
+                absolute_accuracy.append(0.01)
             else:
-                relative_accuracy.append(0.1)
+                relative_accuracy.append(0.01)
                 absolute_accuracy.append(None)
 
         # Replace lists in "accuracies_general.py"
@@ -71,12 +72,6 @@ class TestDriver(CrystalGenomeTestDriver):
                         "ABSOLUTE_ACCURACY: Sequence[Optional[float]]": absolute_accuracy
                         }
         self._modify_accuracies(new_accuracies)
-
-        # Choose the correct accuracies file for kim-convergence based on whether the cell is orthogonal or not.
-        if self.supercell.get_cell().orthorhombic:
-            shutil.copyfile("test_driver/accuracies_orthogonal.py", "test_driver/accuracies.py")
-        else:
-            shutil.copyfile("test_driver/accuracies_general.py", "accuracies.py")
 
         # Write initial template file
         self.templates = LammpsTemplates(root="lammps_templates/")
@@ -435,7 +430,7 @@ class TestDriver(CrystalGenomeTestDriver):
 
     def _modify_accuracies(self, new_accuracies):
 
-        with open("accuracies_general.py", 'r') as file:
+        with open("test_driver/accuracies.py", 'r') as file:
             content = file.read()
         
         pattern = r"RELATIVE_ACCURACY: Sequence\[Optional\[float\]\].s*=.s*\[.*?\]"
@@ -446,7 +441,7 @@ class TestDriver(CrystalGenomeTestDriver):
         replacement = f"ABSOLUTE_ACCURACY: Sequence[Optional[float]] = {new_accuracies['ABSOLUTE_ACCURACY: Sequence[Optional[float]]']}"
         content = re.sub(pattern, replacement, content)
 
-        with open("accuracies_general.py", 'w') as file:
+        with open("test_driver/accuracies.py", 'w') as file:
             file.write(content)
 
 if __name__ == "__main__":

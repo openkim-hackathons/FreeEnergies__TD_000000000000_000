@@ -35,9 +35,6 @@ class LammpsTemplates:
         variable      press_converted equal ${pressure}*${_u_pressure}
         variable      Pdamp_converted equal ${pressure_damping}*${_u_time}
 
-        # Relax the structure (shouldn't do this, structure should be run as is)
-        #minimize      1.0e-08 0 10000 10000
-
         # Initialize velocities.
         velocity      all create ${temp_converted} ${temperature_seed}
 
@@ -50,15 +47,6 @@ class LammpsTemplates:
         run 0
         velocity all scale ${temp_converted}
 
-        # Measure mean squared displacement to detect diffusion
-        compute msd all msd com yes
-        fix msd_vector all vector 100 c_msd[4]
-        variable msd_slope equal slope(f_msd_vector)
-
-        # Thermodynamic output
-        thermo_style custom lx ly lz xy yz xz temp press vol etotal c_msd[4] v_msd_slope step
-        thermo 1000
-
         # compute box information
         variable       lx_metal equal lx/${_u_distance}
         variable       ly_metal equal ly/${_u_distance}
@@ -68,8 +56,23 @@ class LammpsTemplates:
         variable       xz_metal equal xz/${_u_distance}
         variable       vol_metal equal vol/(${_u_distance}^3)
 
+        # Short run to equilibrate MSD
+        compute msd all msd com yes
+        thermo_style custom lx ly lz xy yz xz temp press vol etotal c_msd[4] step
+        thermo 1000
+        run 5000
+        reset_timestep 0
+
+        # Compute slope of mean squared displacement to detect diffusion
+        fix msd_vector all vector 100 c_msd[4]
+        variable msd_slope equal slope(f_msd_vector)
+
+        # Thermodynamic output
+        thermo_style custom lx ly lz xy yz xz temp press vol etotal c_msd[4] v_msd_slope step
+        thermo 1000
+        
         # Before kim-convergence, perform a short run and decide whether or not to quit
-        run 10000
+        run 5000
         if "${msd_slope} > 1e-2" then "write_dump all atom output/melted_crystal.dump" &
                                       "print 'Crystal melted or vaporized'" &
                                       "quit"
