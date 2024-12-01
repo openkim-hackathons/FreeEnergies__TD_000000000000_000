@@ -17,7 +17,7 @@ class LammpsTemplates:
         read_data output/zero_temperature_crystal.dump
 
         # Increase maximum number of neighbors allowed per atom (for potentials that support many species)
-        #neigh_modify one 100
+        neigh_modify delay 0 every 1 check yes one 2000
 
         # Change to triclinic box.
         change_box all triclinic
@@ -73,7 +73,7 @@ class LammpsTemplates:
         
         # Before kim-convergence, perform a short run and decide whether or not to quit
         run 5000
-        if "${msd_slope} > 1e-2" then "write_dump all atom output/melted_crystal.dump" &
+        if "${msd_slope} > 0.1" then "write_dump all atom output/melted_crystal.dump" &
                                       "print 'Crystal melted or vaporized'" &
                                       "quit"
         unfix msd_vector

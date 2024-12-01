@@ -50,12 +50,12 @@ class TestDriver(CrystalGenomeTestDriver):
         self.supercell = self._setup_initial_structure(size)
 
         # Start accuracy lists (volume, x, y, and z are normal)
-        relative_accuracy = [0.1, 0.01, 0.01, 0.01]
+        relative_accuracy = [0.01, 0.01, 0.01, 0.01]
         absolute_accuracy = [None, None, None, None]
 
         # Get cell parameters and add appropriate values to accuracy lists (0.01 and None for non-zero tilt factors, vice-versa for zero)
         # get_cell_lengths_and_angles() returns angles in place of tilt factors. Angle = 90 --> tilt factor = 0.0.
-        # The criterion for an orthogonal tilt factor ("abs(90-angle) < 0.1") can be modified, depending on how small of a tile factor is too small for kim-convergence
+        # The criterion for an orthogonal tilt factor ("abs(90-angle) < 0.1") can be modified, depending on how small of a tilt factor is too small for kim-convergence
         [X_cell, Y_cell, Z_cell, YZ_cell, XZ_cell, XY_cell] = self.supercell.get_cell_lengths_and_angles()
         
         for angle in [XY_cell, XZ_cell, YZ_cell]:
