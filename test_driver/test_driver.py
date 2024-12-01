@@ -1,4 +1,6 @@
 import os
+import sys
+import re
 import subprocess
 import shutil
 from typing import List, Tuple
@@ -47,11 +49,35 @@ class TestDriver(CrystalGenomeTestDriver):
             size = (x,x,x)
         self.supercell = self._setup_initial_structure(size)
 
+        # Start accuracy lists (temperature, x, y, and z are non-zero)
+        relative_accuracy = [0.1, 0.1, 0.1, 0.1]
+        absolute_accuracy = [None, None, None, None]
+
+        # Get cell parameters and add appropriate values to accuracy lists (0.1 and None for non-zero tilt factors, vice-versa for zero)
+        # get_cell_lengths_and_angles() returns angles in place of tilt factors. Angle = 90 --> tilt factor = 0.0.
+        [X_cell, Y_cell, Z_cell, YZ_cell, XZ_cell, XY_cell] = self.supercell.get_cell_lengths_and_angles()
+        
+        for angle in [XY_cell, XZ_cell, YZ_cell]:
+            if abs(90-angle) < 0.1:
+                relative_accuracy.append(None)
+                absolute_accuracy.append(0.1)
+            else:
+                relative_accuracy.append(0.1)
+                absolute_accuracy.append(None)
+
+        # Replace lists in "accuracies_general.py"
+        new_accuracies = {
+                        "RELATIVE_ACCURACY: Sequence[Optional[float]]": relative_accuracy,
+                        "ABSOLUTE_ACCURACY: Sequence[Optional[float]]": absolute_accuracy
+                        }
+        self._modify_accuracies(new_accuracies)
+
         # Choose the correct accuracies file for kim-convergence based on whether the cell is orthogonal or not.
         if self.supercell.get_cell().orthorhombic:
             shutil.copyfile("accuracies_orthogonal.py", "accuracies.py")
         else:
-            shutil.copyfile("accuracies_non_orthogonal.py", "accuracies.py")
+            #shutil.copyfile("accuracies_non_orthogonal.py", "accuracies.py")
+            shutil.copyfile("accuracies_general.py", "accuracies.py")
 
         # Write initial template file
         self.templates = LammpsTemplates(root="lammps_templates/")
@@ -62,6 +88,15 @@ class TestDriver(CrystalGenomeTestDriver):
         # preFL computes the equilibrium lattice parameter and spring constants for a given temperature and pressure.
         # TODO: This should probably be replaced with its own test driver, which compute equilibrium lattice constants, and which can handles arbitrary crystal structures. Then we can get spring constants.
         equilibrium_cell, self.spring_constants, self.volume = self._preFL()
+
+        # If the crystal melts or vaporizes, kim-convergence may run indefinately.
+        # If lammps detects diffusion, it prints a specific string, then quits.
+        # The 'if' statement below handles that case.
+        # This is a first implementation. It's probably cleaner to leave the responsibility of quitting to some standardized function that is common across finite-temperature test-drivers
+        if self._check_diffusion(
+            lammps_log="output/lammps_preFL.log"
+        ):
+            sys.exit("Crystal melted or vaporized")
 
         # Some models want atom_style="charge", others want "atomic"
         # We tried with 'atomic', if it fails, try 'charge'
@@ -381,7 +416,38 @@ class TestDriver(CrystalGenomeTestDriver):
         except FileNotFoundError:
             print(f"The file {lammps_log} does not exist.")
             return False
+    
+    def _check_diffusion(self, lammps_log: str):
+        try:
+            with open(lammps_log, "r") as file:
+                lines = file.readlines()
 
+                if not lines:
+                    return False
+
+                last_line = lines[-2].strip()
+
+                return last_line.startswith("Crystal melted or vaporized")
+
+        except FileNotFoundError:
+            print(f"The file {lammps_log} does not exist.")
+            return False
+
+    def _modify_accuracies(self, new_accuracies):
+
+        with open("accuracies_general.py", 'r') as file:
+            content = file.read()
+        
+        pattern = r"RELATIVE_ACCURACY: Sequence\[Optional\[float\]\].s*=.s*\[.*?\]"
+        replacement = f"RELATIVE_ACCURACY: Sequence[Optional[float]] = {new_accuracies['RELATIVE_ACCURACY: Sequence[Optional[float]]']}"
+        content = re.sub(pattern, replacement, content)
+
+        pattern = r"ABSOLUTE_ACCURACY: Sequence\[Optional\[float\]\].s*=.s*\[.*?\]"
+        replacement = f"ABSOLUTE_ACCURACY: Sequence[Optional[float]] = {new_accuracies['ABSOLUTE_ACCURACY: Sequence[Optional[float]]']}"
+        content = re.sub(pattern, replacement, content)
+
+        with open("accuracies_general.py", 'w') as file:
+            file.write(content)
 
 if __name__ == "__main__":
     model_name = "LJ_Shifted_Bernardes_1958MedCutoff_Ar__MO_126566794224_004"

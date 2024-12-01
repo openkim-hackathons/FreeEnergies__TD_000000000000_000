@@ -16,6 +16,9 @@ class LammpsTemplates:
         # Read crystal with 0K lattice parameter.
         read_data output/zero_temperature_crystal.dump
 
+        # Increase maximum number of neighbors allowed per atom (for potentials that support many species)
+        #neigh_modify one 100
+
         # Change to triclinic box.
         change_box all triclinic
 
@@ -32,8 +35,8 @@ class LammpsTemplates:
         variable      press_converted equal ${pressure}*${_u_pressure}
         variable      Pdamp_converted equal ${pressure_damping}*${_u_time}
 
-        # Relax the structure
-        minimize      1.0e-08 0 10000 10000
+        # Relax the structure (shouldn't do this, structure should be run as is)
+        #minimize      1.0e-08 0 10000 10000
 
         # Initialize velocities.
         velocity      all create ${temp_converted} ${temperature_seed}
@@ -47,8 +50,13 @@ class LammpsTemplates:
         run 0
         velocity all scale ${temp_converted}
 
+        # Measure mean squared displacement to detect diffusion
+        compute msd all msd com yes
+        fix msd_vector all vector 100 c_msd[4]
+        variable msd_slope equal slope(f_msd_vector)
+
         # Thermodynamic output
-        thermo_style custom lx ly lz xy yz xz temp press vol etotal step
+        thermo_style custom lx ly lz xy yz xz temp press vol etotal c_msd[4] v_msd_slope step
         thermo 1000
 
         # compute box information
@@ -59,6 +67,15 @@ class LammpsTemplates:
         variable       yz_metal equal yz/${_u_distance}
         variable       xz_metal equal xz/${_u_distance}
         variable       vol_metal equal vol/(${_u_distance}^3)
+
+        # Before kim-convergence, perform a short run and decide whether or not to quit
+        run 10000
+        if "${msd_slope} > 1e-2" then "write_dump all atom output/melted_crystal.dump" &
+                                      "print 'Crystal melted or vaporized'" &
+                                      "quit"
+        unfix msd_vector
+        reset_timestep 0
+        thermo_style custom lx ly lz xy yz xz temp press vol etotal step
 
         # Set up convergence check with kim-convergence.
         python run_length_control input 16 SELF 1 variable vol_metal variable lx_metal variable ly_metal variable lz_metal variable xy_metal variable xz_metal variable yz_metal format pissssssssssssss file run_length_control_preFL.py
@@ -73,7 +90,7 @@ class LammpsTemplates:
         #set group all image 0 0 0
         {compute_msd}
 
-        # New set of values to print to log file (added msd)
+        # New set of values to print to log file
         {thermo_template}
 
         # Define variables for fix ave/time
