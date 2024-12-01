@@ -78,7 +78,7 @@ class LammpsTemplates:
         thermo_style custom lx ly lz xy yz xz temp press vol etotal step
 
         # Set up convergence check with kim-convergence.
-        python run_length_control input 16 SELF 1 variable vol_metal variable lx_metal variable ly_metal variable lz_metal variable xy_metal variable xz_metal variable yz_metal format pissssssssssssss file run_length_control_preFL.py
+        python run_length_control input 16 SELF 1 variable vol_metal variable lx_metal variable ly_metal variable lz_metal variable xy_metal variable xz_metal variable yz_metal format pissssssssssssss file test_driver/run_length_control_preFL.py
 
         # Run until converged (minimum runtime 30000 steps)
         python run_length_control invoke
@@ -371,8 +371,9 @@ class LammpsTemplates:
             else self.pre_fl.replace("{cell_type}", "aniso")
         )
         '''
-
+    
     def _write_pre_fl_lammps_templates(self, nspecies: int, is_triclinic: bool):
+        
         self._add_msd_fix_for_multicomponent(nspecies, is_triclinic)
         open(self.root + "preFL_template.lmp", "w").write(self.pre_fl)
 
