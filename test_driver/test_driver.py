@@ -11,6 +11,11 @@ from ase.io import read, write
 import numpy as np
 from ase.data import atomic_masses, atomic_numbers
 from kim_tools import CrystalGenomeTestDriver, get_stoich_reduced_list_from_prototype
+from kim_tools import (
+    SingleCrystalTestDriver,
+    get_stoich_reduced_list_from_prototype,
+)
+
 import scipy.constants as sc
 from .lammps_templates import LammpsTemplates
 from .helper_functions import reduce_and_avg
@@ -22,7 +27,7 @@ HBAR = sc.value("Planck constant in eV/Hz") / (2 * np.pi)
 KB = sc.value("Boltzmann constant in eV/K")
 
 
-class TestDriver(CrystalGenomeTestDriver):
+class TestDriver(SingleCrystalTestDriver):
     def _calculate(
         self,
         temperature: float = 20.0,
