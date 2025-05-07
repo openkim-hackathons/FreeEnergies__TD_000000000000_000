@@ -16,17 +16,18 @@ import scipy.constants as sc
 from ase import Atoms, io
 from ase.io import read, write
 from ase.data import atomic_masses, atomic_numbers
-
-# =====================
-# Local Imports
-# =====================
 from kim_tools import (
     SingleCrystalTestDriver,
     get_stoich_reduced_list_from_prototype,
+    get_isolated_energy_per_atom,
 )
+# =====================
+# Local Imports
+# =====================
+
 from .lammps_templates import LammpsTemplates
 from .helper_functions import reduce_and_avg
-from kim_python_utils.ase import get_isolated_energy_per_atom
+
 
 # =====================
 # Constants
