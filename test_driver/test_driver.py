@@ -1,3 +1,6 @@
+# =====================
+# Standard Library Imports
+# =====================
 import os
 import sys
 import re
@@ -5,22 +8,29 @@ import subprocess
 import shutil
 from typing import List, Tuple
 
-from ase import Atoms
-from ase import io
-from ase.io import read, write
+# =====================
+# Third-Party Imports
+# =====================
 import numpy as np
+import scipy.constants as sc
+from ase import Atoms, io
+from ase.io import read, write
 from ase.data import atomic_masses, atomic_numbers
 
+# =====================
+# Local Imports
+# =====================
 from kim_tools import (
     SingleCrystalTestDriver,
     get_stoich_reduced_list_from_prototype,
 )
-
-import scipy.constants as sc
 from .lammps_templates import LammpsTemplates
 from .helper_functions import reduce_and_avg
 from kim_python_utils.ase import get_isolated_energy_per_atom
 
+# =====================
+# Constants
+# =====================
 EV = sc.value("electron volt")
 MU = sc.value("atomic mass constant")
 HBAR = sc.value("Planck constant in eV/Hz") / (2 * np.pi)
@@ -28,6 +38,9 @@ KB = sc.value("Boltzmann constant in eV/K")
 
 
 class TestDriver(SingleCrystalTestDriver):
+    # =====================
+    # Main Calculation Entry Point
+    # =====================
     def _calculate(
         self,
         pressure: float = 0.0,
@@ -130,7 +143,7 @@ class TestDriver(SingleCrystalTestDriver):
         # crystal-structure-npt
         self._add_property_instance_and_common_crystal_genome_keys("crystal-structure-npt", write_temp=True, write_stress=True)
         self._add_file_to_current_property_instance("restart-file","output/lammps_preFL.restart")
-        self._add_key_to_current_property_instance("temperature", temperature, "K")
+        self._add_key_to_current_property_instance("temperature", self.temperature_K, "K")
         self._add_key_to_current_property_instance("cell-cauchy-stress", [-pressure, -pressure, -pressure, 0.0, 0.0, 0.0], "atm")
     
         # Rescaling 0K supercell to have equilibrium lattice constant.
@@ -138,10 +151,6 @@ class TestDriver(SingleCrystalTestDriver):
 
         self.supercell.set_cell(equilibrium_cell, scale_atoms=True)
         self.supercell.write(
-            # os.path.join(
-            #     os.path.dirname(os.path.realpath(__file__)),
-            #     "output/equilibrium_crystal.dump",
-            # ),
             "output/equilibrium_crystal.dump",
             format="lammps-data",
             masses=True,
@@ -205,12 +214,15 @@ class TestDriver(SingleCrystalTestDriver):
             "specific_gibbs_free_energy", specific_free_energy, "eV/amu"
         )
         self._add_key_to_current_property_instance(
-            "temperature", temperature, "K"
+            "temperature", self.temperature_K, "K"
         )
         self._add_key_to_current_property_instance(
             "cell-cauchy-stress", [-pressure, -pressure, -pressure, 0.0, 0.0, 0.0], "atm"
         )
 
+    # =====================
+    # Validation and Setup
+    # =====================
     def _validate_inputs(self):
         if not self.temperature_K > 0.0:
             raise ValueError("Temperature has to be larger than zero.")
@@ -266,6 +278,9 @@ class TestDriver(SingleCrystalTestDriver):
 
         return atoms_new
 
+    # =====================
+    # LAMMPS Simulation Methods
+    # =====================
     def _preFL(self) -> Tuple[List[float], List[float]]:
         variables = {
             "modelname": self.kim_model_name,
@@ -402,6 +417,9 @@ class TestDriver(SingleCrystalTestDriver):
         free_energy = np.sum(F_harm) - Work + F_CM + PV_term
         return free_energy
 
+    # =====================
+    # LAMMPS Output Checking
+    # =====================
     def _check_if_lammps_run_to_completiton(self, lammps_log: str):
         try:
             with open(lammps_log, "r") as file:
@@ -434,6 +452,9 @@ class TestDriver(SingleCrystalTestDriver):
             print(f"The file {lammps_log} does not exist.")
             return False
 
+    # =====================
+    # Accuracy Modification
+    # =====================
     def _modify_accuracies(self, new_accuracies):
 
         with open("test_driver/accuracies.py", 'r') as file:
@@ -450,6 +471,9 @@ class TestDriver(SingleCrystalTestDriver):
         with open("test_driver/accuracies.py", 'w') as file:
             file.write(content)
 
+# =====================
+# Main Block
+# =====================
 if __name__ == "__main__":
     from ase.build import bulk
     model_name = "LJ_Shifted_Bernardes_1958MedCutoff_Ar__MO_126566794224_004"
