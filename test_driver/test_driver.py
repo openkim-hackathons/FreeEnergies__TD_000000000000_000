@@ -4,7 +4,7 @@ import re
 import subprocess
 import shutil
 from typing import List, Tuple
-from ase.build import bulk
+
 from ase import Atoms
 from ase import io
 from ase.io import read, write
@@ -224,6 +224,7 @@ class TestDriver(SingleCrystalTestDriver):
         filename: str = "output/zero_temperature_crystal.dump",
     ) -> Atoms:
         # Copy original atoms so that their information does not get lost when the new atoms are modified.
+        self.atoms = self._get_atoms()
         atoms_new = self.atoms.copy()
 
         # Build supercell
@@ -450,6 +451,7 @@ class TestDriver(SingleCrystalTestDriver):
             file.write(content)
 
 if __name__ == "__main__":
+    from ase.build import bulk
     model_name = "LJ_Shifted_Bernardes_1958MedCutoff_Ar__MO_126566794224_004"
     subprocess.run(f"kimitems install {model_name}", shell=True, check=True)
     subprocess.run("mkdir -p output", shell=True, check=True)

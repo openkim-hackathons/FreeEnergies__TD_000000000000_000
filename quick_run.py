@@ -1,7 +1,7 @@
 #!/usr/bin/python
 from test_driver.test_driver import TestDriver
 import subprocess
-from kim_tools import query_crystal_genome_structures
+from kim_tools import query_crystal_structures
 
 #kim_model_name = "LJ_Shifted_Bernardes_1958MedCutoff_Ar__MO_126566794224_004" # LJ Argon
 kim_model_name = "MEAM_LAMMPS_KoJimLee_2012_FeP__MO_179420363944_002" # MEAM for FeP
@@ -13,7 +13,7 @@ kim_model_name = "MEAM_LAMMPS_KoJimLee_2012_FeP__MO_179420363944_002" # MEAM for
 subprocess.run(f"kimitems install {kim_model_name}", shell=True, check=True)
 test_driver = TestDriver(kim_model_name)
 
-list_of_queried_structures = query_crystal_genome_structures(
+list_of_queried_structures = query_crystal_structures(
     kim_model_name=kim_model_name,
     stoichiometric_species=['Fe', 'P'],
     #stoichiometric_species=['Ar'],
