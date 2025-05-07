@@ -261,15 +261,8 @@ class TestDriver(SingleCrystalTestDriver):
             self.concentration[i] = (symbols == self.species[i]).sum()
         self.concentration *= 1 / len(symbols)
 
-        # Write lammps file.
-        # structure_file = os.path.join(
-        #     os.path.dirname(os.path.realpath(__file__)), filename
-        # )
-        # os.makedirs(os.path.dirname(structure_file),exist_ok=True)
-        structure_file = filename
-
-        atoms_new.write(structure_file, format="lammps-data", masses=True)
-        self.zero_k_structure_path = structure_file
+        atoms_new.write(filename, format="lammps-data", masses=True)
+        self.zero_k_structure_path = filename
 
         angles = self.atoms.get_cell().angles()
         self.is_triclinic = (
