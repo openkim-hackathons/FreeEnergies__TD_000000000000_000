@@ -25,9 +25,9 @@ list_of_queried_structures = query_crystal_structures(
 
 print("\nRUNNING TEST DRIVER ON QUERIED STRUCTURE\n")
 test_driver(
-    **list_of_queried_structures[0],
+    list_of_queried_structures[0],
     size=(3,3,3),
-    temperature=3000,
+    temperature_K=3000,
     pressure=0.0,
 )
 

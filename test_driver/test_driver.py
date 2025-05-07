@@ -30,7 +30,6 @@ KB = sc.value("Boltzmann constant in eV/K")
 class TestDriver(SingleCrystalTestDriver):
     def _calculate(
         self,
-        temperature: float = 20.0,
         pressure: float = 0.0,
         size: Tuple[int, int, int] = (0,0,0),
         **kwargs,
@@ -43,7 +42,8 @@ class TestDriver(SingleCrystalTestDriver):
             size (Tuple[int, int, int]): system size.
         """
         # Check arguments
-        self.temperature = temperature
+
+        self.temperature_K = self._get_temperature(unit="K")
         self.pressure = pressure
         self._validate_inputs()
 
@@ -212,7 +212,7 @@ class TestDriver(SingleCrystalTestDriver):
         )
 
     def _validate_inputs(self):
-        if not self.temperature > 0.0:
+        if not self.temperature_K > 0.0:
             raise ValueError("Temperature has to be larger than zero.")
 
         if not self.pressure >= 0.0:
@@ -269,7 +269,7 @@ class TestDriver(SingleCrystalTestDriver):
     def _preFL(self) -> Tuple[List[float], List[float]]:
         variables = {
             "modelname": self.kim_model_name,
-            "temperature": self.temperature,
+            "temperature": self.temperature_K,
             "temperature_damping": 0.1, # ps
             "temperature_seed": np.random.randint(low=100000, high=999999, dtype=int),
             "pressure": self.pressure,
@@ -316,7 +316,7 @@ class TestDriver(SingleCrystalTestDriver):
 
         variables = {
             "modelname": self.kim_model_name,
-            "temperature": self.temperature,
+            "temperature": self.temperature_K,
             "pressure": self.pressure,
             "species": " ".join(self.species),
             "t_switch": 10000,
@@ -369,19 +369,19 @@ class TestDriver(SingleCrystalTestDriver):
             self.concentration
             * 3
             * KB
-            * self.temperature
-            * np.log(HBAR * omega / (KB * self.temperature))
+            * self.temperature_K
+            * np.log(HBAR * omega / (KB * self.temperature_K))
         )  # [eV/atom].
 
         total_mass = np.sum(natoms * self.concentration * self.mass)
 
         F_CM = (
             KB
-            * self.temperature
+            * self.temperature_K
             * np.log(
                 (natoms / self.volume)
                 * (
-                    (2 * np.pi * KB * self.temperature)
+                    (2 * np.pi * KB * self.temperature_K)
                     #/ (natoms * self.concentration * self.mass * omega**2)
                     / (np.sum(natoms * self.concentration * total_mass**2 * self.spring_constants * EV
                               / (self.mass*MU)**2)) # Khanna 2021, J. Chem. Phys., eq. 10
