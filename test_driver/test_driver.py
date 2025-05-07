@@ -471,18 +471,3 @@ class TestDriver(SingleCrystalTestDriver):
         with open("test_driver/accuracies.py", 'w') as file:
             file.write(content)
 
-# =====================
-# Main Block
-# =====================
-if __name__ == "__main__":
-    from ase.build import bulk
-    model_name = "LJ_Shifted_Bernardes_1958MedCutoff_Ar__MO_126566794224_004"
-    subprocess.run(f"kimitems install {model_name}", shell=True, check=True)
-    subprocess.run("mkdir -p output", shell=True, check=True)
-    test_driver = TestDriver(model_name)
-    test_driver(
-        bulk("Ar", "fcc", a=5.248),
-        size=(3, 3, 3),
-        temperature=20.0,
-        pressure=0.0,
-    )
