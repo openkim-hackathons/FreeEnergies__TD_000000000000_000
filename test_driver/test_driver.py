@@ -147,8 +147,6 @@ class TestDriver(SingleCrystalTestDriver):
         # crystal-structure-npt
         self._add_property_instance_and_common_crystal_genome_keys("crystal-structure-npt", write_temp=True, write_stress=True)
         self._add_file_to_current_property_instance("restart-file","output/lammps_preFL.restart")
-        self._add_key_to_current_property_instance("temperature", self.temperature_K, "K")
-        self._add_key_to_current_property_instance("cell-cauchy-stress", [-self.pressure, -self.pressure, -self.pressure, 0.0, 0.0, 0.0], "atm")
     
         # Rescaling 0K supercell to have equilibrium lattice constant.
         # equilibrium_cell is 3x3 matrix or can also have [len(a), len(b), len(c), angle(b,c), angle(a,c), angle(a,b)]
@@ -215,12 +213,6 @@ class TestDriver(SingleCrystalTestDriver):
         )
         self._add_key_to_current_property_instance(
             "specific_gibbs_free_energy", specific_free_energy, "eV/amu"
-        )
-        self._add_key_to_current_property_instance(
-            "temperature", self.temperature_K, "K"
-        )
-        self._add_key_to_current_property_instance(
-            "cell-cauchy-stress", [-self.pressure, -self.pressure, -self.pressure, 0.0, 0.0, 0.0], "atm"
         )
 
     # =====================
