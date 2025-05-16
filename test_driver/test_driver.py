@@ -55,8 +55,8 @@ class TestDriver(SingleCrystalTestDriver):
 
         self.temperature_K = self._get_temperature(unit="K")
 
-        cauchy_stress = self._get_cell_cauchy_stress(unit='eV/angstrom^3') 
-        pressure = -cauchy_stress[0] * 158122.54 # pressure in atm
+        cauchy_stress = self._get_cell_cauchy_stress(unit='atm') 
+        pressure = -cauchy_stress[0] 
         
         self._validate_inputs()
 
