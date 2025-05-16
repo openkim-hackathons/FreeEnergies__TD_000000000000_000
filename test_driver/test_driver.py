@@ -111,7 +111,7 @@ class TestDriver(SingleCrystalTestDriver):
         if self._check_diffusion(
             lammps_log="output/lammps_preFL.log"
         ):
-            sys.exit("Crystal melted or vaporized")
+            raise ValueError("Crystal melted or vaporized")
 
         # Some models want atom_style="charge", others want "atomic"
         # We tried with 'atomic', if it fails, try 'charge'
