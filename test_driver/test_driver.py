@@ -182,7 +182,7 @@ class TestDriver(SingleCrystalTestDriver):
         self.templates._write_fl_lammps_templates(
             spring_constants=self.spring_constants
         )
-        # !!! TODO: self._FL run some MD, should we check symmetry and melting there too? 
+        # !!! TODO: self._FL run some MD, should we check symmetry and melting and symmetry change there too? 
         free_energy_per_atom = self._FL() - isolated_atom_energy
 
         # Convert to eV/formula (originally in eV/atom)
