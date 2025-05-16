@@ -43,21 +43,18 @@ class TestDriver(SingleCrystalTestDriver):
     # =====================
     def _calculate(
         self,
-        pressure: float = 0.0,
         size: Tuple[int, int, int] = (0,0,0),
         **kwargs,
     ) -> None:
         """Gibbs free energy of a crystal at constant temperature and pressure using Frenkel-Ladd Hamiltonian integration algorithm. Computed through one equilibrium NPT simulation ('preFL') and one NONequilibrium NVT simulation ('FL').
 
         Args:
-            temperature (float): system temperature in K.
-            pressure (float): system pressure in atm.
             size (Tuple[int, int, int]): system size.
         """
         # Check arguments
 
         self.temperature_K = self._get_temperature(unit="K")
-        self.pressure = pressure
+        self.pressure = self._get_cell_cauchy_stress(unit='??') # TODO: pressure needs to be in atm
         self._validate_inputs()
 
         # Write initial atomic structure to lammps dump file
@@ -129,10 +126,6 @@ class TestDriver(SingleCrystalTestDriver):
 
         # Read lammps dump file of average positions
         atoms_npt = io.read("output/lammps_preFL.data", format='lammps-data')
-
-        # Reduce to unit cell
-        reduced_atoms = reduce_and_avg(atoms_npt, size)
-
         # Print reduced_atoms for verification
         write('output/reduced_atoms.data', reduced_atoms, format='lammps-data')
 
@@ -140,6 +133,10 @@ class TestDriver(SingleCrystalTestDriver):
         crystal_genome_designation = self._get_crystal_genome_designation_from_atoms_and_verify_unchanged_symmetry(
                 reduced_atoms, loose_triclinic_and_monoclinic=False)
 
+        # Reduce to unit cell
+        reduced_atoms = reduce_and_avg(atoms_npt, size)
+        self._update_nominal_parameter_values(reduced_atoms)
+        
         # crystal-structure-npt
         self._add_property_instance_and_common_crystal_genome_keys("crystal-structure-npt", write_temp=True, write_stress=True)
         self._add_file_to_current_property_instance("restart-file","output/lammps_preFL.restart")
