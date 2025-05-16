@@ -139,8 +139,8 @@ class TestDriver(SingleCrystalTestDriver):
         reduced_atoms = reduce_and_avg(atoms_npt, size)
 
         # Check symmetry
-        crystal_genome_designation = self._verify_unchanged_symmetry(
-                reduced_atoms, loose_triclinic_and_monoclinic=False)
+        if not self._verify_unchanged_symmetry(reduced_atoms):
+            raise ValueError("The symmetry of the atoms have changed.")
 
         self._update_nominal_parameter_values(reduced_atoms)
         
