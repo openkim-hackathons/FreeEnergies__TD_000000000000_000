@@ -135,12 +135,13 @@ class TestDriver(SingleCrystalTestDriver):
         # Print reduced_atoms for verification
         write('output/reduced_atoms.data', reduced_atoms, format='lammps-data')
 
+        # Reduce to unit cell
+        reduced_atoms = reduce_and_avg(atoms_npt, size)
+
         # Check symmetry
         crystal_genome_designation = self._get_crystal_genome_designation_from_atoms_and_verify_unchanged_symmetry(
                 reduced_atoms, loose_triclinic_and_monoclinic=False)
 
-        # Reduce to unit cell
-        reduced_atoms = reduce_and_avg(atoms_npt, size)
         self._update_nominal_parameter_values(reduced_atoms)
         
         # crystal-structure-npt
