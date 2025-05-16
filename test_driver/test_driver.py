@@ -58,7 +58,7 @@ class TestDriver(SingleCrystalTestDriver):
         cauchy_stress = self._get_cell_cauchy_stress(unit='atm')
         if not np.allclose(cauchy_stress[:3], cauchy_stress[0], rtol=1e-5, atol=1e-8):
             raise ValueError("The first three components of the Cauchy stress tensor must be equal (calculation are run at constant isotropic stress).")
-        pressure = -cauchy_stress[0] 
+        self.pressure = -cauchy_stress[0] 
         
         self._validate_inputs()
 
@@ -147,7 +147,7 @@ class TestDriver(SingleCrystalTestDriver):
         self._add_property_instance_and_common_crystal_genome_keys("crystal-structure-npt", write_temp=True, write_stress=True)
         self._add_file_to_current_property_instance("restart-file","output/lammps_preFL.restart")
         self._add_key_to_current_property_instance("temperature", self.temperature_K, "K")
-        self._add_key_to_current_property_instance("cell-cauchy-stress", [-pressure, -pressure, -pressure, 0.0, 0.0, 0.0], "atm")
+        self._add_key_to_current_property_instance("cell-cauchy-stress", [-self.pressure, -self.pressure, -self.pressure, 0.0, 0.0, 0.0], "atm")
     
         # Rescaling 0K supercell to have equilibrium lattice constant.
         # equilibrium_cell is 3x3 matrix or can also have [len(a), len(b), len(c), angle(b,c), angle(a,c), angle(a,b)]
@@ -200,9 +200,6 @@ class TestDriver(SingleCrystalTestDriver):
 
         print(f"G_FL = {free_energy_per_atom:.5f} (eV/atom)")
 
-        # KIM tries to save some coordinate file, disabling it.
-        self.poscar = None
-
         # Write keys to property
         self._add_property_instance_and_common_crystal_genome_keys(
             "free-energy", write_stress=True, write_temp=True
@@ -220,7 +217,7 @@ class TestDriver(SingleCrystalTestDriver):
             "temperature", self.temperature_K, "K"
         )
         self._add_key_to_current_property_instance(
-            "cell-cauchy-stress", [-pressure, -pressure, -pressure, 0.0, 0.0, 0.0], "atm"
+            "cell-cauchy-stress", [-self.pressure, -self.pressure, -self.pressure, 0.0, 0.0, 0.0], "atm"
         )
 
     # =====================
