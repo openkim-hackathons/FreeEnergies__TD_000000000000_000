@@ -76,13 +76,14 @@ class TestDriver(SingleCrystalTestDriver):
         # The criterion for an orthogonal tilt factor ("abs(90-angle) < 0.1") can be modified, depending on how small of a tilt factor is too small for kim-convergence
         [X_cell, Y_cell, Z_cell, YZ_cell, XZ_cell, XY_cell] = self.supercell.get_cell_lengths_and_angles()
         
+        # Define threshold for considering angles as orthogonal (in degrees)
+        ORTHOGONAL_THRESHOLD = 0.1
+        
+        # Process each cell angle and set appropriate accuracy values
         for angle in [XY_cell, XZ_cell, YZ_cell]:
-            if abs(90-angle) < 0.1:
-                relative_accuracy.append(None)
-                absolute_accuracy.append(0.01)
-            else:
-                relative_accuracy.append(0.01)
-                absolute_accuracy.append(None)
+            is_orthogonal = abs(90 - angle) < ORTHOGONAL_THRESHOLD
+            relative_accuracy.append(None if is_orthogonal else 0.01)
+            absolute_accuracy.append(0.01 if is_orthogonal else None)
 
         # Replace lists in "accuracies_general.py"
         new_accuracies = {
