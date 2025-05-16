@@ -55,7 +55,9 @@ class TestDriver(SingleCrystalTestDriver):
 
         self.temperature_K = self._get_temperature(unit="K")
 
-        cauchy_stress = self._get_cell_cauchy_stress(unit='atm') 
+        cauchy_stress = self._get_cell_cauchy_stress(unit='atm')
+        if not np.allclose(cauchy_stress[:3], cauchy_stress[0], rtol=1e-5, atol=1e-8):
+            raise ValueError("The first three components of the Cauchy stress tensor must be equal (calculation are run at constant isotropic stress).")
         pressure = -cauchy_stress[0] 
         
         self._validate_inputs()
