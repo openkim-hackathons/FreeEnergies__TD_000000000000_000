@@ -160,6 +160,7 @@ class TestDriver(SingleCrystalTestDriver):
             masses=True,
             atom_style=atom_style,
         )
+        self._add_file_to_current_property_instance("dump-file","output/equilibrium_crystal.dump")
 
         # Collect the energies of isolated atoms to subtract from final values
         isolated_atom_energy_list = []
@@ -181,6 +182,7 @@ class TestDriver(SingleCrystalTestDriver):
         self.templates._write_fl_lammps_templates(
             spring_constants=self.spring_constants
         )
+        # !!! TODO: self._FL run some MD, should we check symmetry and melting there too? 
         free_energy_per_atom = self._FL() - isolated_atom_energy
 
         # Convert to eV/formula (originally in eV/atom)
