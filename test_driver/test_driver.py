@@ -54,7 +54,10 @@ class TestDriver(SingleCrystalTestDriver):
         # Check arguments
 
         self.temperature_K = self._get_temperature(unit="K")
-        self.pressure = self._get_cell_cauchy_stress(unit='??') # TODO: pressure needs to be in atm
+
+        cauchy_stress = self._get_cell_cauchy_stress(unit='eV/angstrom^3') 
+        pressure = -cauchy_stress[0] * 158122.54 # pressure in atm
+        
         self._validate_inputs()
 
         # Write initial atomic structure to lammps dump file
