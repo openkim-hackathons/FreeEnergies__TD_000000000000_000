@@ -44,30 +44,7 @@ class TestDriver(SingleCrystalTestDriver):
         
         self.supercell = self._setup_initial_structure(size)
 
-        # Start accuracy lists (volume, x, y, and z are normal)
-        relative_accuracy = [0.01, 0.01, 0.01, 0.01]
-        absolute_accuracy = [None, None, None, None]
-
-        # Get cell parameters and add appropriate values to accuracy lists (0.01 and None for non-zero tilt factors, vice-versa for zero)
-        # get_cell_lengths_and_angles() returns angles in place of tilt factors. Angle = 90 --> tilt factor = 0.0.
-        # The criterion for an orthogonal tilt factor ("abs(90-angle) < 0.1") can be modified, depending on how small of a tilt factor is too small for kim-convergence
-        [X_cell, Y_cell, Z_cell, YZ_cell, XZ_cell, XY_cell] = self.supercell.get_cell_lengths_and_angles()
-        
-        # Define threshold for considering angles as orthogonal (in degrees)
-        ORTHOGONAL_THRESHOLD = 0.1
-        
-        # Process each cell angle and set appropriate accuracy values
-        for angle in [XY_cell, XZ_cell, YZ_cell]:
-            is_orthogonal = abs(90 - angle) < ORTHOGONAL_THRESHOLD
-            relative_accuracy.append(None if is_orthogonal else 0.01)
-            absolute_accuracy.append(0.01 if is_orthogonal else None)
-
-        # Replace lists in "accuracies_general.py"
-        new_accuracies = {
-                        "RELATIVE_ACCURACY: Sequence[Optional[float]]": relative_accuracy,
-                        "ABSOLUTE_ACCURACY: Sequence[Optional[float]]": absolute_accuracy
-                        }
-        self._modify_accuracies(new_accuracies)
+        self._modify_accuracies()
 
         # Write initial template file
         self.templates = LammpsTemplates(root="lammps_templates/")
@@ -76,33 +53,14 @@ class TestDriver(SingleCrystalTestDriver):
         )
 
         # preFL computes the equilibrium lattice parameter and spring constants for a given temperature and pressure.
-        equilibrium_cell, self.spring_constants, self.volume = self._preFL()
+        equilibrium_cell, self.spring_constants, self.volume=self._run_preFL()
+        
 
         # If the crystal melts or vaporizes, kim-convergence may run indefinately.
         # If lammps detects diffusion, it prints a specific string, then quits.
         # The 'if' statement below handles that case.
         # This is a first implementation. It's probably cleaner to leave the responsibility of quitting to some standardized function that is common across finite-temperature test-drivers
-        if self._check_diffusion(
-            lammps_log="output/lammps_preFL.log"
-        ):
-            raise ValueError("Crystal melted or vaporized")
-
-        # Some models want atom_style="charge", others want "atomic"
-        # We tried with 'atomic', if it fails, try 'charge'
-        atom_style = "atomic"
-        if not self._check_if_lammps_run_to_completiton(
-            lammps_log="output/lammps_preFL.log"
-        ):
-            atom_style = "charge"
-            self.supercell.write(
-                self.zero_k_structure_path,
-                format="lammps-data",
-                masses=True,
-                atom_style=atom_style,
-            )
-            equilibrium_cell, self.spring_constants, self.volume = self._preFL()
-
-        assert len(self.species) == len(self.spring_constants)
+        self._check_diffusion(lammps_log="output/lammps_preFL.log")
 
         # Read lammps dump file of average positions
         atoms_npt = io.read("output/lammps_preFL.data", format='lammps-data')
@@ -246,7 +204,27 @@ class TestDriver(SingleCrystalTestDriver):
 
         return atoms_new
 
+    def _run_preFL(self):
+        equilibrium_cell, spring_constants, volume = self._preFL()
 
+        # Some models want atom_style="charge", others want "atomic"
+        # We tried with 'atomic', if it fails, try 'charge'
+        atom_style = "atomic"
+        if not self._check_if_lammps_run_to_completiton(
+            lammps_log="output/lammps_preFL.log"
+        ):
+            atom_style = "charge"
+            self.supercell.write(
+                self.zero_k_structure_path,
+                format="lammps-data",
+                masses=True,
+                atom_style=atom_style,
+            )
+            equilibrium_cell, spring_constants, volume = self._preFL()
+
+        assert len(self.species) == len(spring_constants)
+        return equilibrium_cell, spring_constants, volume
+    
     def _preFL(self) -> Tuple[List[float], List[float]]:
         variables = {
             "modelname": self.kim_model_name,
@@ -401,26 +379,49 @@ class TestDriver(SingleCrystalTestDriver):
             return False
     
     def _check_diffusion(self, lammps_log: str):
+     
         try:
             with open(lammps_log, "r") as file:
                 lines = file.readlines()
 
                 if not lines:
-                    return False
+                    return
 
                 last_line = lines[-2].strip()
 
-                return last_line.startswith("Crystal melted or vaporized")
+                if last_line.startswith("Crystal melted or vaporized"):
+                    raise ValueError("Crystal melted or vaporized")
 
         except FileNotFoundError:
             print(f"The file {lammps_log} does not exist.")
-            return False
+            raise
 
-    # =====================
-    # Accuracy Modification
-    # =====================
-    def _modify_accuracies(self, new_accuracies):
+    
+    def _modify_accuracies(self):
+         # Start accuracy lists (volume, x, y, and z are normal)
+        relative_accuracy = [0.01, 0.01, 0.01, 0.01]
+        absolute_accuracy = [None, None, None, None]
 
+        # Get cell parameters and add appropriate values to accuracy lists (0.01 and None for non-zero tilt factors, vice-versa for zero)
+        # get_cell_lengths_and_angles() returns angles in place of tilt factors. Angle = 90 --> tilt factor = 0.0.
+        # The criterion for an orthogonal tilt factor ("abs(90-angle) < 0.1") can be modified, depending on how small of a tilt factor is too small for kim-convergence
+        [X_cell, Y_cell, Z_cell, YZ_cell, XZ_cell, XY_cell] = self.supercell.get_cell_lengths_and_angles()
+        
+        # Define threshold for considering angles as orthogonal (in degrees)
+        ORTHOGONAL_THRESHOLD = 0.1
+        
+        # Process each cell angle and set appropriate accuracy values
+        for angle in [XY_cell, XZ_cell, YZ_cell]:
+            is_orthogonal = abs(90 - angle) < ORTHOGONAL_THRESHOLD
+            relative_accuracy.append(None if is_orthogonal else 0.01)
+            absolute_accuracy.append(0.01 if is_orthogonal else None)
+
+        # Replace lists in "accuracies_general.py"
+        new_accuracies = {
+                        "RELATIVE_ACCURACY: Sequence[Optional[float]]": relative_accuracy,
+                        "ABSOLUTE_ACCURACY: Sequence[Optional[float]]": absolute_accuracy
+                        }
+        
         with open("test_driver/accuracies.py", 'r') as file:
             content = file.read()
         
