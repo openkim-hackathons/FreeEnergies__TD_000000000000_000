@@ -1,4 +1,3 @@
-
 import re
 import subprocess
 from typing import List, Tuple
@@ -36,21 +35,13 @@ class TestDriver(SingleCrystalTestDriver):
         """
 
         self.temperature_K = self._get_temperature(unit="K")
-
-        cauchy_stress = self._get_cell_cauchy_stress(unit='atm')
-        if not np.allclose(cauchy_stress[:3], cauchy_stress[0], rtol=1e-5, atol=1e-8):
-            raise ValueError("The first three components of the Cauchy stress tensor must be equal (calculation are run at constant isotropic stress).")
-        self.pressure = -cauchy_stress[0] 
-
+        self.cauchy_stress = self._get_cell_cauchy_stress(unit='atm')
+        self.pressure = -self.cauchy_stress[0] 
         self.atoms = self._get_atoms()
         
         self._validate_inputs()
 
-        # Write initial atomic structure to lammps dump file
-        if size == (0,0,0):
-            # Get a size close to 10K atoms (shown to give good convergence)
-            x = int(np.ceil(np.cbrt(10_000 / len(self.atoms))))
-            size = (x,x,x)
+        
         self.supercell = self._setup_initial_structure(size)
 
         # Start accuracy lists (volume, x, y, and z are normal)
@@ -206,16 +197,24 @@ class TestDriver(SingleCrystalTestDriver):
         if not self.pressure >= 0.0:
             raise ValueError("Pressure has to be greater than or equal to zero.")
 
+        if not np.allclose(self.cauchy_stress[:3], self.cauchy_stress[0], rtol=1e-5, atol=1e-8):
+            raise ValueError("The first three components of the Cauchy stress tensor must be equal (calculation are run at constant isotropic stress).")
+
     def _setup_initial_structure(
         self,
         size: Tuple[int, int, int],
         filename: str = "output/zero_temperature_crystal.data",
     ) -> Atoms:
         # Copy original atoms so that their information does not get lost when the new atoms are modified.
-       
+
         atoms_new = self.atoms.copy()
 
         # Build supercell
+        if size == (0,0,0):
+            # Get a size close to 10K atoms (shown to give good convergence)
+            x = int(np.ceil(np.cbrt(10_000 / len(self.atoms))))
+            size = (x,x,x)
+
         atoms_new = atoms_new.repeat(size)
 
         # This is how ASE obtains the species that are written to the initial configuration.
