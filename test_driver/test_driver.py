@@ -1,15 +1,8 @@
-# =====================
-# Standard Library Imports
-# =====================
-import os
-import sys
+
 import re
 import subprocess
 from typing import List, Tuple
 
-# =====================
-# Third-Party Imports
-# =====================
 import numpy as np
 import scipy.constants as sc
 from ase import Atoms, io
@@ -20,9 +13,6 @@ from kim_tools import (
     get_stoich_reduced_list_from_prototype,
     get_isolated_energy_per_atom,
 )
-# =====================
-# Local Imports
-# =====================
 
 from .lammps_templates import LammpsTemplates
 from .helper_functions import reduce_and_avg
@@ -38,9 +28,6 @@ KB = sc.value("Boltzmann constant in eV/K")
 
 
 class TestDriver(SingleCrystalTestDriver):
-    # =====================
-    # Main Calculation Entry Point
-    # =====================
     def _calculate(
         self,
         size: Tuple[int, int, int] = (0,0,0),
@@ -216,9 +203,6 @@ class TestDriver(SingleCrystalTestDriver):
             "specific_gibbs_free_energy", specific_free_energy, "eV/amu"
         )
 
-    # =====================
-    # Validation and Setup
-    # =====================
     def _validate_inputs(self):
         if not self.temperature_K > 0.0:
             raise ValueError("Temperature has to be larger than zero.")
@@ -267,9 +251,7 @@ class TestDriver(SingleCrystalTestDriver):
 
         return atoms_new
 
-    # =====================
-    # LAMMPS Simulation Methods
-    # =====================
+
     def _preFL(self) -> Tuple[List[float], List[float]]:
         variables = {
             "modelname": self.kim_model_name,
@@ -406,9 +388,7 @@ class TestDriver(SingleCrystalTestDriver):
         free_energy = np.sum(F_harm) - Work + F_CM + PV_term
         return free_energy
 
-    # =====================
-    # LAMMPS Output Checking
-    # =====================
+ 
     def _check_if_lammps_run_to_completiton(self, lammps_log: str):
         try:
             with open(lammps_log, "r") as file:
