@@ -62,14 +62,15 @@ class TestDriver(SingleCrystalTestDriver):
         # This is a first implementation. It's probably cleaner to leave the responsibility of quitting to some standardized function that is common across finite-temperature test-drivers
         self._check_diffusion(lammps_log="output/lammps_preFL.log")
 
-        reduced_atoms = self._reduce_average_and_verify_symmetry(atoms_npt="output/lammps_preFL.data", size=size)
-    
-        self._update_nominal_parameter_values(reduced_atoms)
-        
+        reduced_atoms_preFL = self._reduce_average_and_verify_symmetry(atoms_npt="output/lammps_preFL.data", size=size, reduced_atoms_save_path="output/reduced_atoms_preFL.data")
+
+        self._update_nominal_parameter_values(reduced_atoms_preFL)
+
         # crystal-structure-npt
         self._add_property_instance_and_common_crystal_genome_keys("crystal-structure-npt", write_temp=True, write_stress=True)
         self._add_file_to_current_property_instance("restart-file","output/lammps_preFL.restart")
     
+        
         # Rescaling 0K supercell to have equilibrium lattice constant.
         # equilibrium_cell is 3x3 matrix or can also have [len(a), len(b), len(c), angle(b,c), angle(a,c), angle(a,b)]
 
@@ -83,14 +84,24 @@ class TestDriver(SingleCrystalTestDriver):
         self._add_file_to_current_property_instance("data-file","output/equilibrium_crystal.data")
 
         # Collect the energies of isolated atoms to subtract from final values
-        isolated_atom_energy = self._collect_isolated_atom_energies(reduced_atoms)
+        isolated_atom_energy = self._collect_isolated_atom_energies(reduced_atoms_preFL)
 
         # FL computes the free energy at a given pressure and temperature.
         self.templates._write_fl_lammps_templates(
             spring_constants=self.spring_constants
         )
-        # TODO: self._FL run some MD, should we check symmetry and melting and that lammps runs to completion and symmetry change there too? 
+        
         free_energy_per_atom = self._FL() - isolated_atom_energy
+
+        # TODO: Does it makes sense to check diffusion, melting, and symmetry change here?
+        self._check_diffusion(lammps_log="output/lammps_FL.log")
+
+        reduced_atoms_FL = self._reduce_average_and_verify_symmetry(atoms_npt="output/lammps_FL.data", size=size, reduced_atoms_save_path="output/reduced_atoms_FL.data")
+
+        self._update_nominal_parameter_values(reduced_atoms_FL)
+
+        self._add_property_instance_and_common_crystal_genome_keys("crystal-structure-npt", write_temp=True, write_stress=True)
+        self._add_file_to_current_property_instance("restart-file","output/lammps_preFL.restart")
 
         # Convert to eV/formula (originally in eV/atom)
         # get_stoich_reduced_list_from_prototype returns a list corresponding to the stoichiometry of the prototype label, e.g. "A2B_hP9_152_c_a" -> [2,1]
@@ -98,8 +109,8 @@ class TestDriver(SingleCrystalTestDriver):
         free_energy_per_formula = free_energy_per_atom * num_atoms_in_formula
 
         # Convert to eV/amu (originally in eV/atom)
-        atoms_per_cell = len(reduced_atoms.get_masses())
-        mass_per_cell = sum(reduced_atoms.get_masses())
+        atoms_per_cell = len(reduced_atoms_preFL.get_masses())
+        mass_per_cell = sum(reduced_atoms_preFL.get_masses())
         free_energy_per_cell = free_energy_per_atom * atoms_per_cell
         specific_free_energy = free_energy_per_cell / mass_per_cell
 
@@ -412,13 +423,13 @@ class TestDriver(SingleCrystalTestDriver):
         with open("test_driver/accuracies.py", 'w') as file:
             file.write(content)
 
-    def _reduce_average_and_verify_symmetry(self, atoms_npt: str, size: Tuple[int, int, int]):
+    def _reduce_average_and_verify_symmetry(self, atoms_npt: str, size: Tuple[int, int, int], reduced_atoms_save_path: str):
         # Read lammps dump file of average positions
         atoms_npt = io.read(atoms_npt, format='lammps-data')
         # Reduce to unit cell
         reduced_atoms = reduce_and_avg(atoms_npt, size)
         # Print reduced_atoms for verification
-        write('output/reduced_atoms.data', reduced_atoms, format='lammps-data')
+        write(reduced_atoms_save_path, reduced_atoms, format='lammps-data')
 
         # Check symmetry
         if not self._verify_unchanged_symmetry(reduced_atoms):
