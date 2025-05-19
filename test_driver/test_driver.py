@@ -154,12 +154,12 @@ class TestDriver(SingleCrystalTestDriver):
 
         self.supercell.set_cell(equilibrium_cell, scale_atoms=True)
         self.supercell.write(
-            "output/equilibrium_crystal.dump",
+            "output/equilibrium_crystal.data",
             format="lammps-data",
             masses=True,
             atom_style=atom_style,
         )
-        self._add_file_to_current_property_instance("dump-file","output/equilibrium_crystal.dump")
+        self._add_file_to_current_property_instance("data-file","output/equilibrium_crystal.data")
 
         # Collect the energies of isolated atoms to subtract from final values
         isolated_atom_energy_list = []
@@ -229,7 +229,7 @@ class TestDriver(SingleCrystalTestDriver):
     def _setup_initial_structure(
         self,
         size: Tuple[int, int, int],
-        filename: str = "output/zero_temperature_crystal.dump",
+        filename: str = "output/zero_temperature_crystal.data",
     ) -> Atoms:
         # Copy original atoms so that their information does not get lost when the new atoms are modified.
        

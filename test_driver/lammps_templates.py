@@ -14,7 +14,7 @@ class LammpsTemplates:
         boundary p p p
 
         # Read crystal with 0K lattice parameter.
-        read_data output/zero_temperature_crystal.dump
+        read_data output/zero_temperature_crystal.data
 
         # Increase maximum number of neighbors allowed per atom (for potentials that support many species)
         neigh_modify delay 0 every 1 check yes one 2000
@@ -162,7 +162,7 @@ class LammpsTemplates:
         boundary p p p
 
         # Read crystal equilibrium crystal.
-        read_data output/equilibrium_crystal.dump
+        read_data output/equilibrium_crystal.data
 
         # Convert box and all atomic positions to the correct units.
         #change_box all x scale ${_u_distance} &
