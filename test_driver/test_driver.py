@@ -115,11 +115,12 @@ class TestDriver(SingleCrystalTestDriver):
 
         # Read lammps dump file of average positions
         atoms_npt = io.read("output/lammps_preFL.data", format='lammps-data')
-        # Print reduced_atoms for verification
-        write('output/reduced_atoms.data', reduced_atoms, format='lammps-data')
+        
 
         # Reduce to unit cell
         reduced_atoms = reduce_and_avg(atoms_npt, size)
+        # Print reduced_atoms for verification
+        write('output/reduced_atoms.data', reduced_atoms, format='lammps-data')
 
         # Check symmetry
         if not self._verify_unchanged_symmetry(reduced_atoms):
