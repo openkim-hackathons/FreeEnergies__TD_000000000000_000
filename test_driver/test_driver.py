@@ -59,6 +59,7 @@ class TestDriver(SingleCrystalTestDriver):
         if not np.allclose(cauchy_stress[:3], cauchy_stress[0], rtol=1e-5, atol=1e-8):
             raise ValueError("The first three components of the Cauchy stress tensor must be equal (calculation are run at constant isotropic stress).")
         self.pressure = -cauchy_stress[0] 
+        self.atoms = self._get_atoms()
         
         self._validate_inputs()
 
@@ -231,7 +232,7 @@ class TestDriver(SingleCrystalTestDriver):
         filename: str = "output/zero_temperature_crystal.dump",
     ) -> Atoms:
         # Copy original atoms so that their information does not get lost when the new atoms are modified.
-        self.atoms = self._get_atoms()
+       
         atoms_new = self.atoms.copy()
 
         # Build supercell

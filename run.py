@@ -43,30 +43,6 @@ from test_driver.test_driver import TestDriver
 kim_model_name = "SW_ZhouWardMartin_2013_CdTeZnSeHgS__MO_503261197030_003"
 test_driver = TestDriver(kim_model_name)
 
-###############################################################################
-# .. note::
-#
-#   If the Test Driver uses only ASE for computations, you can use any ASE calculator,
-#   not just KIM models. Simply instantiate the ``TestDriver`` class by passing it
-#   the :class:`~ase.calculators.calculator.Calculator` instance you wish to use instead
-#   of the string identifying the KIM model.
-#
-# Running Using an :class:`~ase.Atoms` Object
-# -------------------------------------------
-#
-# You can run your Driver by directly passing it an :class:`ase.Atoms` object. The base class will automatically perform a symmetry analysis on the structure
-# and store a symmetry-reduced description of it. Note that the Atoms object you pass will not itself be passed to the ``_calculate()`` method, the
-# crystal will be re-created from the symmetry-reduced description.
-# Let's build a bulk zincblende structure and run our Driver on it, setting the ``_calculate()`` argument ``max_volume_scale``
-# to 0.1 and leaving the other argument as default. When testing a different
-# Test Driver, this is where you would instead pass the specific arguments your ``_calculate()`` method uses instead.
-# We are also demonstrating how to pass temperature and stress, even if our Test Driver doesn't use it.
-#
-# .. todo::
-#
-#   Add example of using ECS to minimize here
-#
-
 from ase.build import bulk
 
 atoms = bulk("ZnS", "zincblende", a=5.406)
@@ -75,7 +51,7 @@ print("\nRUNNING TEST DRIVER ON ZINCBLENDE ATOMS OBJECT\n")
 computed_property_instances = test_driver(
     atoms,
     pressure=0.0,
-    temperature_K=0,
+    temperature_K=10,
 )
 ###############################################################################
 # The results of the calculation is returned in the format defined by the Property Definitions

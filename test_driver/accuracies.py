@@ -9,5 +9,5 @@ from typing import Optional, Sequence
 # For cells, we can only use a relative accuracy for all non-zero variables.
 # The last three variables, however, correspond to the tilt factors of the orthogonal cell (see npt.lammps which are
 # expected to fluctuate around zero. For these, we should use an absolute accuracy instead.
-RELATIVE_ACCURACY: Sequence[Optional[float]] = [0.01, 0.01, 0.01, 0.01, 0.01, None, None]
-ABSOLUTE_ACCURACY: Sequence[Optional[float]] = [None, None, None, None, None, 0.01, 0.01]
+RELATIVE_ACCURACY: Sequence[Optional[float]] = [0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01]
+ABSOLUTE_ACCURACY: Sequence[Optional[float]] = [None, None, None, None, None, None, None]
