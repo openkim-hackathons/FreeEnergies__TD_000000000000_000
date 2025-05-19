@@ -51,7 +51,6 @@ class TestDriver(SingleCrystalTestDriver):
         Args:
             size (Tuple[int, int, int]): system size. By default, the system size is computed to have ~10,000 atoms.
         """
-        # Check arguments
 
         self.temperature_K = self._get_temperature(unit="K")
 
@@ -59,7 +58,7 @@ class TestDriver(SingleCrystalTestDriver):
         if not np.allclose(cauchy_stress[:3], cauchy_stress[0], rtol=1e-5, atol=1e-8):
             raise ValueError("The first three components of the Cauchy stress tensor must be equal (calculation are run at constant isotropic stress).")
         self.pressure = -cauchy_stress[0] 
-        
+
         self.atoms = self._get_atoms()
         
         self._validate_inputs()
