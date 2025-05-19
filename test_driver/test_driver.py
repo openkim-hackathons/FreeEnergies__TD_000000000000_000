@@ -85,7 +85,6 @@ class TestDriver(SingleCrystalTestDriver):
         )
 
         # preFL computes the equilibrium lattice parameter and spring constants for a given temperature and pressure.
-        # TODO: This should probably be replaced with its own test driver, which compute equilibrium lattice constants, and which can handles arbitrary crystal structures. Then we can get spring constants.
         equilibrium_cell, self.spring_constants, self.volume = self._preFL()
 
         # If the crystal melts or vaporizes, kim-convergence may run indefinately.
@@ -164,7 +163,7 @@ class TestDriver(SingleCrystalTestDriver):
         self.templates._write_fl_lammps_templates(
             spring_constants=self.spring_constants
         )
-        # !!! TODO: self._FL run some MD, should we check symmetry and melting and symmetry change there too? 
+        # TODO: self._FL run some MD, should we check symmetry and melting and symmetry change there too? 
         free_energy_per_atom = self._FL() - isolated_atom_energy
 
         # Convert to eV/formula (originally in eV/atom)
