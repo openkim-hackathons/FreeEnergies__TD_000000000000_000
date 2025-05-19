@@ -47,7 +47,7 @@ class TestDriver(SingleCrystalTestDriver):
         self._modify_accuracies()
 
         # Write initial template file
-        self.templates = LammpsTemplates(root="lammps_templates/")
+        self.templates = LammpsTemplates(root="output/lammps_templates/")
         self.templates._write_pre_fl_lammps_templates(
             nspecies=len(self.species), is_triclinic=self.is_triclinic
         )

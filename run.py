@@ -51,8 +51,10 @@ print("\nRUNNING TEST DRIVER ON ZINCBLENDE ATOMS OBJECT\n")
 computed_property_instances = test_driver(
     atoms,
     pressure=0.0,
-    temperature_K=10,
+    temperature_K=300,
+    size=(4,4,4)
 )
+breakpoint()
 ###############################################################################
 # The results of the calculation is returned in the format defined by the Property Definitions
 # that the Driver uses and the `KIM Properties Framework <https://openkim.org/doc/schema/properties-framework/>`_.
