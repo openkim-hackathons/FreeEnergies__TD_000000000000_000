@@ -53,7 +53,7 @@ class TestDriver(SingleCrystalTestDriver):
         )
 
         # preFL computes the equilibrium lattice parameter and spring constants for a given temperature and pressure.
-        equilibrium_cell, self.spring_constants, self.volume=self._run_preFL()
+        equilibrium_cell, self.spring_constants, self.volume, self.atom_style =self._run_preFL()
         
 
         # If the crystal melts or vaporizes, kim-convergence may run indefinately.
@@ -62,19 +62,8 @@ class TestDriver(SingleCrystalTestDriver):
         # This is a first implementation. It's probably cleaner to leave the responsibility of quitting to some standardized function that is common across finite-temperature test-drivers
         self._check_diffusion(lammps_log="output/lammps_preFL.log")
 
-        # Read lammps dump file of average positions
-        atoms_npt = io.read("output/lammps_preFL.data", format='lammps-data')
-        
-
-        # Reduce to unit cell
-        reduced_atoms = reduce_and_avg(atoms_npt, size)
-        # Print reduced_atoms for verification
-        write('output/reduced_atoms.data', reduced_atoms, format='lammps-data')
-
-        # Check symmetry
-        if not self._verify_unchanged_symmetry(reduced_atoms):
-            raise ValueError("The symmetry of the atoms have changed.")
-
+        reduced_atoms = self._reduce_average_and_verify_symmetry(atoms_npt="output/lammps_preFL.data", size=size)
+    
         self._update_nominal_parameter_values(reduced_atoms)
         
         # crystal-structure-npt
@@ -89,7 +78,7 @@ class TestDriver(SingleCrystalTestDriver):
             "output/equilibrium_crystal.data",
             format="lammps-data",
             masses=True,
-            atom_style=atom_style,
+            atom_style=self.atom_style,
         )
         self._add_file_to_current_property_instance("data-file","output/equilibrium_crystal.data")
 
@@ -223,7 +212,7 @@ class TestDriver(SingleCrystalTestDriver):
             equilibrium_cell, spring_constants, volume = self._preFL()
 
         assert len(self.species) == len(spring_constants)
-        return equilibrium_cell, spring_constants, volume
+        return equilibrium_cell, spring_constants, volume, atom_style
     
     def _preFL(self) -> Tuple[List[float], List[float]]:
         variables = {
@@ -436,3 +425,15 @@ class TestDriver(SingleCrystalTestDriver):
         with open("test_driver/accuracies.py", 'w') as file:
             file.write(content)
 
+    def _reduce_average_and_verify_symmetry(self, atoms_npt: str, size: Tuple[int, int, int]):
+        # Read lammps dump file of average positions
+        atoms_npt = io.read(atoms_npt, format='lammps-data')
+        # Reduce to unit cell
+        reduced_atoms = reduce_and_avg(atoms_npt, size)
+        # Print reduced_atoms for verification
+        write('output/reduced_atoms.data', reduced_atoms, format='lammps-data')
+
+        # Check symmetry
+        if not self._verify_unchanged_symmetry(reduced_atoms):
+            raise ValueError("The symmetry of the atoms have changed.")
+        return reduced_atoms
