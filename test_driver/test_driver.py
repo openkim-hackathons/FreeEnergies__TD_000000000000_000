@@ -17,10 +17,6 @@ from kim_tools import (
 from .lammps_templates import LammpsTemplates
 from .helper_functions import reduce_and_avg
 
-
-# =====================
-# Constants
-# =====================
 EV = sc.value("electron volt")
 MU = sc.value("atomic mass constant")
 HBAR = sc.value("Planck constant in eV/Hz") / (2 * np.pi)
