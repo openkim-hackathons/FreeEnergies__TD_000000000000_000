@@ -49,7 +49,7 @@ class TestDriver(SingleCrystalTestDriver):
         """Gibbs free energy of a crystal at constant temperature and pressure using Frenkel-Ladd Hamiltonian integration algorithm. Computed through one equilibrium NPT simulation ('preFL') and one NONequilibrium NVT simulation ('FL').
 
         Args:
-            size (Tuple[int, int, int]): system size.
+            size (Tuple[int, int, int]): system size. By default, the system size is computed to have ~10,000 atoms.
         """
         # Check arguments
 
