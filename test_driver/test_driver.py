@@ -73,7 +73,6 @@ class TestDriver(SingleCrystalTestDriver):
         
         # Rescaling 0K supercell to have equilibrium lattice constant.
         # equilibrium_cell is 3x3 matrix or can also have [len(a), len(b), len(c), angle(b,c), angle(a,c), angle(a,b)]
-
         self.supercell.set_cell(equilibrium_cell, scale_atoms=True)
         self.supercell.write(
             "output/equilibrium_crystal.data",
@@ -81,7 +80,7 @@ class TestDriver(SingleCrystalTestDriver):
             masses=True,
             atom_style=self.atom_style,
         )
-        self._add_file_to_current_property_instance("data-file","output/equilibrium_crystal.data")
+        # self._add_file_to_current_property_instance("data-file","output/equilibrium_crystal.data")
 
         # Collect the energies of isolated atoms to subtract from final values
         isolated_atom_energy = self._collect_isolated_atom_energies(reduced_atoms_preFL)
