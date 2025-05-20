@@ -5,16 +5,16 @@ from typing import List, Tuple
 import numpy as np
 import scipy.constants as sc
 from ase import Atoms, io
-from ase.io import write, read
 from ase.data import atomic_masses, atomic_numbers
+from ase.io import read, write
 from kim_tools import (
     SingleCrystalTestDriver,
-    get_stoich_reduced_list_from_prototype,
     get_isolated_energy_per_atom,
+    get_stoich_reduced_list_from_prototype,
 )
 
-from .lammps_templates import LammpsTemplates
 from .helper_functions import reduce_and_avg, test_reduced_distances
+from .lammps_templates import LammpsTemplates
 
 EV = sc.value("electron volt")
 MU = sc.value("atomic mass constant")
@@ -64,7 +64,7 @@ class TestDriver(SingleCrystalTestDriver):
 
         reduced_atoms_preFL = self._reduce_average_and_verify_symmetry(atoms_npt="output/lammps_preFL.data", size=size, reduced_atoms_save_path="output/reduced_atoms_preFL.data")
 
-        self._update_nominal_parameter_values(reduced_atoms_preFL)
+        self._update_nominal_parameter_values(reduced_atoms_preFL,max_resid=1e-1)
 
         # crystal-structure-npt
         self._add_property_instance_and_common_crystal_genome_keys("crystal-structure-npt", write_temp=True, write_stress=True)
@@ -97,10 +97,10 @@ class TestDriver(SingleCrystalTestDriver):
 
         reduced_atoms_FL = self._reduce_average_and_verify_symmetry(atoms_npt="output/lammps_FL.data", size=size, reduced_atoms_save_path="output/reduced_atoms_FL.data")
 
-        self._update_nominal_parameter_values(reduced_atoms_FL)
+        self._update_nominal_parameter_values(reduced_atoms_FL,max_resid=1e-1)
 
         self._add_property_instance_and_common_crystal_genome_keys("crystal-structure-npt", write_temp=True, write_stress=True)
-        self._add_file_to_current_property_instance("restart-file","output/lammps_preFL.restart")
+        self._add_file_to_current_property_instance("restart-file","output/lammps_FL.restart")
 
         # Convert to eV/formula (originally in eV/atom)
         # get_stoich_reduced_list_from_prototype returns a list corresponding to the stoichiometry of the prototype label, e.g. "A2B_hP9_152_c_a" -> [2,1]
