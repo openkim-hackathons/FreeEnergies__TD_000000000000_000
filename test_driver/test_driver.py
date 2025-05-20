@@ -63,8 +63,8 @@ class TestDriver(SingleCrystalTestDriver):
         self._check_diffusion(lammps_log="output/lammps_preFL.log")
 
         reduced_atoms_preFL = self._reduce_average_and_verify_symmetry(atoms_npt="output/lammps_preFL.data", size=size, reduced_atoms_save_path="output/reduced_atoms_preFL.data")
-
-        self._update_nominal_parameter_values(reduced_atoms_preFL,max_resid=1e-1)
+        breakpoint()
+        self._update_nominal_parameter_values(reduced_atoms_preFL,max_resid=1e-5)
 
         # crystal-structure-npt
         self._add_property_instance_and_common_crystal_genome_keys("crystal-structure-npt", write_temp=True, write_stress=True)
@@ -97,7 +97,7 @@ class TestDriver(SingleCrystalTestDriver):
 
         reduced_atoms_FL = self._reduce_average_and_verify_symmetry(atoms_npt="output/lammps_FL.data", size=size, reduced_atoms_save_path="output/reduced_atoms_FL.data")
 
-        self._update_nominal_parameter_values(reduced_atoms_FL,max_resid=1e-1)
+        self._update_nominal_parameter_values(reduced_atoms_FL,max_resid=1e-5)
 
         self._add_property_instance_and_common_crystal_genome_keys("crystal-structure-npt", write_temp=True, write_stress=True)
         self._add_file_to_current_property_instance("restart-file","output/lammps_FL.restart")
@@ -429,7 +429,7 @@ class TestDriver(SingleCrystalTestDriver):
         reduced_atoms, reduced_distances = reduce_and_avg(atoms_npt, size)
         test_reduced_distances(reduced_distances)
         # Print reduced_atoms for verification
-        write(reduced_atoms_save_path, reduced_atoms, format='lammps-data')
+        write(reduced_atoms_save_path, reduced_atoms, format='lammps-data',masses=True)
 
         # Check symmetry
         if not self._verify_unchanged_symmetry(reduced_atoms):
