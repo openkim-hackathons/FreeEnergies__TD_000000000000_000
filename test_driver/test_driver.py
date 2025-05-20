@@ -426,8 +426,8 @@ class TestDriver(SingleCrystalTestDriver):
         # Read lammps dump file of average positions
         atoms_npt = io.read(atoms_npt, format='lammps-data')
         # Reduce to unit cell
-        reduced_atoms, distances = reduce_and_avg(atoms_npt, size)
-        # test_reduced_distances(distances)
+        reduced_atoms, reduced_distances = reduce_and_avg(atoms_npt, size)
+        test_reduced_distances(reduced_distances)
         # Print reduced_atoms for verification
         write(reduced_atoms_save_path, reduced_atoms, format='lammps-data')
 
