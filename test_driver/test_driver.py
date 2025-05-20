@@ -5,7 +5,7 @@ from typing import List, Tuple
 import numpy as np
 import scipy.constants as sc
 from ase import Atoms, io
-from ase.io import read, write
+from ase.io import write, read
 from ase.data import atomic_masses, atomic_numbers
 from kim_tools import (
     SingleCrystalTestDriver,
@@ -14,7 +14,7 @@ from kim_tools import (
 )
 
 from .lammps_templates import LammpsTemplates
-from .helper_functions import reduce_and_avg
+from .helper_functions import reduce_and_avg, test_reduced_distances
 
 EV = sc.value("electron volt")
 MU = sc.value("atomic mass constant")
@@ -427,6 +427,7 @@ class TestDriver(SingleCrystalTestDriver):
         atoms_npt = io.read(atoms_npt, format='lammps-data')
         # Reduce to unit cell
         reduced_atoms = reduce_and_avg(atoms_npt, size)
+        test_reduced_distances(reduced_atoms)
         # Print reduced_atoms for verification
         write(reduced_atoms_save_path, reduced_atoms, format='lammps-data')
 
