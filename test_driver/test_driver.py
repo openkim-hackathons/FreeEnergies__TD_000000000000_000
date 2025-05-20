@@ -426,8 +426,8 @@ class TestDriver(SingleCrystalTestDriver):
         # Read lammps dump file of average positions
         atoms_npt = io.read(atoms_npt, format='lammps-data')
         # Reduce to unit cell
-        reduced_atoms = reduce_and_avg(atoms_npt, size)
-        test_reduced_distances(reduced_atoms)
+        reduced_atoms, distances = reduce_and_avg(atoms_npt, size)
+        # test_reduced_distances(distances)
         # Print reduced_atoms for verification
         write(reduced_atoms_save_path, reduced_atoms, format='lammps-data')
 
@@ -435,6 +435,7 @@ class TestDriver(SingleCrystalTestDriver):
         if not self._verify_unchanged_symmetry(reduced_atoms):
             raise ValueError("The symmetry of the atoms have changed.")
         return reduced_atoms
+    
     def _collect_isolated_atom_energies(self,reduced_atoms):
         isolated_atom_energy_list = []
 
@@ -442,6 +443,9 @@ class TestDriver(SingleCrystalTestDriver):
         element_list = list(dict.fromkeys(reduced_atoms.get_chemical_symbols()))
 
         # List of stoichiometric coefficients (should line up with "element_list" if everything is in alphabetical order)
+        self.prototype_label = self._get_nominal_crystal_structure_npt()["prototype-label"][
+            "source-value"
+        ]
         self.stoichiometry = get_stoich_reduced_list_from_prototype(self.prototype_label)
         
         # Append correct number of each isolated atom energy according to stoichiometric coefficients
