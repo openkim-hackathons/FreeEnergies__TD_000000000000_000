@@ -221,7 +221,7 @@ class TestDriver(SingleCrystalTestDriver):
             "temperature_seed": np.random.randint(low=100000, high=999999, dtype=int),
             "pressure": self.pressure,
             "pressure_damping": 1.0, # ps
-            "msd_threhold": 0.1,
+            "msd_threshold": 0.1,
             "timestep": 0.001,  # ps
             "species": " ".join(self.species),
             "output_filename": "output/lammps_preFL.dat",
@@ -270,7 +270,7 @@ class TestDriver(SingleCrystalTestDriver):
             "t_switch": 10000,
             "temperature_damping": 0.1,
             "temperature_seed": np.random.randint(low=100000, high=999999, dtype=int),
-            "msd_threhold": 0.1,
+            "msd_threshold": 0.1,
             "t_equil": 10000,
             "timestep": 0.001,  # ps
             "spring_constant": self.spring_constants,
