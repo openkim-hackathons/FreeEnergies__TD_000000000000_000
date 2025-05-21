@@ -4,9 +4,9 @@ from typing import List, Tuple
 
 import numpy as np
 import scipy.constants as sc
-from ase import Atoms, io
+from ase import Atoms
 from ase.data import atomic_masses, atomic_numbers
-from ase.io import read, write
+from ase.io import read
 from kim_tools import (
     SingleCrystalTestDriver,
     get_isolated_energy_per_atom,
@@ -93,7 +93,7 @@ class TestDriver(SingleCrystalTestDriver):
         
         free_energy_per_atom = self._FL() - isolated_atom_energy
 
-        # TODO: Does it makes sense to check diffusion, melting, and symmetry change here?
+        
         self._check_diffusion(lammps_log="output/lammps_FL.log")
 
         reduced_atoms_FL = self._reduce_average_and_verify_symmetry(atoms_npt="output/lammps_FL.data",  reduced_atoms_save_path="output/reduced_atoms_FL.data")
@@ -429,12 +429,12 @@ class TestDriver(SingleCrystalTestDriver):
 
     def _reduce_average_and_verify_symmetry(self, atoms_npt: str,reduced_atoms_save_path: str):
         # Read lammps dump file of average positions
-        atoms_npt = io.read(atoms_npt, format='lammps-data')
+        atoms_npt = read(atoms_npt, format='lammps-data')
         # Reduce to unit cell
         reduced_atoms, reduced_distances = reduce_and_avg(atoms_npt, self.size)
         test_reduced_distances(reduced_distances)
         # Print reduced_atoms for verification
-        write(reduced_atoms_save_path, reduced_atoms, format='lammps-data',masses=True)
+        reduced_atoms.write(reduced_atoms_save_path, format='lammps-data',masses=True)
 
         # Check symmetry
         if not self._verify_unchanged_symmetry(reduced_atoms):
