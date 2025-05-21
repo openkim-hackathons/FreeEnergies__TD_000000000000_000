@@ -404,8 +404,8 @@ class TestDriver(SingleCrystalTestDriver):
         # Process each cell angle and set appropriate accuracy values
         for angle in [XY_cell, XZ_cell, YZ_cell]:
             is_orthogonal = abs(90 - angle) < ORTHOGONAL_THRESHOLD
-            relative_accuracy.append(None if is_orthogonal else 0.1)
-            absolute_accuracy.append(1.0 if is_orthogonal else None)
+            relative_accuracy.append(None if is_orthogonal else 0.01)
+            absolute_accuracy.append(0.01 if is_orthogonal else None)
 
         # Replace lists in "accuracies_general.py"
         new_accuracies = {
