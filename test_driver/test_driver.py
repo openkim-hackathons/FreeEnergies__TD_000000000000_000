@@ -54,7 +54,7 @@ class TestDriver(SingleCrystalTestDriver):
         )
 
         # preFL computes the equilibrium lattice parameter and spring constants for a given temperature and pressure.
-        equilibrium_cell, self.spring_constants, self.volume, self.atom_style =self._run_preFL()
+        equilibrium_cell, self.spring_constants, self.volume, self.atom_style = self._run_preFL()
         
 
         # If the crystal melts or vaporizes, kim-convergence may run indefinately.
@@ -191,11 +191,13 @@ class TestDriver(SingleCrystalTestDriver):
         return atoms_new
 
     def _run_preFL(self):
+
+        atom_style = "atomic"
         equilibrium_cell, spring_constants, volume = self._preFL()
 
         # Some models want atom_style="charge", others want "atomic"
         # We tried with 'atomic', if it fails, try 'charge'
-        atom_style = "atomic"
+        
         if not self._check_if_lammps_run_to_completiton(
             lammps_log="output/lammps_preFL.log"
         ):
@@ -219,6 +221,7 @@ class TestDriver(SingleCrystalTestDriver):
             "temperature_seed": np.random.randint(low=100000, high=999999, dtype=int),
             "pressure": self.pressure,
             "pressure_damping": 1.0, # ps
+            "msd_threhold": 0.1,
             "timestep": 0.001,  # ps
             "species": " ".join(self.species),
             "output_filename": "output/lammps_preFL.dat",
@@ -267,6 +270,7 @@ class TestDriver(SingleCrystalTestDriver):
             "t_switch": 10000,
             "temperature_damping": 0.1,
             "temperature_seed": np.random.randint(low=100000, high=999999, dtype=int),
+            "msd_threhold": 0.1,
             "t_equil": 10000,
             "timestep": 0.001,  # ps
             "spring_constant": self.spring_constants,
@@ -274,6 +278,7 @@ class TestDriver(SingleCrystalTestDriver):
             "write_restart_filename": "output/lammps_FL.restart",
             "switch1_output_file": "output/FL_switch1.dat",
             "switch2_output_file": "output/FL_switch2.dat",
+            "write_data_filename": "output/lammps_FL.data",
         }
         # TODO: Possibly run MPI version of Lammps if available.
         command = (
@@ -384,8 +389,8 @@ class TestDriver(SingleCrystalTestDriver):
 
     
     def _modify_accuracies(self):
-         # Start accuracy lists (volume, x, y, and z are normal)
-        relative_accuracy = [0.01, 0.01, 0.01, 0.01]
+        # Start accuracy lists (volume, x, y, and z are normal)
+        relative_accuracy = [0.1, 0.1, 0.1, 0.1]
         absolute_accuracy = [None, None, None, None]
 
         # Get cell parameters and add appropriate values to accuracy lists (0.01 and None for non-zero tilt factors, vice-versa for zero)
@@ -399,8 +404,8 @@ class TestDriver(SingleCrystalTestDriver):
         # Process each cell angle and set appropriate accuracy values
         for angle in [XY_cell, XZ_cell, YZ_cell]:
             is_orthogonal = abs(90 - angle) < ORTHOGONAL_THRESHOLD
-            relative_accuracy.append(None if is_orthogonal else 0.01)
-            absolute_accuracy.append(0.01 if is_orthogonal else None)
+            relative_accuracy.append(None if is_orthogonal else 0.1)
+            absolute_accuracy.append(1.0 if is_orthogonal else None)
 
         # Replace lists in "accuracies_general.py"
         new_accuracies = {

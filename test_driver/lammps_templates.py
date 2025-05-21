@@ -73,7 +73,7 @@ class LammpsTemplates:
         
         # Before kim-convergence, perform a short run and decide whether or not to quit
         run 5000
-        if "${msd_slope} > 0.1" then "write_dump all atom output/melted_crystal.dump" &
+        if "${msd_slope} > ${msd_threshold}" then "write_dump all atom output/melted_crystal.dump" &
                                       "print 'Crystal melted or vaporized'" &
                                       "quit"
         unfix msd_vector
@@ -186,6 +186,22 @@ class LammpsTemplates:
         # create initial velocities consistent with the chosen temperature
         velocity      all create ${temp_converted} ${temperature_seed}
 
+        # Compute slope of mean squared displacement to detect diffusion
+        compute msd all msd com yes
+
+        variable N_every equal 100
+        variable run_time equal 2*${t_equil}+2*${t_switch}
+
+        # Compute unwrapped atom positions
+        compute unwrapped all property/atom xu yu zu
+
+        variable xu atom c_unwrapped[1]
+        variable yu atom c_unwrapped[2]
+        variable zu atom c_unwrapped[3]
+
+        # Average unwrapped atom positions
+        fix avePos all ave/atom ${N_every} $(v_run_time/v_N_every) ${run_time} v_xu v_yu v_zu
+
         # set NVE ensemble for all atoms
         fix           ensemble all nve
 
@@ -201,12 +217,20 @@ class LammpsTemplates:
         variable      T_metal equal temp/${_u_temperature}
         variable      P_metal equal press/${_u_pressure}
 
-        thermo_style  custom step etotal v_etotal_metal pe v_pe_metal &
-                    temp v_T_metal press v_P_metal
+        thermo_style  custom step etotal v_etotal_metal pe v_pe_metal temp v_T_metal press v_P_metal c_msd[4] v_msd_slope step
         thermo        1000
+
+        fix msd_vector all vector 100 c_msd[4]
 
         # run equil 1
         run ${t_equil}
+
+        variable msd_slope equal slope(f_msd_vector)
+
+        if "${msd_slope} > ${msd_threshold}" then "write_dump all atom output/melted_crystal.dump" &
+                                      "print 'Crystal melted or vaporized'" &
+                                      "quit"
+        unfix msd_vector
 
         # run switch 1
         {record_template}
@@ -214,14 +238,37 @@ class LammpsTemplates:
         run ${t_switch}
         unfix record
 
+        fix msd_vector all vector 100 c_msd[4]
+
         # run equil 2
         run ${t_equil}
+
+        variable msd_slope equal slope(f_msd_vector)
+
+        if "${msd_slope} > ${msd_threshold}" then "write_dump all atom output/melted_crystal.dump" &
+                                      "print 'Crystal melted or vaporized'" &
+                                      "quit"
+        unfix msd_vector
 
         # run switch 2
         {record_template}
                     screen no file ${switch2_output_file}
         run ${t_switch}
         unfix record
+
+        # Write the initial starting file for a true simulation.
+        write_restart ${write_restart_filename}
+
+        # Create per-atom variables for averaged positions
+        variable ave_x atom f_avePos[1]
+        variable ave_y atom f_avePos[2]
+        variable ave_z atom f_avePos[3]
+
+        # Set atom positions to time-averaged positions
+        set group all x v_ave_x y v_ave_y z v_ave_z
+
+        # Write data file of averaged positions and box dimensions
+        write_data ${write_data_filename}
 
         print "LAMMPS calculation completed"
         quit 0
