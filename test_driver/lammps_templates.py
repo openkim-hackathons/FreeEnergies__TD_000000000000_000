@@ -217,7 +217,7 @@ class LammpsTemplates:
         variable      T_metal equal temp/${_u_temperature}
         variable      P_metal equal press/${_u_pressure}
 
-        thermo_style  custom step etotal v_etotal_metal pe v_pe_metal temp v_T_metal press v_P_metal c_msd[4] v_msd_slope step
+        thermo_style  custom step etotal v_etotal_metal pe v_pe_metal temp v_T_metal press v_P_metal c_msd[4] step
         thermo        1000
 
         fix msd_vector all vector 100 c_msd[4]
