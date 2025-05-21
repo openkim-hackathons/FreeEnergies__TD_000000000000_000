@@ -93,7 +93,7 @@ class TestDriver(SingleCrystalTestDriver):
         
         free_energy_per_atom = self._FL() - isolated_atom_energy
 
-        # TODO: Does it makes sense to check diffusion, melting, and symmetry change here?
+        
         self._check_diffusion(lammps_log="output/lammps_FL.log")
 
         reduced_atoms_FL = self._reduce_average_and_verify_symmetry(atoms_npt="output/lammps_FL.data",  reduced_atoms_save_path="output/reduced_atoms_FL.data")
