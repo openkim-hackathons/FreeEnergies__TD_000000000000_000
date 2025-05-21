@@ -390,7 +390,7 @@ class TestDriver(SingleCrystalTestDriver):
     
     def _modify_accuracies(self):
         # Start accuracy lists (volume, x, y, and z are normal)
-        relative_accuracy = [0.1, 0.1, 0.1, 0.1]
+        relative_accuracy = [0.01, 0.01, 0.01, 0.01]
         absolute_accuracy = [None, None, None, None]
 
         # Get cell parameters and add appropriate values to accuracy lists (0.01 and None for non-zero tilt factors, vice-versa for zero)
