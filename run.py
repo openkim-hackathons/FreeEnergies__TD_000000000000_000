@@ -50,11 +50,10 @@ atoms = bulk("ZnS", "zincblende", a=5.406)
 print("\nRUNNING TEST DRIVER ON ZINCBLENDE ATOMS OBJECT\n")
 computed_property_instances = test_driver(
     atoms,
-    pressure=0.0,
     temperature_K=300,
     size=(4,4,4)
 )
-breakpoint()
+
 ###############################################################################
 # The results of the calculation is returned in the format defined by the Property Definitions
 # that the Driver uses and the `KIM Properties Framework <https://openkim.org/doc/schema/properties-framework/>`_.
@@ -126,7 +125,7 @@ list_of_queried_structures = query_crystal_structures(
 
 for queried_structure in list_of_queried_structures:
     print("\nRUNNING TEST DRIVER ON QUERIED STRUCTURE\n")
-    computed_property_instances = test_driver(queried_structure, temperature_K=300, pressure=0.0)
+    computed_property_instances = test_driver(queried_structure, temperature_K=300)
     # do something with computed_property_instances if you want
 
 ###############################################################################
@@ -168,7 +167,7 @@ print(
 for i in unique_structure_indices:
     print("\nRUNNING TEST DRIVER ON QUERIED STRUCTURE\n")
     computed_property_instances = test_driver(
-        list_of_queried_structures[i], temperature_K=300, pressure=0.0
+        list_of_queried_structures[i], temperature_K=300
     )
     # do something with computed_property_instances if you want
 
