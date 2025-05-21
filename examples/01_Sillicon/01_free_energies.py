@@ -1,0 +1,1 @@
+# Compute the free energy of a silicon crystal
