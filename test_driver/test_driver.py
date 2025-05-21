@@ -5,16 +5,16 @@ from typing import List, Tuple
 import numpy as np
 import scipy.constants as sc
 from ase import Atoms, io
-from ase.io import write, read
 from ase.data import atomic_masses, atomic_numbers
+from ase.io import read, write
 from kim_tools import (
     SingleCrystalTestDriver,
-    get_stoich_reduced_list_from_prototype,
     get_isolated_energy_per_atom,
+    get_stoich_reduced_list_from_prototype,
 )
 
-from .lammps_templates import LammpsTemplates
 from .helper_functions import reduce_and_avg, test_reduced_distances
+from .lammps_templates import LammpsTemplates
 
 EV = sc.value("electron volt")
 MU = sc.value("atomic mass constant")
@@ -38,11 +38,12 @@ class TestDriver(SingleCrystalTestDriver):
         self.cauchy_stress = self._get_cell_cauchy_stress(unit='atm')
         self.pressure = -self.cauchy_stress[0] 
         self.atoms = self._get_atoms()
+        self.size = size
         
         self._validate_inputs()
 
         
-        self.supercell = self._setup_initial_structure(size)
+        self.supercell = self._setup_initial_structure()
 
         self._modify_accuracies()
 
@@ -62,9 +63,9 @@ class TestDriver(SingleCrystalTestDriver):
         # This is a first implementation. It's probably cleaner to leave the responsibility of quitting to some standardized function that is common across finite-temperature test-drivers
         self._check_diffusion(lammps_log="output/lammps_preFL.log")
 
-        reduced_atoms_preFL = self._reduce_average_and_verify_symmetry(atoms_npt="output/lammps_preFL.data", size=size, reduced_atoms_save_path="output/reduced_atoms_preFL.data")
-
-        self._update_nominal_parameter_values(reduced_atoms_preFL)
+        reduced_atoms_preFL = self._reduce_average_and_verify_symmetry(atoms_npt="output/lammps_preFL.data",  reduced_atoms_save_path="output/reduced_atoms_preFL.data")
+        
+        self._update_nominal_parameter_values(reduced_atoms_preFL,max_resid=1e-5)
 
         # crystal-structure-npt
         self._add_property_instance_and_common_crystal_genome_keys("crystal-structure-npt", write_temp=True, write_stress=True)
@@ -95,12 +96,12 @@ class TestDriver(SingleCrystalTestDriver):
         # TODO: Does it makes sense to check diffusion, melting, and symmetry change here?
         self._check_diffusion(lammps_log="output/lammps_FL.log")
 
-        reduced_atoms_FL = self._reduce_average_and_verify_symmetry(atoms_npt="output/lammps_FL.data", size=size, reduced_atoms_save_path="output/reduced_atoms_FL.data")
+        reduced_atoms_FL = self._reduce_average_and_verify_symmetry(atoms_npt="output/lammps_FL.data",  reduced_atoms_save_path="output/reduced_atoms_FL.data")
 
-        self._update_nominal_parameter_values(reduced_atoms_FL)
+        self._update_nominal_parameter_values(reduced_atoms_FL,max_resid=1e-5)
 
         self._add_property_instance_and_common_crystal_genome_keys("crystal-structure-npt", write_temp=True, write_stress=True)
-        self._add_file_to_current_property_instance("restart-file","output/lammps_preFL.restart")
+        self._add_file_to_current_property_instance("restart-file","output/lammps_FL.restart")
 
         # Convert to eV/formula (originally in eV/atom)
         # get_stoich_reduced_list_from_prototype returns a list corresponding to the stoichiometry of the prototype label, e.g. "A2B_hP9_152_c_a" -> [2,1]
@@ -146,7 +147,6 @@ class TestDriver(SingleCrystalTestDriver):
 
     def _setup_initial_structure(
         self,
-        size: Tuple[int, int, int],
         filename: str = "output/zero_temperature_crystal.data",
     ) -> Atoms:
         # Copy original atoms so that their information does not get lost when the new atoms are modified.
@@ -154,12 +154,12 @@ class TestDriver(SingleCrystalTestDriver):
         atoms_new = self.atoms.copy()
 
         # Build supercell
-        if size == (0,0,0):
+        if self.size == (0,0,0):
             # Get a size close to 10K atoms (shown to give good convergence)
             x = int(np.ceil(np.cbrt(10_000 / len(self.atoms))))
-            size = (x,x,x)
+            self.size = (x,x,x)
 
-        atoms_new = atoms_new.repeat(size)
+        atoms_new = atoms_new.repeat(self.size)
 
         # This is how ASE obtains the species that are written to the initial configuration.
         # These species are passed to kim interactions.
@@ -422,14 +422,14 @@ class TestDriver(SingleCrystalTestDriver):
         with open("test_driver/accuracies.py", 'w') as file:
             file.write(content)
 
-    def _reduce_average_and_verify_symmetry(self, atoms_npt: str, size: Tuple[int, int, int], reduced_atoms_save_path: str):
+    def _reduce_average_and_verify_symmetry(self, atoms_npt: str,reduced_atoms_save_path: str):
         # Read lammps dump file of average positions
         atoms_npt = io.read(atoms_npt, format='lammps-data')
         # Reduce to unit cell
-        reduced_atoms, reduced_distances = reduce_and_avg(atoms_npt, size)
+        reduced_atoms, reduced_distances = reduce_and_avg(atoms_npt, self.size)
         test_reduced_distances(reduced_distances)
         # Print reduced_atoms for verification
-        write(reduced_atoms_save_path, reduced_atoms, format='lammps-data')
+        write(reduced_atoms_save_path, reduced_atoms, format='lammps-data',masses=True)
 
         # Check symmetry
         if not self._verify_unchanged_symmetry(reduced_atoms):
