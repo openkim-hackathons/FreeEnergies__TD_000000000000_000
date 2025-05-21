@@ -4,7 +4,7 @@ from typing import List, Tuple
 
 import numpy as np
 import scipy.constants as sc
-from ase import Atoms, io
+from ase import Atoms
 from ase.data import atomic_masses, atomic_numbers
 from ase.io import read
 from kim_tools import (
