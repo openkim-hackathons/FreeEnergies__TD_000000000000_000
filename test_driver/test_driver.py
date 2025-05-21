@@ -122,9 +122,9 @@ class TestDriver(SingleCrystalTestDriver):
         print(f"G_FL = {free_energy_per_atom:.5f} (eV/atom)")
 
         # Write keys to property
-        self._add_property_instance_and_common_crystal_genome_keys(
-            "free-energy", write_stress=True, write_temp=True
-        )
+        # self._add_property_instance_and_common_crystal_genome_keys(
+        #     "free-energy", write_stress=True, write_temp=True
+        # )
         self._add_key_to_current_property_instance(
             "gibbs_free_energy_per_atom", free_energy_per_atom, "eV/atom"
         )
