@@ -1,5 +1,8 @@
 #!/usr/bin/python
 import subprocess
+import sys
+
+sys.path.append("../../")
 
 import numpy as np
 from kim_tools import query_crystal_structures
