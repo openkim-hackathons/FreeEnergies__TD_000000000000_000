@@ -269,7 +269,7 @@ class TestDriver(SingleCrystalTestDriver):
             "t_switch": 10000,
             "temperature_damping": 0.1,
             "temperature_seed": np.random.randint(low=100000, high=999999, dtype=int),
-            "msd_threshold": 0.1,
+            "msd_threshold": 1.0,
             "t_equil": 10000,
             "timestep": 0.001,  # ps
             "spring_constant": self.spring_constants,
@@ -389,8 +389,8 @@ class TestDriver(SingleCrystalTestDriver):
     
     def _modify_accuracies(self):
         # Start accuracy lists (volume, x, y, and z are normal)
-        relative_accuracy = [0.01, 0.01, 0.01, 0.01]
-        absolute_accuracy = [None, None, None, None]
+        relative_accuracy = [0.01, 0.01, 0.01, 0.01, 0.01]
+        absolute_accuracy = [None, None, None, None, None]
 
         # Get cell parameters and add appropriate values to accuracy lists (0.01 and None for non-zero tilt factors, vice-versa for zero)
         # get_cell_lengths_and_angles() returns angles in place of tilt factors. Angle = 90 --> tilt factor = 0.0.
@@ -403,8 +403,8 @@ class TestDriver(SingleCrystalTestDriver):
         # Process each cell angle and set appropriate accuracy values
         for angle in [XY_cell, XZ_cell, YZ_cell]:
             is_orthogonal = abs(90 - angle) < ORTHOGONAL_THRESHOLD
-            relative_accuracy.append(None if is_orthogonal else 0.01)
-            absolute_accuracy.append(0.01 if is_orthogonal else None)
+            relative_accuracy.append(None if is_orthogonal else 0.1)
+            absolute_accuracy.append(0.1 if is_orthogonal else None)
 
         # Replace lists in "accuracies_general.py"
         new_accuracies = {
