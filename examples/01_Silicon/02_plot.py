@@ -16,8 +16,8 @@ for temperature in TEMPERATURES:
 # Plot the computed free-energies against the reference free-energies
 fig, ax = plt.subplots()
 
-ax.plot(TEMPERATURES, FREE_ENERGIES, label='Freitas et al.')
-ax.plot(TEMPERATURES, computed_free_energies, label='This test driver')
+ax.plot(TEMPERATURES, FREE_ENERGIES, 's-', label='Freitas et al.')
+ax.plot(TEMPERATURES, computed_free_energies, 'o-', label='This test driver')
 
 ax.set_xlabel('Temperature [K]')
 ax.set_ylabel('Free energy [eV/atom]')
