@@ -9,8 +9,7 @@ plt.style.use('paper')
 computed_free_energies = []
 
 for temperature in TEMPERATURES:
-    filename = f"output/results/results_{temperature}K.edn"
-    data = load(filename)
+    data = load(f"output/results/results_{temperature}K.edn")
     free_energy = data[-1]["gibbs_free_energy_per_atom"]["source-value"]
     computed_free_energies.append(free_energy)
 
