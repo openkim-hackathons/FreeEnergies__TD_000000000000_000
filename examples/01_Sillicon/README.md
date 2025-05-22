@@ -1,0 +1,2 @@
+This code reproduces Supplentary Figure 11b of the [Uncovering the effects of interface-induced ordering of liquid on crystal growth using machine learning
+](https://www.nature.com/articles/s41467-020-16892-4#Sec21) paper.
