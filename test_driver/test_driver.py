@@ -226,7 +226,6 @@ class TestDriver(SingleCrystalTestDriver):
             "output_filename": "output/lammps_preFL.dat",
             "write_restart_filename": "output/lammps_preFL.restart",
             "write_data_filename": "output/lammps_preFL.data",
-            "equilibration_data_file": "output/equilibration.data",
             "run_length_control": os.path.dirname(__file__)+"/run_length_control_preFL.py"
         }
         # TODO: Possibly run MPI version of Lammps if available.
@@ -391,8 +390,8 @@ class TestDriver(SingleCrystalTestDriver):
     
     def _modify_accuracies(self):
         # Start accuracy lists (volume, x, y, and z are normal)
-        relative_accuracy = [0.1, 0.1, 0.1, 0.1]
-        absolute_accuracy = [None, None, None, None]
+        relative_accuracy = [0.1, 0.1, 0.1, 0.1, 0.1]
+        absolute_accuracy = [None, None, None, None, None]
 
         # Get cell parameters and add appropriate values to accuracy lists (0.01 and None for non-zero tilt factors, vice-versa for zero)
         # get_cell_lengths_and_angles() returns angles in place of tilt factors. Angle = 90 --> tilt factor = 0.0.
