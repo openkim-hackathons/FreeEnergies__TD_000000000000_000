@@ -57,29 +57,8 @@ class LammpsTemplates:
         variable       vol_metal equal vol/(${_u_distance}^3)
         variable       temp_metal equal temp/${_u_temperature}
 
-        # Short run to equilibrate MSD
-        compute msd all msd com yes
-        thermo_style custom lx ly lz xy yz xz temp press vol etotal c_msd[4] step
-        thermo 1000
-        run 5000
-        reset_timestep 0
-
-        # Compute slope of mean squared displacement to detect diffusion
-        fix msd_vector all vector 100 c_msd[4]
-        variable msd_slope equal slope(f_msd_vector)
-
-        # Thermodynamic output
-        thermo_style custom lx ly lz xy yz xz temp press vol etotal c_msd[4] v_msd_slope step
-        thermo 1000
-        
-        # Before kim-convergence, perform a short run and decide whether or not to quit
-        run 5000
-        if "${msd_slope} > ${msd_threshold}" then "write_dump all atom output/melted_crystal.dump" &
-                                      "print 'Crystal melted or vaporized'" &
-                                      "quit"
-        unfix msd_vector
-        reset_timestep 0
         thermo_style custom lx ly lz xy yz xz temp press vol etotal step
+        thermo 1000
 
         # Set up convergence check with kim-convergence.
         python run_length_control input 18 SELF 1 variable vol_metal variable temp_metal variable lx_metal variable ly_metal variable lz_metal variable xy_metal variable xz_metal variable yz_metal format pissssssssssssssss file ${run_length_control}
@@ -90,7 +69,26 @@ class LammpsTemplates:
         unfix cr_fix # From run_length_control.py
         reset_timestep 0
 
-        print 'Kim-convergence finished'
+        print '#================================== Kim-convergence finished ==================================#'
+
+        #======================================================================#
+
+        # Compute slope of mean squared displacement to detect diffusion
+        fix msd_vector all vector 100 c_msd[4]
+        variable msd_slope equal slope(f_msd_vector)
+
+        # Thermodynamic output
+        thermo_style custom lx ly lz xy yz xz temp press vol etotal c_msd[4] v_msd_slope step
+        thermo 1000
+        
+        # Perform a short run and decide whether or not to quit
+        run 5000
+        if "${msd_slope} > ${msd_threshold}" then "write_dump all atom output/melted_crystal.dump" &
+                                      "print 'Crystal melted or vaporized'" &
+                                      "quit"
+        unfix msd_vector
+
+        #======================================================================#
 
         # Compute mean squared displacement
         #set group all image 0 0 0
