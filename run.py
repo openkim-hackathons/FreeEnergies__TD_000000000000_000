@@ -63,15 +63,15 @@ computed_property_instances = test_driver(
 # For example, this is how you access the value of the key ``a`` (corresponding to the lattice constant),
 # found in every Crystal Genome property, from the first Property Instance.
 
-print("\n--------------------------------------")
+
+print("--------------------------------------\n")
 print(
-    "Lattice constant a: %f %s"
+    "Free energy G_FL (eV/atom): %f %s"
     % (
-        computed_property_instances[0]["a"]["source-value"],
-        computed_property_instances[0]["a"]["source-unit"],
+        computed_property_instances[-1]["gibbs_free_energy_per_atom"]["source-value"],
+        computed_property_instances[-1]["gibbs_free_energy_per_atom"]["source-unit"],
     )
 )
-print("--------------------------------------\n")
 
 ###############################################################################
 # Testing Using a Prototype Label
