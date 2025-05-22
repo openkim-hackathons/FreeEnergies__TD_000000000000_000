@@ -3,13 +3,13 @@ import os
 import subprocess
 import sys
 
-os.makedirs("output/results", exist_ok=True)
-sys.path.append("../../")
-
-
 from cte import TEMPERATURES
 from kim_tools import query_crystal_structures
+
+sys.path.append("../../")
 from test_driver.test_driver import TestDriver
+
+os.makedirs("output/results", exist_ok=True)
 
 kim_model_name = "SW_StillingerWeber_1985_Si__MO_405512056662_006" # Stillinger-Weber
 subprocess.run(f"kimitems install {kim_model_name}", shell=True, check=True)
