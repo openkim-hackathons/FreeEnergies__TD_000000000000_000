@@ -1,8 +1,9 @@
 #!/usr/bin/python
-from test_driver.test_driver import TestDriver
 import subprocess
-from kim_tools import query_crystal_structures
+
 import numpy as np
+from kim_tools import query_crystal_structures
+from test_driver.test_driver import TestDriver
 
 kim_model_name = "SW_StillingerWeber_1985_Si__MO_405512056662_006" # Stillinger-Weber
 size = (10,10,6)
@@ -39,7 +40,6 @@ for t in range(len(T)):
     computed_property_instances = test_driver(
         list_of_queried_structures[0],
         size=size,
-        pressure=0.0,
         temperature_K=T[t]
     )
 
