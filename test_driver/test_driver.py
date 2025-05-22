@@ -226,6 +226,7 @@ class TestDriver(SingleCrystalTestDriver):
             "output_filename": "output/lammps_preFL.dat",
             "write_restart_filename": "output/lammps_preFL.restart",
             "write_data_filename": "output/lammps_preFL.data",
+            "equilibration_data_file": "output/equilibration.data",
             "run_length_control": os.path.dirname(__file__)+"/run_length_control_preFL.py"
         }
         # TODO: Possibly run MPI version of Lammps if available.
