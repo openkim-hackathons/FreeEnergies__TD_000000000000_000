@@ -81,13 +81,15 @@ class LammpsTemplates:
         thermo_style custom lx ly lz xy yz xz temp press vol etotal step
 
         # Set up convergence check with kim-convergence.
-        python run_length_control input 16 SELF 1 variable vol_metal variable lx_metal variable ly_metal variable lz_metal variable xy_metal variable xz_metal variable yz_metal format pissssssssssssss file test_driver/run_length_control_preFL.py
+        python run_length_control input 16 SELF 1 variable vol_metal variable lx_metal variable ly_metal variable lz_metal variable xy_metal variable xz_metal variable yz_metal format pissssssssssssss file ${run_length_control}
 
         # Run until converged (minimum runtime 30000 steps)
         python run_length_control invoke
 
         unfix cr_fix # From run_length_control.py
         reset_timestep 0
+
+        print 'Kim-convergence finished'
 
         # Compute mean squared displacement
         #set group all image 0 0 0

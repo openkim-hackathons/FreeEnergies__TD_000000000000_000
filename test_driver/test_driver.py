@@ -15,7 +15,7 @@ from kim_tools import (
 
 from .helper_functions import reduce_and_avg, test_reduced_distances
 from .lammps_templates import LammpsTemplates
-
+import os 
 EV = sc.value("electron volt")
 MU = sc.value("atomic mass constant")
 HBAR = sc.value("Planck constant in eV/Hz") / (2 * np.pi)
@@ -226,6 +226,7 @@ class TestDriver(SingleCrystalTestDriver):
             "output_filename": "output/lammps_preFL.dat",
             "write_restart_filename": "output/lammps_preFL.restart",
             "write_data_filename": "output/lammps_preFL.data",
+            "run_length_control": os.path.dirname(__file__)+"/run_length_control_preFL.py"
         }
         # TODO: Possibly run MPI version of Lammps if available.
         command = (
@@ -389,7 +390,7 @@ class TestDriver(SingleCrystalTestDriver):
     
     def _modify_accuracies(self):
         # Start accuracy lists (volume, x, y, and z are normal)
-        relative_accuracy = [0.01, 0.01, 0.01, 0.01]
+        relative_accuracy = [0.1, 0.1, 0.1, 0.1]
         absolute_accuracy = [None, None, None, None]
 
         # Get cell parameters and add appropriate values to accuracy lists (0.01 and None for non-zero tilt factors, vice-versa for zero)
@@ -403,8 +404,8 @@ class TestDriver(SingleCrystalTestDriver):
         # Process each cell angle and set appropriate accuracy values
         for angle in [XY_cell, XZ_cell, YZ_cell]:
             is_orthogonal = abs(90 - angle) < ORTHOGONAL_THRESHOLD
-            relative_accuracy.append(None if is_orthogonal else 0.01)
-            absolute_accuracy.append(0.01 if is_orthogonal else None)
+            relative_accuracy.append(None if is_orthogonal else 0.1)
+            absolute_accuracy.append(0.1 if is_orthogonal else None)
 
         # Replace lists in "accuracies_general.py"
         new_accuracies = {
@@ -412,7 +413,7 @@ class TestDriver(SingleCrystalTestDriver):
                         "ABSOLUTE_ACCURACY: Sequence[Optional[float]]": absolute_accuracy
                         }
         
-        with open("test_driver/accuracies.py", 'r') as file:
+        with open(os.path.dirname(__file__)+"/accuracies.py", 'r') as file:
             content = file.read()
         
         pattern = r"RELATIVE_ACCURACY: Sequence\[Optional\[float\]\].s*=.s*\[.*?\]"
@@ -423,7 +424,7 @@ class TestDriver(SingleCrystalTestDriver):
         replacement = f"ABSOLUTE_ACCURACY: Sequence[Optional[float]] = {new_accuracies['ABSOLUTE_ACCURACY: Sequence[Optional[float]]']}"
         content = re.sub(pattern, replacement, content)
 
-        with open("test_driver/accuracies.py", 'w') as file:
+        with open(os.path.dirname(__file__)+"/accuracies.py", 'w') as file:
             file.write(content)
 
     def _reduce_average_and_verify_symmetry(self, atoms_npt: str,reduced_atoms_save_path: str):

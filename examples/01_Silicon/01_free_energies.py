@@ -8,19 +8,17 @@ import numpy as np
 from kim_tools import query_crystal_structures
 from test_driver.test_driver import TestDriver
 
-kim_model_name = "SW_StillingerWeber_1985_Si__MO_405512056662_006" # Stillinger-Weber
-size = (10,10,6)
-T = [1100, 1200, 1300, 1400, 1500, 1600, 1700, 1800, 1900, 2000]
-
-save_file = "./output/results/Free-Energy.dat"
-
-Ref_F = [-4.57429718875502, -4.624096385542169, -4.675502008032129, -4.7301204819277105, -4.785542168674699, -4.844176706827309, -4.903614457831325, -4.965461847389558, -5.028915662650602, -5.093172690763052] # Free-energy from doi:10.1038/s41467-020-16892-4, supporting information (Fig 11b)
-
-np.savetxt(save_file, [], delimiter=" ", header='T [K] | F [eV/atom]')
-
 # Notes:
 # The reference results used Stillinger-Weber potential for silicon, with hexagonal diamond structure
 # The size was ~20k atoms. On a single core, this is not feasible. This test driver will operate at ~2k atoms.
+
+kim_model_name = "SW_StillingerWeber_1985_Si__MO_405512056662_006" # Stillinger-Weber
+size = (10,10,6) # 2.4k atoms while trying to keep the system as cubic as possible
+T = [1100, 1200, 1300, 1400, 1500, 1600, 1700, 1800, 1900, 2000] # Temperatures at which to calculate the free-energy
+
+save_file = "./output/results/Free-Energy.dat"
+
+np.savetxt(save_file, [], delimiter=" ", header='T [K] | F [eV/atom]')
 
 #======================================================================================#
 

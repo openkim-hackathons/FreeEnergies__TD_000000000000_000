@@ -46,7 +46,6 @@
         variable       yz_metal equal yz/${_u_distance}
         variable       xz_metal equal xz/${_u_distance}
         variable       vol_metal equal vol/(${_u_distance}^3)
-        variable       temp_metal equal temp/${_u_temperature}
 
         # Short run to equilibrate MSD
         compute msd all msd com yes
@@ -72,19 +71,16 @@
         reset_timestep 0
         thermo_style custom lx ly lz xy yz xz temp press vol etotal step
 
-        fix record all print 10 "$(step) $(vol) $(temp) $(lx) $(ly) $(lz) $(xy) $(xz) $(yz)" &
-                           title "step | vol | temp | lx | ly | lz | xy | xz | yz" &
-                           screen no &
-                           file output/equilibration.dat
-
         # Set up convergence check with kim-convergence.
-        python run_length_control input 18 SELF 1 variable vol_metal variable temp_metal variable lx_metal variable ly_metal variable lz_metal variable xy_metal variable xz_metal variable yz_metal format pissssssssssssssss file test_driver/run_length_control_preFL.py
+        python run_length_control input 16 SELF 1 variable vol_metal variable lx_metal variable ly_metal variable lz_metal variable xy_metal variable xz_metal variable yz_metal format pissssssssssssss file ${run_length_control}
 
         # Run until converged (minimum runtime 30000 steps)
         python run_length_control invoke
 
         unfix cr_fix # From run_length_control.py
         reset_timestep 0
+
+        print 'Kim-convergence finished'
 
         # Compute mean squared displacement
         #set group all image 0 0 0
