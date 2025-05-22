@@ -1,5 +1,6 @@
 import re
 import subprocess
+import sys
 from typing import List, Tuple
 
 import numpy as np
@@ -60,7 +61,9 @@ class TestDriver(SingleCrystalTestDriver):
         # If lammps detects diffusion, it prints a specific string, then quits.
         # The 'if' statement below handles that case.
         # This is a first implementation. It's probably cleaner to leave the responsibility of quitting to some standardized function that is common across finite-temperature test-drivers
-        self._check_diffusion(lammps_log="output/lammps_preFL.log")
+        if self._check_diffusion(lammps_log="output/lammps_preFL.log"):
+            print("Crystal melted or vaporized")
+            sys.exit()
 
         reduced_atoms_preFL = self._reduce_average_and_verify_symmetry(atoms_npt="output/lammps_preFL.data",  reduced_atoms_save_path="output/reduced_atoms_preFL.data")
         
@@ -92,8 +95,9 @@ class TestDriver(SingleCrystalTestDriver):
         
         free_energy_per_atom = self._FL() - isolated_atom_energy
 
-        
-        self._check_diffusion(lammps_log="output/lammps_FL.log")
+        if self._check_diffusion(lammps_log="output/lammps_FL.log"):
+            print("Crystal melted or vaporized")
+            sys.exit()
 
         reduced_atoms_FL = self._reduce_average_and_verify_symmetry(atoms_npt="output/lammps_FL.data",  reduced_atoms_save_path="output/reduced_atoms_FL.data")
 
@@ -266,7 +270,7 @@ class TestDriver(SingleCrystalTestDriver):
             "temperature": self.temperature_K,
             "pressure": self.pressure,
             "species": " ".join(self.species),
-            "t_switch": 10000,
+            "t_switch": 20000,
             "temperature_damping": 0.1,
             "temperature_seed": np.random.randint(low=100000, high=999999, dtype=int),
             "msd_threshold": 1.0,
@@ -362,7 +366,13 @@ class TestDriver(SingleCrystalTestDriver):
 
                 last_line = lines[-1].strip()
 
-                return last_line.startswith("Total wall time:")
+                if last_line.startswith("Total wall time:"):
+                    return True
+
+                last_line = lines[-2].strip()
+                
+                if last_line.startswith("Crystal melted or vaporized"):
+                    return True
 
         except FileNotFoundError:
             print(f"The file {lammps_log} does not exist.")
@@ -375,12 +385,12 @@ class TestDriver(SingleCrystalTestDriver):
                 lines = file.readlines()
 
                 if not lines:
-                    return
+                    return False
 
                 last_line = lines[-2].strip()
 
                 if last_line.startswith("Crystal melted or vaporized"):
-                    raise ValueError("Crystal melted or vaporized")
+                    return True
 
         except FileNotFoundError:
             print(f"The file {lammps_log} does not exist.")
