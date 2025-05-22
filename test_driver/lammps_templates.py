@@ -55,6 +55,7 @@ class LammpsTemplates:
         variable       yz_metal equal yz/${_u_distance}
         variable       xz_metal equal xz/${_u_distance}
         variable       vol_metal equal vol/(${_u_distance}^3)
+        variable       temp_metal equal temp/${_u_temperature}
 
         # Short run to equilibrate MSD
         compute msd all msd com yes
@@ -80,8 +81,10 @@ class LammpsTemplates:
         reset_timestep 0
         thermo_style custom lx ly lz xy yz xz temp press vol etotal step
 
+        fix write_data all print 100 "$(vol) $(temp) $(lx) $(ly) $(lz) $(xy) $(xz) $(yz)" file ${write_data_filename} sceen no
+
         # Set up convergence check with kim-convergence.
-        python run_length_control input 16 SELF 1 variable vol_metal variable lx_metal variable ly_metal variable lz_metal variable xy_metal variable xz_metal variable yz_metal format pissssssssssssss file ${run_length_control}
+        python run_length_control input 18 SELF 1 variable vol_metal variable temp_metal variable lx_metal variable ly_metal variable lz_metal variable xy_metal variable xz_metal variable yz_metal format pissssssssssssssss file ${run_length_control}
 
         # Run until converged (minimum runtime 30000 steps)
         python run_length_control invoke
