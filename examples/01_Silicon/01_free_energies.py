@@ -33,11 +33,3 @@ for t in range(len(TEMPERATURES)):
     )
 
     test_driver.write_property_instances_to_file(filename = f"output/results/results_{TEMPERATURES[t]}K.edn")
-
-
-
-
-
-
-
-
