@@ -10,12 +10,10 @@ subprocess.run("mkdir -p output", shell=True, check=True)
 test_driver = TestDriver(model_name)
 test_driver(
     bulk("Ar", "fcc", a=5.248),
-    size=(3, 3, 3),
-    temperature=20.0,
-    pressure=0.0,
+    temperature_K=300.0,
 )
 ```
-
+An example on how to compute the free energy versus temeperature of Sillicon can be found [here](examples/01_Sillicon/).
 ## Notes
 Frenkel-Ladd method is more accurate for larger systems (~10k atoms) and longer nonequilibrium simulation time ($\geq 10\text{k}$ integration steps)
 
