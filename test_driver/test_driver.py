@@ -194,11 +194,14 @@ class TestDriver(SingleCrystalTestDriver):
         self.zero_k_structure_path = filename
 
         
-        tol = 1e-2
-        a, b, c, alpha, beta, gamma = cell_to_cellpar(self.atoms.cell)
+        
         # Check if the cell is triclinic by checking if any of the cell lengths or angles are different from the others.
-        self.is_triclinic = all(abs(x - y) > 1e-2 for x, y in [(a, b), (b, c), (a, c), (alpha, beta), (beta, gamma), (alpha, gamma)]) or all(abs(x - 90) > tol for x in [alpha, beta, gamma])
+        # tol = 1e-2
+        # a, b, c, alpha, beta, gamma = cell_to_cellpar(self.atoms.cell)
+        # self.is_triclinic = all(abs(x - y) > 1e-2 for x, y in [(a, b), (b, c), (a, c), (alpha, beta), (beta, gamma), (alpha, gamma)]) or all(abs(x - 90) > tol for x in [alpha, beta, gamma])
 
+        # Treat all cells as triclinic for simplicity.
+        self.is_triclinic = True
        
         return atoms_new
 
