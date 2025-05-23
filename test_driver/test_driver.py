@@ -226,6 +226,8 @@ class TestDriver(SingleCrystalTestDriver):
             "output_filename": "output/lammps_preFL.dat",
             "write_restart_filename": "output/lammps_preFL.restart",
             "write_data_filename": "output/lammps_preFL.data",
+            "zero_temperature_crystal": "output/zero_temperature_crystal.data",
+            "melted_crystal_output": "output/melted_crystal.dump",
             "run_length_control": os.path.dirname(__file__)+"/run_length_control_preFL.py"
         }
         # TODO: Possibly run MPI version of Lammps if available.
@@ -279,6 +281,8 @@ class TestDriver(SingleCrystalTestDriver):
             "switch1_output_file": "output/FL_switch1.dat",
             "switch2_output_file": "output/FL_switch2.dat",
             "write_data_filename": "output/lammps_FL.data",
+            "equilibrium_crystal": "output/equilibrium_crystal.data",
+            "melted_crystal_output": "output/melted_crystal.dump"
         }
         # TODO: Possibly run MPI version of Lammps if available.
         command = (

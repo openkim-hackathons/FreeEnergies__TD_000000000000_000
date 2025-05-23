@@ -14,7 +14,7 @@ class LammpsTemplates:
         boundary p p p
 
         # Read crystal with 0K lattice parameter.
-        read_data output/zero_temperature_crystal.data
+        read_data ${zero_temperature_crystal}
 
         # Increase maximum number of neighbors allowed per atom (for potentials that support many species)
         neigh_modify delay 0 every 1 check yes one 2000
@@ -84,7 +84,7 @@ class LammpsTemplates:
         
         # Perform a short run and decide whether or not to quit
         run 5000
-        if "${msd_slope} > ${msd_threshold}" then "write_dump all atom output/melted_crystal.dump" &
+        if "${msd_slope} > ${msd_threshold}" then "write_dump all atom ${melted_crystal_output}" &
                                       "print 'Crystal melted or vaporized'" &
                                       "quit"
         unfix msd_vector
@@ -164,7 +164,7 @@ class LammpsTemplates:
         boundary p p p
 
         # Read crystal equilibrium crystal.
-        read_data output/equilibrium_crystal.data
+        read_data ${equilibrium_crystal}
 
         # Convert box and all atomic positions to the correct units.
         #change_box all x scale ${_u_distance} &
@@ -229,7 +229,7 @@ class LammpsTemplates:
 
         variable msd_slope equal slope(f_msd_vector)
 
-        if "${msd_slope} > ${msd_threshold}" then "write_dump all atom output/melted_crystal.dump" &
+        if "${msd_slope} > ${msd_threshold}" then "write_dump all atom ${melted_crystal_output}" &
                                       "print 'Crystal melted or vaporized'" &
                                       "quit"
         unfix msd_vector
@@ -247,7 +247,7 @@ class LammpsTemplates:
 
         variable msd_slope equal slope(f_msd_vector)
 
-        if "${msd_slope} > ${msd_threshold}" then "write_dump all atom output/melted_crystal.dump" &
+        if "${msd_slope} > ${msd_threshold}" then "write_dump all atom ${melted_crystal_output}" &
                                       "print 'Crystal melted or vaporized'" &
                                       "quit"
         unfix msd_vector
