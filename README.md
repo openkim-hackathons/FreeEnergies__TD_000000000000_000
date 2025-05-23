@@ -4,13 +4,26 @@ Gibbs free energy per conventional unit cell, with rhombohedral crystals using t
 
 ## Example of usage 
 ```python 
+from test_driver.test_driver import TestDriver
+import subprocess
+from ase.build import bulk
+
 model_name = "LJ_Shifted_Bernardes_1958MedCutoff_Ar__MO_126566794224_004"
 subprocess.run(f"kimitems install {model_name}", shell=True, check=True)
-subprocess.run("mkdir -p output", shell=True, check=True)
+
 test_driver = TestDriver(model_name)
-test_driver(
+
+computed_property_instances = test_driver(
     bulk("Ar", "fcc", a=5.248),
     temperature_K=300.0,
+)
+
+print(
+    "Free energy G_FL (eV/atom): %f %s"
+    % (
+        computed_property_instances[-1]["gibbs_free_energy_per_atom"]["source-value"],
+        computed_property_instances[-1]["gibbs_free_energy_per_atom"]["source-unit"],
+    )
 )
 ```
 An example on how to compute the free energy versus temeperature of Sillicon can be found [here](examples/01_Sillicon/).
