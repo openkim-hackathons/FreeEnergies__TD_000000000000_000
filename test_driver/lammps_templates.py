@@ -74,6 +74,7 @@ class LammpsTemplates:
         #======================================================================#
 
         # Compute slope of mean squared displacement to detect diffusion
+        compute msd all msd com yes
         fix msd_vector all vector 100 c_msd[4]
         variable msd_slope equal slope(f_msd_vector)
 
