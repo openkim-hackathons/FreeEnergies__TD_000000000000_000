@@ -193,8 +193,6 @@ class TestDriver(SingleCrystalTestDriver):
         atoms_new.write(filename, format="lammps-data", masses=True)
         self.zero_k_structure_path = filename
 
-        
-        
         # Check if the cell is triclinic by checking if any of the cell lengths or angles are different from the others.
         # tol = 1e-2
         # a, b, c, alpha, beta, gamma = cell_to_cellpar(self.atoms.cell)
