@@ -52,7 +52,6 @@ computed_property_instances = test_driver(
     atoms,
     temperature_K=300,
     size=(4,4,4), 
-    nprocs=4
 )
 
 ###############################################################################

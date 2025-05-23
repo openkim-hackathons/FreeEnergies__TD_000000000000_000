@@ -1,3 +1,4 @@
+import multiprocessing
 import os
 import re
 import subprocess
@@ -31,7 +32,7 @@ class TestDriver(SingleCrystalTestDriver):
         self,
         size: Tuple[int, int, int] = (0,0,0),
         output_dir: str = "output",
-        nprocs: int = 1,
+        nprocs: int = multiprocessing.cpu_count(),
         **kwargs,
     ) -> None:
         """Gibbs free energy of a crystal at constant temperature and pressure using Frenkel-Ladd Hamiltonian integration algorithm. Computed through one equilibrium NPT simulation ('preFL') and one NONequilibrium NVT simulation ('FL').
@@ -39,7 +40,7 @@ class TestDriver(SingleCrystalTestDriver):
         Args:
             size (Tuple[int, int, int]): system size. By default, the system size is computed to have ~10,000 atoms.
             output_dir (str): directory path where all output files will be written. Defaults to "output".
-            nprocs (int): number of processors to use for LAMMPS. Defaults to 1 (serial execution).
+            nprocs (int): number of processors to use for LAMMPS. Defaults to the number of CPU cores available on the system.
         """
 
         # Create output directory as a Path object and ensure it exists
