@@ -59,8 +59,8 @@ class TestDriver(SingleCrystalTestDriver):
 
         # Determine appropriate number of processors based on system size
         natoms = len(self.supercell)
-        # Rule of thumb: aim for at least 1000 atoms per processor for good parallel efficiency
-        max_reasonable_procs = max(1, min(nprocs, natoms // 1000))
+        # Rule of thumb: aim for at least 500 atoms per processor for good parallel efficiency
+        max_reasonable_procs = max(1, min(nprocs, natoms // 500))
         self.nprocs = max_reasonable_procs
         if max_reasonable_procs < nprocs:
             print(f"Warning: Requested {nprocs} processors but system only has {natoms} atoms.")
