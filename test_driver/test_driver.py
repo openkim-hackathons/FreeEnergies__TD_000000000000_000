@@ -31,6 +31,7 @@ class TestDriver(SingleCrystalTestDriver):
         self,
         size: Tuple[int, int, int] = (0,0,0),
         output_dir: str = "output",
+        nprocs: int = 1,
         **kwargs,
     ) -> None:
         """Gibbs free energy of a crystal at constant temperature and pressure using Frenkel-Ladd Hamiltonian integration algorithm. Computed through one equilibrium NPT simulation ('preFL') and one NONequilibrium NVT simulation ('FL').
@@ -38,6 +39,7 @@ class TestDriver(SingleCrystalTestDriver):
         Args:
             size (Tuple[int, int, int]): system size. By default, the system size is computed to have ~10,000 atoms.
             output_dir (str): directory path where all output files will be written. Defaults to "output".
+            nprocs (int): number of processors to use for LAMMPS. Defaults to 1 (serial execution).
         """
 
         # Create output directory as a Path object and ensure it exists
@@ -54,6 +56,15 @@ class TestDriver(SingleCrystalTestDriver):
 
         self.supercell = self._setup_initial_structure(filename=self.output_dir / "zero_temperature_crystal.data")
 
+        # Determine appropriate number of processors based on system size
+        natoms = len(self.supercell)
+        # Rule of thumb: aim for at least 1000 atoms per processor for good parallel efficiency
+        max_reasonable_procs = max(1, min(nprocs, natoms // 1000))
+        self.nprocs = max_reasonable_procs
+        if max_reasonable_procs < nprocs:
+            print(f"Warning: Requested {nprocs} processors but system only has {natoms} atoms.")
+            print(f"Reducing to {max_reasonable_procs} processors for better parallel efficiency.")
+        
         self._modify_accuracies()
 
         # Write initial template file
@@ -245,13 +256,20 @@ class TestDriver(SingleCrystalTestDriver):
             "melted_crystal_output": str(self.output_dir / "melted_crystal.dump"),
             "run_length_control": str(Path(__file__).parent / "run_length_control_preFL.py")
         }
-        # TODO: Possibly run MPI version of Lammps if available.
-        command = (
-            "lammps "
-            + " ".join(f"-var {key} '{item}'" for key, item in variables.items())
+        
+        # Construct base LAMMPS command
+        lammps_cmd = (
+            " ".join(f"-var {key} '{item}'" for key, item in variables.items())
             + f" -log {self.output_dir / 'lammps_preFL.log'}"
             + f" -in {self.templates.root}preFL_template.lmp"
         )
+        
+        # Use mpirun if multiple processors requested
+        if self.nprocs > 1:
+            command = f"mpirun -np {self.nprocs} lammps {lammps_cmd}"
+        else:
+            command = f"lammps {lammps_cmd}"
+            
         try:
             subprocess.run(command, check=True, shell=True)
         except:
@@ -299,13 +317,20 @@ class TestDriver(SingleCrystalTestDriver):
             "equilibrium_crystal": str(self.output_dir / "equilibrium_crystal.data"),
             "melted_crystal_output": str(self.output_dir / "melted_crystal.dump")
         }
-        # TODO: Possibly run MPI version of Lammps if available.
-        command = (
-            "lammps "
-            + " ".join(f"-var {key} '{item}'" for key, item in variables.items())
+        
+        # Construct base LAMMPS command
+        lammps_cmd = (
+            " ".join(f"-var {key} '{item}'" for key, item in variables.items())
             + f" -log {self.output_dir / 'lammps_FL.log'}"
             + f" -in {self.templates.root}FL_template.lmp"
         )
+        
+        # Use mpirun if multiple processors requested
+        if self.nprocs > 1:
+            command = f"mpirun -np {self.nprocs} lammps {lammps_cmd}"
+        else:
+            command = f"lammps {lammps_cmd}"
+            
         subprocess.run(command, check=True, shell=True)
 
         return self._compute_free_energy()
