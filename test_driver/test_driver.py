@@ -1,5 +1,7 @@
+import os
 import re
 import subprocess
+from pathlib import Path
 from typing import List, Tuple
 
 import numpy as np
@@ -15,7 +17,7 @@ from kim_tools import (
 
 from .helper_functions import reduce_and_avg, test_reduced_distances
 from .lammps_templates import LammpsTemplates
-import os 
+
 EV = sc.value("electron volt")
 MU = sc.value("atomic mass constant")
 HBAR = sc.value("Planck constant in eV/Hz") / (2 * np.pi)
@@ -26,13 +28,19 @@ class TestDriver(SingleCrystalTestDriver):
     def _calculate(
         self,
         size: Tuple[int, int, int] = (0,0,0),
+        output_dir: str = "output",
         **kwargs,
     ) -> None:
         """Gibbs free energy of a crystal at constant temperature and pressure using Frenkel-Ladd Hamiltonian integration algorithm. Computed through one equilibrium NPT simulation ('preFL') and one NONequilibrium NVT simulation ('FL').
 
         Args:
             size (Tuple[int, int, int]): system size. By default, the system size is computed to have ~10,000 atoms.
+            output_dir (str): directory path where all output files will be written. Defaults to "output".
         """
+
+        # Create output directory as a Path object and ensure it exists
+        self.output_dir = Path(output_dir)
+        self.output_dir.mkdir(parents=True, exist_ok=True)
 
         self.temperature_K = self._get_temperature(unit="K")
         self.cauchy_stress = self._get_cell_cauchy_stress(unit='atm')
@@ -42,12 +50,13 @@ class TestDriver(SingleCrystalTestDriver):
         
         self._validate_inputs()
 
-        self.supercell = self._setup_initial_structure()
+        self.supercell = self._setup_initial_structure(self.output_dir / "zero_temperature_crystal.data")
 
         self._modify_accuracies()
 
         # Write initial template file
-        self.templates = LammpsTemplates(root="output/lammps_templates/")
+        templates_dir = self.output_dir / "lammps_templates"
+        self.templates = LammpsTemplates(root=str(templates_dir) + "/")
         self.templates._write_pre_fl_lammps_templates(
             nspecies=len(self.species), is_triclinic=self.is_triclinic
         )
@@ -60,27 +69,27 @@ class TestDriver(SingleCrystalTestDriver):
         # If lammps detects diffusion, it prints a specific string, then quits.
         # The 'if' statement below handles that case.
         # This is a first implementation. It's probably cleaner to leave the responsibility of quitting to some standardized function that is common across finite-temperature test-drivers
-        self._check_diffusion(lammps_log="output/lammps_preFL.log")
+        self._check_diffusion(lammps_log=self.output_dir / "lammps_preFL.log")
 
-        reduced_atoms_preFL = self._reduce_average_and_verify_symmetry(atoms_npt="output/lammps_preFL.data",  reduced_atoms_save_path="output/reduced_atoms_preFL.data")
+        reduced_atoms_preFL = self._reduce_average_and_verify_symmetry(atoms_npt=self.output_dir / "lammps_preFL.data", reduced_atoms_save_path=self.output_dir / "reduced_atoms_preFL.data")
         
         self._update_nominal_parameter_values(reduced_atoms_preFL,max_resid=1e-5)
 
         # crystal-structure-npt
         self._add_property_instance_and_common_crystal_genome_keys("crystal-structure-npt", write_temp=True, write_stress=True)
-        self._add_file_to_current_property_instance("restart-file","output/lammps_preFL.restart")
+        self._add_file_to_current_property_instance("restart-file", str(self.output_dir / "lammps_preFL.restart"))
     
         
         # Rescaling 0K supercell to have equilibrium lattice constant.
         # equilibrium_cell is 3x3 matrix or can also have [len(a), len(b), len(c), angle(b,c), angle(a,c), angle(a,b)]
         self.supercell.set_cell(equilibrium_cell, scale_atoms=True)
         self.supercell.write(
-            "output/equilibrium_crystal.data",
+            self.output_dir / "equilibrium_crystal.data",
             format="lammps-data",
             masses=True,
             atom_style=self.atom_style,
         )
-        # self._add_file_to_current_property_instance("data-file","output/equilibrium_crystal.data")
+        self._add_file_to_current_property_instance("data-file", str(self.output_dir / "equilibrium_crystal.data"))
 
         # Collect the energies of isolated atoms to subtract from final values
         isolated_atom_energy = self._collect_isolated_atom_energies(reduced_atoms_preFL)
@@ -93,14 +102,14 @@ class TestDriver(SingleCrystalTestDriver):
         free_energy_per_atom = self._FL() - isolated_atom_energy
 
         
-        self._check_diffusion(lammps_log="output/lammps_FL.log")
+        self._check_diffusion(lammps_log=self.output_dir / "lammps_FL.log")
 
-        reduced_atoms_FL = self._reduce_average_and_verify_symmetry(atoms_npt="output/lammps_FL.data",  reduced_atoms_save_path="output/reduced_atoms_FL.data")
+        reduced_atoms_FL = self._reduce_average_and_verify_symmetry(atoms_npt=self.output_dir / "lammps_FL.data", reduced_atoms_save_path=self.output_dir / "reduced_atoms_FL.data")
 
         self._update_nominal_parameter_values(reduced_atoms_FL,max_resid=1e-5)
 
         self._add_property_instance_and_common_crystal_genome_keys("crystal-structure-npt", write_temp=True, write_stress=True)
-        self._add_file_to_current_property_instance("restart-file","output/lammps_FL.restart")
+        self._add_file_to_current_property_instance("restart-file", str(self.output_dir / "lammps_FL.restart"))
 
         # Convert to eV/formula (originally in eV/atom)
         # get_stoich_reduced_list_from_prototype returns a list corresponding to the stoichiometry of the prototype label, e.g. "A2B_hP9_152_c_a" -> [2,1]
@@ -146,7 +155,7 @@ class TestDriver(SingleCrystalTestDriver):
 
     def _setup_initial_structure(
         self,
-        filename: str = "output/zero_temperature_crystal.data",
+        filename: Path,
     ) -> Atoms:
         # Copy original atoms so that their information does not get lost when the new atoms are modified.
 
@@ -198,7 +207,7 @@ class TestDriver(SingleCrystalTestDriver):
         # We tried with 'atomic', if it fails, try 'charge'
         
         if not self._check_if_lammps_run_to_completiton(
-            lammps_log="output/lammps_preFL.log"
+            lammps_log=self.output_dir / "lammps_preFL.log"
         ):
             atom_style = "charge"
             self.supercell.write(
@@ -223,18 +232,18 @@ class TestDriver(SingleCrystalTestDriver):
             "msd_threshold": 0.1,
             "timestep": 0.001,  # ps
             "species": " ".join(self.species),
-            "output_filename": "output/lammps_preFL.dat",
-            "write_restart_filename": "output/lammps_preFL.restart",
-            "write_data_filename": "output/lammps_preFL.data",
-            "zero_temperature_crystal": "output/zero_temperature_crystal.data",
-            "melted_crystal_output": "output/melted_crystal.dump",
-            "run_length_control": os.path.dirname(__file__)+"/run_length_control_preFL.py"
+            "output_filename": str(self.output_dir / "lammps_preFL.dat"),
+            "write_restart_filename": str(self.output_dir / "lammps_preFL.restart"),
+            "write_data_filename": str(self.output_dir / "lammps_preFL.data"),
+            "zero_temperature_crystal": str(self.output_dir / "zero_temperature_crystal.data"),
+            "melted_crystal_output": str(self.output_dir / "melted_crystal.dump"),
+            "run_length_control": str(Path(__file__).parent / "run_length_control_preFL.py")
         }
         # TODO: Possibly run MPI version of Lammps if available.
         command = (
             "lammps "
             + " ".join(f"-var {key} '{item}'" for key, item in variables.items())
-            + " -log output/lammps_preFL.log"
+            + f" -log {self.output_dir / 'lammps_preFL.log'}"
             + f" -in {self.templates.root}preFL_template.lmp"
         )
         try:
@@ -245,7 +254,7 @@ class TestDriver(SingleCrystalTestDriver):
         # handling the case where it did not create lammps_preFL (e.g, when atomic style needs to be charge)
 
         # Analyse lammps outputs
-        data = np.loadtxt("output/lammps_preFL.dat", unpack=True)
+        data = np.loadtxt(self.output_dir / "lammps_preFL.dat", unpack=True)
         # xx, xy, xz, yx, yy, yz, zx, zy, zz, spring_constants = data
 
         (lx, ly, lz, xy, yz, xz, volume), spring_constants = (
@@ -276,19 +285,19 @@ class TestDriver(SingleCrystalTestDriver):
             "t_equil": 10000,
             "timestep": 0.001,  # ps
             "spring_constant": self.spring_constants,
-            "output_filename": "output/lammps_FL.dat",
-            "write_restart_filename": "output/lammps_FL.restart",
-            "switch1_output_file": "output/FL_switch1.dat",
-            "switch2_output_file": "output/FL_switch2.dat",
-            "write_data_filename": "output/lammps_FL.data",
-            "equilibrium_crystal": "output/equilibrium_crystal.data",
-            "melted_crystal_output": "output/melted_crystal.dump"
+            "output_filename": str(self.output_dir / "lammps_FL.dat"),
+            "write_restart_filename": str(self.output_dir / "lammps_FL.restart"),
+            "switch1_output_file": str(self.output_dir / "FL_switch1.dat"),
+            "switch2_output_file": str(self.output_dir / "FL_switch2.dat"),
+            "write_data_filename": str(self.output_dir / "lammps_FL.data"),
+            "equilibrium_crystal": str(self.output_dir / "equilibrium_crystal.data"),
+            "melted_crystal_output": str(self.output_dir / "melted_crystal.dump")
         }
         # TODO: Possibly run MPI version of Lammps if available.
         command = (
             "lammps "
             + " ".join(f"-var {key} '{item}'" for key, item in variables.items())
-            + " -log output/lammps_FL.log"
+            + f" -log {self.output_dir / 'lammps_FL.log'}"
             + f" -in {self.templates.root}FL_template.lmp"
         )
         subprocess.run(command, check=True, shell=True)
@@ -299,12 +308,12 @@ class TestDriver(SingleCrystalTestDriver):
         """Compute free energy via integration of FL path"""
 
         Hi_f, Hf_f, lamb_f = np.loadtxt(
-            "output/FL_switch1.dat", unpack=True, skiprows=1
+            self.output_dir / "FL_switch1.dat", unpack=True, skiprows=1
         )
         W_forw = np.trapz(Hf_f - Hi_f, lamb_f)
 
         Hf_b, Hi_b, lamb_b = np.loadtxt(
-            "output/FL_switch2.dat", unpack=True, skiprows=1
+            self.output_dir / "FL_switch2.dat", unpack=True, skiprows=1
         )
         W_back = np.trapz(Hf_b - Hi_b, 1 - lamb_b)
 
@@ -357,7 +366,7 @@ class TestDriver(SingleCrystalTestDriver):
         return free_energy
 
  
-    def _check_if_lammps_run_to_completiton(self, lammps_log: str):
+    def _check_if_lammps_run_to_completiton(self, lammps_log: Path):
         try:
             with open(lammps_log, "r") as file:
                 lines = file.readlines()
@@ -373,7 +382,7 @@ class TestDriver(SingleCrystalTestDriver):
             print(f"The file {lammps_log} does not exist.")
             return False
     
-    def _check_diffusion(self, lammps_log: str):
+    def _check_diffusion(self, lammps_log: Path):
      
         try:
             with open(lammps_log, "r") as file:
@@ -417,7 +426,8 @@ class TestDriver(SingleCrystalTestDriver):
                         "ABSOLUTE_ACCURACY: Sequence[Optional[float]]": absolute_accuracy
                         }
         
-        with open(os.path.dirname(__file__)+"/accuracies.py", 'r') as file:
+        accuracies_file = Path(__file__).parent / "accuracies.py"
+        with open(accuracies_file, 'r') as file:
             content = file.read()
         
         pattern = r"RELATIVE_ACCURACY: Sequence\[Optional\[float\]\].s*=.s*\[.*?\]"
@@ -428,10 +438,10 @@ class TestDriver(SingleCrystalTestDriver):
         replacement = f"ABSOLUTE_ACCURACY: Sequence[Optional[float]] = {new_accuracies['ABSOLUTE_ACCURACY: Sequence[Optional[float]]']}"
         content = re.sub(pattern, replacement, content)
 
-        with open(os.path.dirname(__file__)+"/accuracies.py", 'w') as file:
+        with open(accuracies_file, 'w') as file:
             file.write(content)
 
-    def _reduce_average_and_verify_symmetry(self, atoms_npt: str,reduced_atoms_save_path: str):
+    def _reduce_average_and_verify_symmetry(self, atoms_npt: Path, reduced_atoms_save_path: Path):
         # Read lammps dump file of average positions
         atoms_npt = read(atoms_npt, format='lammps-data')
         # Reduce to unit cell
