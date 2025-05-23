@@ -1,5 +1,7 @@
 # Custom stuff
 examples/01_Silicon/output/*
+!examples/01_Silicon/output/results/
+!examples/01_Silicon/output/results/*
 *log*
 output/*
 *.out

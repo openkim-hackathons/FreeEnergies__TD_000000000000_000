@@ -1,0 +1,191 @@
+[
+    {
+        "property-id" "tag:staff@noreply.openkim.org,2023-02-21:property/crystal-structure-npt" 
+        "instance-id" 1 
+        "prototype-label" {
+            "source-value" "A_hP4_194_f"
+        } 
+        "stoichiometric-species" {
+            "source-value" [
+                "Si"
+            ]
+        } 
+        "a" {
+            "source-value" 3.855585404769812 
+            "source-unit" "angstrom"
+        } 
+        "parameter-names" {
+            "source-value" [
+                "c/a" 
+                "z1"
+            ]
+        } 
+        "parameter-values" {
+            "source-value" [
+                1.631960655254329 
+                0.9383158609873399
+            ]
+        } 
+        "short-name" {
+            "source-value" [
+                "Lonsdaleite"
+            ]
+        } 
+        "library-prototype-label" {
+            "source-value" "A_hP4_194_f-001"
+        } 
+        "cell-cauchy-stress" {
+            "source-value" [
+                0.0 
+                0.0 
+                0.0 
+                0.0 
+                0.0 
+                0.0
+            ] 
+            "source-unit" "eV/angstrom^3"
+        } 
+        "temperature" {
+            "source-value" 1100.0 
+            "source-unit" "K"
+        } 
+        "coordinates-file" {
+            "source-value" "instance-1.poscar"
+        } 
+        "coordinates-file-conventional" {
+            "source-value" "conventional.instance-1.poscar"
+        } 
+        "restart-file" {
+            "source-value" "lammps_preFL-1.restart"
+        }
+    } 
+    {
+        "property-id" "tag:staff@noreply.openkim.org,2023-02-21:property/crystal-structure-npt" 
+        "instance-id" 2 
+        "prototype-label" {
+            "source-value" "A_hP4_194_f"
+        } 
+        "stoichiometric-species" {
+            "source-value" [
+                "Si"
+            ]
+        } 
+        "a" {
+            "source-value" 3.855585404769813 
+            "source-unit" "angstrom"
+        } 
+        "parameter-names" {
+            "source-value" [
+                "c/a" 
+                "z1"
+            ]
+        } 
+        "parameter-values" {
+            "source-value" [
+                1.6319606552543289 
+                0.43748300767118
+            ]
+        } 
+        "short-name" {
+            "source-value" [
+                "Lonsdaleite"
+            ]
+        } 
+        "library-prototype-label" {
+            "source-value" "A_hP4_194_f-001"
+        } 
+        "cell-cauchy-stress" {
+            "source-value" [
+                0.0 
+                0.0 
+                0.0 
+                0.0 
+                0.0 
+                0.0
+            ] 
+            "source-unit" "eV/angstrom^3"
+        } 
+        "temperature" {
+            "source-value" 1100.0 
+            "source-unit" "K"
+        } 
+        "coordinates-file" {
+            "source-value" "instance-2.poscar"
+        } 
+        "coordinates-file-conventional" {
+            "source-value" "conventional.instance-2.poscar"
+        } 
+        "restart-file" {
+            "source-value" "lammps_FL-2.restart"
+        }
+    } 
+    {
+        "property-id" "tag:staff@noreply.openkim.org,2024-03-11:property/free-energy" 
+        "instance-id" 3 
+        "prototype-label" {
+            "source-value" "A_hP4_194_f"
+        } 
+        "stoichiometric-species" {
+            "source-value" [
+                "Si"
+            ]
+        } 
+        "a" {
+            "source-value" 3.855585404769813 
+            "source-unit" "angstrom"
+        } 
+        "parameter-names" {
+            "source-value" [
+                "c/a" 
+                "z1"
+            ]
+        } 
+        "parameter-values" {
+            "source-value" [
+                1.6319606552543289 
+                0.43748300767118
+            ]
+        } 
+        "short-name" {
+            "source-value" [
+                "Lonsdaleite"
+            ]
+        } 
+        "library-prototype-label" {
+            "source-value" "A_hP4_194_f-001"
+        } 
+        "cell-cauchy-stress" {
+            "source-value" [
+                0.0 
+                0.0 
+                0.0 
+                0.0 
+                0.0 
+                0.0
+            ] 
+            "source-unit" "eV/angstrom^3"
+        } 
+        "temperature" {
+            "source-value" 1100.0 
+            "source-unit" "K"
+        } 
+        "coordinates-file" {
+            "source-value" "instance-3.poscar"
+        } 
+        "coordinates-file-conventional" {
+            "source-value" "conventional.instance-3.poscar"
+        } 
+        "gibbs_free_energy_per_atom" {
+            "source-value" -4.580763616126499 
+            "source-unit" "eV/atom"
+        } 
+        "gibbs_free_energy_per_formula" {
+            "source-value" -4.580763616126499 
+            "source-unit" "eV/formula"
+        } 
+        "specific_gibbs_free_energy" {
+            "source-value" -0.16310356475437068 
+            "source-unit" "eV/amu"
+        }
+    }
+]
