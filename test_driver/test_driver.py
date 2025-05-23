@@ -91,7 +91,7 @@ class TestDriver(SingleCrystalTestDriver):
             masses=True,
             atom_style=self.atom_style,
         )
-        self._add_file_to_current_property_instance("data-file", str(self.output_dir / "equilibrium_crystal.data"))
+        # self._add_file_to_current_property_instance("data-file", str(self.output_dir / "equilibrium_crystal.data"))
 
         # Collect the energies of isolated atoms to subtract from final values
         isolated_atom_energy = self._collect_isolated_atom_energies(reduced_atoms_preFL)
