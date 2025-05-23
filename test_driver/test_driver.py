@@ -50,7 +50,7 @@ class TestDriver(SingleCrystalTestDriver):
         
         self._validate_inputs()
 
-        self.supercell = self._setup_initial_structure(self.output_dir / "zero_temperature_crystal.data")
+        self.supercell = self._setup_initial_structure(filename=self.output_dir / "zero_temperature_crystal.data")
 
         self._modify_accuracies()
 
