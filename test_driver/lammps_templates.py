@@ -160,10 +160,10 @@ class LammpsTemplates:
         variable ave_z atom f_avePos[3]
 
         # Set atom positions to time-averaged positions
-        set group all x v_ave_x y v_ave_y z v_ave_z
+        # set group all x v_ave_x y v_ave_y z v_ave_z
 
         # Set box dimensions to time-averaged dimensions
-        change_box all x scale $(f_AVG[1]/lx) y scale $(f_AVG[2]/ly) z scale $(f_AVG[3]/lz) xy final $(f_AVG[4]) yz final $(f_AVG[5]) xz final $(f_AVG[6]) remap
+        change_box all x scale $(f_AVG[1]/lx) y scale $(f_AVG[2]/ly) z scale $(f_AVG[3]/lz) xy final $(f_AVG[4]) yz final $(f_AVG[5]) xz final $(f_AVG[6]) remap 
 
         print "#================================== $(count(all)) atoms ==================================#"
 
