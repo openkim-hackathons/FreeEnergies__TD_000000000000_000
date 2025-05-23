@@ -8,6 +8,7 @@ import numpy as np
 import scipy.constants as sc
 from ase import Atoms
 from ase.data import atomic_masses, atomic_numbers
+from ase.geometry import cell_to_cellpar
 from ase.io import read
 from kim_tools import (
     SingleCrystalTestDriver,
@@ -22,6 +23,7 @@ EV = sc.value("electron volt")
 MU = sc.value("atomic mass constant")
 HBAR = sc.value("Planck constant in eV/Hz") / (2 * np.pi)
 KB = sc.value("Boltzmann constant in eV/K")
+
 
 
 class TestDriver(SingleCrystalTestDriver):
@@ -191,11 +193,13 @@ class TestDriver(SingleCrystalTestDriver):
         atoms_new.write(filename, format="lammps-data", masses=True)
         self.zero_k_structure_path = filename
 
-        angles = self.atoms.get_cell().angles()
-        self.is_triclinic = (
-            all(angle != 90 for angle in angles) and len(set(angles)) == 3
-        )
+        
+        tol = 1e-2
+        a, b, c, alpha, beta, gamma = cell_to_cellpar(self.atoms.cell)
+        # Check if the cell is triclinic by checking if any of the cell lengths or angles are different from the others.
+        self.is_triclinic = all(abs(x - y) > 1e-2 for x, y in [(a, b), (b, c), (a, c), (alpha, beta), (beta, gamma), (alpha, gamma)]) or all(abs(x - 90) > tol for x in [alpha, beta, gamma])
 
+       
         return atoms_new
 
     def _run_preFL(self):
@@ -209,6 +213,7 @@ class TestDriver(SingleCrystalTestDriver):
         if not self._check_if_lammps_run_to_completiton(
             lammps_log=self.output_dir / "lammps_preFL.log"
         ):
+
             atom_style = "charge"
             self.supercell.write(
                 self.zero_k_structure_path,
