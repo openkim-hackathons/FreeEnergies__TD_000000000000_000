@@ -16,8 +16,6 @@ class LammpsTemplates:
         # Read crystal with 0K lattice parameter.
         read_data ${zero_temperature_crystal}
 
-        print "#================================== $(count(all)) atoms ==================================#"
-
         # Increase maximum number of neighbors allowed per atom (for potentials that support many species)
         neigh_modify delay 0 every 1 check yes one 2000
 
@@ -39,8 +37,6 @@ class LammpsTemplates:
 
         # Initialize velocities.
         velocity      all create ${temp_converted} ${temperature_seed}
-
-        print "#================================== $(count(all)) atoms ==================================#"
 
         # Run NPT ensemble (barostat type depends on box type)
         fix          ensemble all npt temp ${temp_converted} ${temp_converted} ${Tdamp_converted} tri ${press_converted} ${press_converted} ${Pdamp_converted}
@@ -64,31 +60,17 @@ class LammpsTemplates:
         thermo_style custom lx ly lz xy yz xz temp press vol etotal step
         thermo 1000
 
-        print "#================================== $(count(all)) atoms ==================================#"
-
-        # Set up convergence check with kim-convergence.
-        python run_length_control input 18 SELF 1 variable vol_metal variable temp_metal variable lx_metal variable ly_metal variable lz_metal variable xy_metal variable xz_metal variable yz_metal format pissssssssssssssss file ${run_length_control}
-
-        print "#================================== $(count(all)) atoms ==================================#"
-
-        # Run until converged (minimum runtime 30000 steps)
-        python run_length_control invoke
-
-        unfix cr_fix # From run_length_control.py
-        reset_timestep 0
-
-        print "#================================== $(count(all)) atoms ==================================#"
-
-        print '#================================== Kim-convergence finished ==================================#'
-
         #======================================================================#
 
-        # Compute slope of mean squared displacement to detect diffusion
+        # Compute mean squared displacement
         compute msd all msd com yes
+
+        # Perform a short run to equilibrate MSD
+        run 5000
+        
+        # Calculate slope of MSD to detect diffusion
         fix msd_vector all vector 100 c_msd[4]
         variable msd_slope equal slope(f_msd_vector)
-
-        print "#================================== $(count(all)) atoms ==================================#"
 
         # Thermodynamic output
         thermo_style custom lx ly lz xy yz xz temp press vol etotal c_msd[4] v_msd_slope step
@@ -101,12 +83,21 @@ class LammpsTemplates:
                                       "quit"
         unfix msd_vector
 
-        # Write data file of averaged positions and box dimensions
-        write_data ${write_data_filename}
+        thermo_style custom lx ly lz xy yz xz temp press vol etotal step
+        thermo 1000
 
         #======================================================================#
 
-        print "#================================== $(count(all)) atoms ==================================#"
+        # Set up convergence check with kim-convergence.
+        python run_length_control input 18 SELF 1 variable vol_metal variable temp_metal variable lx_metal variable ly_metal variable lz_metal variable xy_metal variable xz_metal variable yz_metal format pissssssssssssssss file ${run_length_control}
+
+        # Run until converged (minimum runtime 30000 steps)
+        python run_length_control invoke
+
+        unfix cr_fix # From run_length_control.py
+        reset_timestep 0
+
+        print '#================================== Kim-convergence finished ==================================#'
 
         # Compute mean squared displacement
         set group all image 0 0 0
@@ -124,8 +115,6 @@ class LammpsTemplates:
         # compute averages of box vectors and msd
         {avg_template}
 
-        print "#================================== $(count(all)) atoms ==================================#"
-
         # Compute unwrapped atom positions
         compute unwrapped all property/atom xu yu zu
 
@@ -135,8 +124,6 @@ class LammpsTemplates:
 
         # Average unwrapped atom positions
         fix avePos all ave/atom ${N_every} $(v_run_time/v_N_every) ${run_time} v_xu v_yu v_zu
-
-        print "#================================== $(count(all)) atoms ==================================#"
 
         # Run steps in the converged regime.
         run ${run_time}
@@ -148,8 +135,6 @@ class LammpsTemplates:
         # Write final averages and spring constant
         print "# lx | ly | lz [Ang] | vol [Ang^3] | spring constant [eV/Ang^2]" file ${output_filename}
         {print_template}
-
-        print "#================================== $(count(all)) atoms ==================================#"
 
         # Write the initial starting file for a true simulation.
         write_restart ${write_restart_filename}
@@ -165,15 +150,11 @@ class LammpsTemplates:
         # Set box dimensions to time-averaged dimensions
         change_box all x scale $(f_AVG[1]/lx) y scale $(f_AVG[2]/ly) z scale $(f_AVG[3]/lz) xy final $(f_AVG[4]) yz final $(f_AVG[5]) xz final $(f_AVG[6]) remap 
 
-        print "#================================== $(count(all)) atoms ==================================#"
-
         # Reset.
         unfix ensemble
         unfix AVG
         unfix avePos
         reset_timestep 0
-
-        #print "#================================== $(count(all)) atoms ==================================#"
 
         # Write data file of averaged positions and box dimensions
         write_data ${write_data_filename}
