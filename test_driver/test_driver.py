@@ -9,15 +9,14 @@ import numpy as np
 import scipy.constants as sc
 from ase import Atoms
 from ase.data import atomic_masses, atomic_numbers
-from ase.geometry import cell_to_cellpar
 from ase.io import read
 from kim_tools import (
     SingleCrystalTestDriver,
     get_isolated_energy_per_atom,
     get_stoich_reduced_list_from_prototype,
 )
+from kim_tools.symmetry_util.core import kstest_reduced_distances, reduce_and_avg
 
-from .helper_functions import reduce_and_avg, test_reduced_distances
 from .lammps_templates import LammpsTemplates
 
 EV = sc.value("electron volt")
@@ -90,7 +89,7 @@ class TestDriver(SingleCrystalTestDriver):
         self._update_nominal_parameter_values(reduced_atoms_preFL)
 
         # crystal-structure-npt
-        self._add_property_instance_and_common_crystal_genome_keys("crystal-structure-npt", write_temp=True, write_stress=True)
+        self._add_property_instance_and_common_crystal_genome_keys("crystal-structure-npt", write_temp=True, write_stress=True, stress_unit="atm")
         self._add_file_to_current_property_instance("restart-file", str(self.output_dir / "lammps_preFL.restart"))
     
         
@@ -122,7 +121,7 @@ class TestDriver(SingleCrystalTestDriver):
 
         self._update_nominal_parameter_values(reduced_atoms_FL)
 
-        self._add_property_instance_and_common_crystal_genome_keys("crystal-structure-npt", write_temp=True, write_stress=True)
+        self._add_property_instance_and_common_crystal_genome_keys("crystal-structure-npt", write_temp=True, write_stress=True, stress_unit="atm")
         self._add_file_to_current_property_instance("restart-file", str(self.output_dir / "lammps_FL.restart"))
 
         # Convert to eV/formula (originally in eV/atom)
@@ -145,7 +144,7 @@ class TestDriver(SingleCrystalTestDriver):
 
         # Write keys to property
         self._add_property_instance_and_common_crystal_genome_keys(
-            "free-energy", write_stress=True, write_temp=True
+            "free-energy", write_stress=True, write_temp=True, stress_unit="atm"
         )
         self._add_key_to_current_property_instance(
             "gibbs_free_energy_per_atom", free_energy_per_atom, "eV/atom"
@@ -478,7 +477,7 @@ class TestDriver(SingleCrystalTestDriver):
         atoms_npt = read(atoms_npt, format='lammps-data')
         # Reduce to unit cell
         reduced_atoms, reduced_distances = reduce_and_avg(atoms_npt, self.size)
-        test_reduced_distances(reduced_distances)
+        kstest_reduced_distances(reduced_distances)
         # Print reduced_atoms for verification
         reduced_atoms.write(reduced_atoms_save_path, format='lammps-data',masses=True)
 
