@@ -47,7 +47,7 @@ class TestDriver(SingleCrystalTestDriver):
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
         self.temperature_K = self._get_temperature(unit="K")
-        self.cauchy_stress = self._get_cell_cauchy_stress(unit='atm')
+        self.cauchy_stress = self._get_cell_cauchy_stress(unit='bars')
         self.pressure = -self.cauchy_stress[0] 
         self.atoms = self._get_atoms()
         self.size = size
@@ -89,7 +89,7 @@ class TestDriver(SingleCrystalTestDriver):
         self._update_nominal_parameter_values(reduced_atoms_preFL)
 
         # crystal-structure-npt
-        self._add_property_instance_and_common_crystal_genome_keys("crystal-structure-npt", write_temp=True, write_stress=True, stress_unit="atm")
+        self._add_property_instance_and_common_crystal_genome_keys("crystal-structure-npt", write_temp=True, write_stress=True, stress_unit="bars")
         self._add_file_to_current_property_instance("restart-file", str(self.output_dir / "lammps_preFL.restart"))
     
         
@@ -121,7 +121,7 @@ class TestDriver(SingleCrystalTestDriver):
 
         self._update_nominal_parameter_values(reduced_atoms_FL)
 
-        self._add_property_instance_and_common_crystal_genome_keys("crystal-structure-npt", write_temp=True, write_stress=True, stress_unit="atm")
+        self._add_property_instance_and_common_crystal_genome_keys("crystal-structure-npt", write_temp=True, write_stress=True, stress_unit="bars")
         self._add_file_to_current_property_instance("restart-file", str(self.output_dir / "lammps_FL.restart"))
 
         # Convert to eV/formula (originally in eV/atom)
@@ -144,7 +144,7 @@ class TestDriver(SingleCrystalTestDriver):
 
         # Write keys to property
         self._add_property_instance_and_common_crystal_genome_keys(
-            "free-energy", write_stress=True, write_temp=True, stress_unit="atm"
+            "free-energy", write_stress=True, write_temp=True, stress_unit="bars"
         )
         self._add_key_to_current_property_instance(
             "gibbs_free_energy_per_atom", free_energy_per_atom, "eV/atom"
