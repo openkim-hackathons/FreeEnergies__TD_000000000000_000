@@ -2,6 +2,7 @@ import multiprocessing
 import os
 import re
 import subprocess
+import tempfile
 from pathlib import Path
 from typing import List, Tuple
 
@@ -451,26 +452,35 @@ class TestDriver(SingleCrystalTestDriver):
             relative_accuracy.append(None if is_orthogonal else 0.1)
             absolute_accuracy.append(0.1 if is_orthogonal else None)
 
-        # Replace lists in "accuracies_general.py"
-        new_accuracies = {
-                        "RELATIVE_ACCURACY: Sequence[Optional[float]]": relative_accuracy,
-                        "ABSOLUTE_ACCURACY: Sequence[Optional[float]]": absolute_accuracy
-                        }
+        # Create a temporary accuracies.py file instead of modifying the original
+        temp_dir = tempfile.mkdtemp()
+        temp_accuracies_path = Path(temp_dir) / "accuracies.py"
         
-        accuracies_file = Path(__file__).parent / "accuracies.py"
-        with open(accuracies_file, 'r') as file:
-            content = file.read()
+        # Read the template content from the original accuracies.py
+        original_accuracies_file = Path(__file__).parent / "accuracies.py"
+        with open(original_accuracies_file, 'r') as file:
+            template_content = file.read()
         
-        pattern = r"RELATIVE_ACCURACY: Sequence\[Optional\[float\]\].s*=.s*\[.*?\]"
-        replacement = f"RELATIVE_ACCURACY: Sequence[Optional[float]] = {new_accuracies['RELATIVE_ACCURACY: Sequence[Optional[float]]']}"
-        content = re.sub(pattern, replacement, content)
-
-        pattern = r"ABSOLUTE_ACCURACY: Sequence\[Optional\[float\]\].s*=.s*\[.*?\]"
-        replacement = f"ABSOLUTE_ACCURACY: Sequence[Optional[float]] = {new_accuracies['ABSOLUTE_ACCURACY: Sequence[Optional[float]]']}"
-        content = re.sub(pattern, replacement, content)
-
-        with open(accuracies_file, 'w') as file:
-            file.write(content)
+        # Replace the accuracy values in the template
+        new_content = re.sub(
+            r"RELATIVE_ACCURACY: Sequence\[Optional\[float\]\]\s*=\s*\[.*?\]",
+            f"RELATIVE_ACCURACY: Sequence[Optional[float]] = {relative_accuracy}",
+            template_content
+        )
+        new_content = re.sub(
+            r"ABSOLUTE_ACCURACY: Sequence\[Optional\[float\]\]\s*=\s*\[.*?\]",
+            f"ABSOLUTE_ACCURACY: Sequence[Optional[float]] = {absolute_accuracy}",
+            new_content
+        )
+        
+        # Write the modified content to the temporary file
+        with open(temp_accuracies_path, 'w') as file:
+            file.write(new_content)
+        
+        # Store the temporary directory path so it can be used by kim-tools
+        # and cleaned up later if needed
+        self.temp_accuracies_dir = temp_dir
+        self.temp_accuracies_path = temp_accuracies_path
 
     def _reduce_average_and_verify_symmetry(self, atoms_npt: Path, reduced_atoms_save_path: Path):
         # Read lammps dump file of average positions
