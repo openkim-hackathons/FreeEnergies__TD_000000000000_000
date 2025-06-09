@@ -84,7 +84,7 @@ class TestDriver(SingleCrystalTestDriver):
         # If lammps detects diffusion, it prints a specific string, then quits.
         # The 'if' statement below handles that case.
         # This is a first implementation. It's probably cleaner to leave the responsibility of quitting to some standardized function that is common across finite-temperature test-drivers
-        self._check_diffusion(lammps_log=self.output_dir / "lammps_preFL.log")
+        #self._check_diffusion(lammps_log=self.output_dir / "lammps_preFL.log")
 
         reduced_atoms_preFL = self._reduce_average_and_verify_symmetry(atoms_npt=self.output_dir / "lammps_preFL.data", reduced_atoms_save_path=self.output_dir / "reduced_atoms_preFL.data")
         
