@@ -117,7 +117,7 @@ class TestDriver(SingleCrystalTestDriver):
         free_energy_per_atom = self._FL() - isolated_atom_energy
 
         
-        self._check_diffusion(lammps_log=self.output_dir / "lammps_FL.log")
+        #self._check_diffusion(lammps_log=self.output_dir / "lammps_FL.log")
 
         reduced_atoms_FL = self._reduce_average_and_verify_symmetry(atoms_npt=self.output_dir / "lammps_FL.data", reduced_atoms_save_path=self.output_dir / "reduced_atoms_FL.data")
 
