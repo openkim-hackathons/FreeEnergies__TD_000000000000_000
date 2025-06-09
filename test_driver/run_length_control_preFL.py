@@ -5,14 +5,8 @@ from typing import Optional, Sequence
 from lammps import lammps
 import kim_convergence as cr
 
-import sys
-sys.path.append('/home/openkim/test-drivers/FreeEnergies__TD_000000000000_000/')
-
-from test_driver.accuracies import RELATIVE_ACCURACY, ABSOLUTE_ACCURACY
-
-
-#RELATIVE_ACCURACY: Sequence[Optional[float]] = [0.1, 0.1, 0.1, 0.1, 0.1, None, None, None]
-#ABSOLUTE_ACCURACY: Sequence[Optional[float]] = [None, None, None, None, None, 0.1, 0.1, 0.1]
+RELATIVE_ACCURACY: Sequence[Optional[float]] = [0.1, 0.1, 0.1, 0.1, 0.1, None, None, None]
+ABSOLUTE_ACCURACY: Sequence[Optional[float]] = [None, None, None, None, None, 0.1, 0.1, 0.1]
 
 # Initial run length
 INITIAL_RUN_LENGTH: int = 10000

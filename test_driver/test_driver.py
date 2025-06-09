@@ -2,6 +2,7 @@ import multiprocessing
 import os
 import re
 import subprocess
+import tempfile
 from pathlib import Path
 from typing import List, Tuple
 
@@ -64,7 +65,8 @@ class TestDriver(SingleCrystalTestDriver):
         if max_reasonable_procs < nprocs:
             print(f"Warning: Requested {nprocs} processors but system only has {natoms} atoms.")
             print(f"Reducing to {max_reasonable_procs} processors for better parallel efficiency.")
-        
+
+        # Create temporary accuracies.py and run_length_control_preFL.py, and modify the temp accuracies.py
         self._modify_accuracies()
 
         # Write initial template file
@@ -89,7 +91,7 @@ class TestDriver(SingleCrystalTestDriver):
         self._update_nominal_parameter_values(reduced_atoms_preFL)
 
         # crystal-structure-npt
-        self._add_property_instance_and_common_crystal_genome_keys("crystal-structure-npt", write_temp=True, write_stress=True, stress_unit="bars")
+        self._add_property_instance_and_common_crystal_genome_keys("crystal-structure-npt", write_temp=True, write_stress=True)#, stress_unit="bars")
         self._add_file_to_current_property_instance("restart-file", str(self.output_dir / "lammps_preFL.restart"))
     
         
@@ -121,7 +123,7 @@ class TestDriver(SingleCrystalTestDriver):
 
         self._update_nominal_parameter_values(reduced_atoms_FL)
 
-        self._add_property_instance_and_common_crystal_genome_keys("crystal-structure-npt", write_temp=True, write_stress=True, stress_unit="bars")
+        self._add_property_instance_and_common_crystal_genome_keys("crystal-structure-npt", write_temp=True, write_stress=True)#, stress_unit="bars")
         self._add_file_to_current_property_instance("restart-file", str(self.output_dir / "lammps_FL.restart"))
 
         # Convert to eV/formula (originally in eV/atom)
@@ -144,7 +146,7 @@ class TestDriver(SingleCrystalTestDriver):
 
         # Write keys to property
         self._add_property_instance_and_common_crystal_genome_keys(
-            "free-energy", write_stress=True, write_temp=True, stress_unit="bars"
+            "free-energy", write_stress=True, write_temp=True
         )
         self._add_key_to_current_property_instance(
             "gibbs_free_energy_per_atom", free_energy_per_atom, "eV/atom"
@@ -219,6 +221,7 @@ class TestDriver(SingleCrystalTestDriver):
         atom_style = "atomic"
         equilibrium_cell, spring_constants, volume = self._preFL()
 
+        # Check for diffusion or an incomplete run
         # Some models want atom_style="charge", others want "atomic"
         # We tried with 'atomic', if it fails, try 'charge'
         
@@ -234,6 +237,11 @@ class TestDriver(SingleCrystalTestDriver):
                 atom_style=atom_style,
             )
             equilibrium_cell, spring_constants, volume = self._preFL()
+        
+        if self._check_if_lammps_run_to_completiton(
+            lammps_log=self.output_dir / "lammps_preFL.log"
+        ) == str("Crystal melted or vaporized"):
+            raise Exception("Crystal melted or vaporized")
 
         assert len(self.species) == len(spring_constants)
         return equilibrium_cell, spring_constants, volume, atom_style
@@ -254,7 +262,7 @@ class TestDriver(SingleCrystalTestDriver):
             "write_data_filename": str(self.output_dir / "lammps_preFL.data"),
             "zero_temperature_crystal": str(self.output_dir / "zero_temperature_crystal.data"),
             "melted_crystal_output": str(self.output_dir / "melted_crystal.dump"),
-            "run_length_control": str(Path(__file__).parent / "run_length_control_preFL.py")
+            "run_length_control": str(self.temp_rlc_path)
         }
         
         # Construct base LAMMPS command
@@ -404,36 +412,21 @@ class TestDriver(SingleCrystalTestDriver):
 
                 if not lines:
                     return False
+                
+                last_line = lines[-2].strip()
+
+                if last_line.startswith("Crystal melted or vaporized"):
+                    return str("Crystal melted or vaporized")
 
                 last_line = lines[-1].strip()
 
                 return last_line.startswith("Total wall time:")
 
         except FileNotFoundError:
-            print(f"The file {lammps_log} does not exist.")
-            return False
-    
-    def _check_diffusion(self, lammps_log: Path):
-     
-        try:
-            with open(lammps_log, "r") as file:
-                lines = file.readlines()
-
-                if not lines:
-                    return
-
-                last_line = lines[-2].strip()
-
-                if last_line.startswith("Crystal melted or vaporized"):
-                    raise ValueError("Crystal melted or vaporized")
-
-        except FileNotFoundError:
-            print(f"The file {lammps_log} does not exist.")
-            raise
-
+            return str(f"LAMMPS log does not exist.")
     
     def _modify_accuracies(self):
-        # Start accuracy lists (volume, x, y, and z are normal)
+        # Start accuracy lists (temperature, volume, x, y, and z are normal)
         relative_accuracy = [0.1, 0.1, 0.1, 0.1, 0.1]
         absolute_accuracy = [None, None, None, None, None]
 
@@ -450,27 +443,36 @@ class TestDriver(SingleCrystalTestDriver):
             is_orthogonal = abs(90 - angle) < ORTHOGONAL_THRESHOLD
             relative_accuracy.append(None if is_orthogonal else 0.1)
             absolute_accuracy.append(0.1 if is_orthogonal else None)
-
-        # Replace lists in "accuracies_general.py"
-        new_accuracies = {
-                        "RELATIVE_ACCURACY: Sequence[Optional[float]]": relative_accuracy,
-                        "ABSOLUTE_ACCURACY: Sequence[Optional[float]]": absolute_accuracy
-                        }
         
-        accuracies_file = Path(__file__).parent / "accuracies.py"
-        with open(accuracies_file, 'r') as file:
-            content = file.read()
+        # Temporary directory
+        temp_dir = tempfile.mkdtemp()
+        temp_rlc_path = Path(temp_dir) / "run_length_control_preFL.py"
         
-        pattern = r"RELATIVE_ACCURACY: Sequence\[Optional\[float\]\].s*=.s*\[.*?\]"
-        replacement = f"RELATIVE_ACCURACY: Sequence[Optional[float]] = {new_accuracies['RELATIVE_ACCURACY: Sequence[Optional[float]]']}"
-        content = re.sub(pattern, replacement, content)
-
-        pattern = r"ABSOLUTE_ACCURACY: Sequence\[Optional\[float\]\].s*=.s*\[.*?\]"
-        replacement = f"ABSOLUTE_ACCURACY: Sequence[Optional[float]] = {new_accuracies['ABSOLUTE_ACCURACY: Sequence[Optional[float]]']}"
-        content = re.sub(pattern, replacement, content)
-
-        with open(accuracies_file, 'w') as file:
-            file.write(content)
+        # Read the template content from the original accuracies.py
+        original_rlc_file = Path(__file__).parent / "run_length_control_preFL.py"
+        with open(original_rlc_file, 'r') as file:
+            template_content = file.read()
+        
+        # Replace the accuracy values in the template
+        new_content = re.sub(
+            r"RELATIVE_ACCURACY: Sequence\[Optional\[float\]\]\s*=\s*\[.*?\]",
+            f"RELATIVE_ACCURACY: Sequence[Optional[float]] = {relative_accuracy}",
+            template_content
+        )
+        new_content = re.sub(
+            r"ABSOLUTE_ACCURACY: Sequence\[Optional\[float\]\]\s*=\s*\[.*?\]",
+            f"ABSOLUTE_ACCURACY: Sequence[Optional[float]] = {absolute_accuracy}",
+            new_content
+        )
+        
+        # Write the modified content to the temporary file
+        with open(temp_rlc_path, 'w') as file:
+            file.write(new_content)
+        
+        # Store the temporary directory path so it can be used by kim-tools
+        # and cleaned up later if needed
+        self.temp_accuracies_dir = temp_dir
+        self.temp_rlc_path = temp_rlc_path
 
     def _reduce_average_and_verify_symmetry(self, atoms_npt: Path, reduced_atoms_save_path: Path):
         # Read lammps dump file of average positions
