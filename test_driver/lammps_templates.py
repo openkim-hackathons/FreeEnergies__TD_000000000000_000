@@ -78,7 +78,7 @@ class LammpsTemplates:
         
         # Perform a short run and decide whether or not to quit
         run 5000
-        if "${msd_slope} > ${msd_threshold}" then "write_dump all atom ${melted_crystal_output}" &
+        if "${msd_slope} > $(v_msd_threshold*(v__u_distance^2)/v__u_time)" then "write_dump all atom ${melted_crystal_output}" &
                                       "print 'Crystal melted or vaporized'" &
                                       "quit"
         unfix msd_vector
@@ -233,7 +233,7 @@ class LammpsTemplates:
 
         variable msd_slope equal slope(f_msd_vector)
 
-        if "${msd_slope} > ${msd_threshold}" then "write_dump all atom ${melted_crystal_output}" &
+        if "${msd_slope} > $(v_msd_threshold*(v__u_distance^2)/v__u_time)" then "write_dump all atom ${melted_crystal_output}" &
                                       "print 'Crystal melted or vaporized'" &
                                       "quit"
         unfix msd_vector
@@ -251,7 +251,7 @@ class LammpsTemplates:
 
         variable msd_slope equal slope(f_msd_vector)
 
-        if "${msd_slope} > ${msd_threshold}" then "write_dump all atom ${melted_crystal_output}" &
+        if "${msd_slope} > $(v_msd_threshold*(v__u_distance^2)/v__u_time)" then "write_dump all atom ${melted_crystal_output}" &
                                       "print 'Crystal melted or vaporized'" &
                                       "quit"
         unfix msd_vector
