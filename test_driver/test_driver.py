@@ -17,6 +17,7 @@ from kim_tools import (
     get_stoich_reduced_list_from_prototype,
 )
 from kim_tools.symmetry_util.core import kstest_reduced_distances, reduce_and_avg
+from kim_tools.aflow_util.core import AFLOW
 
 from .lammps_templates import LammpsTemplates
 
@@ -32,7 +33,7 @@ class TestDriver(SingleCrystalTestDriver):
         self,
         size: Tuple[int, int, int] = (0,0,0),
         output_dir: str = "output",
-        nprocs: int = multiprocessing.cpu_count(),
+        nprocs: int = 4,
         **kwargs,
     ) -> None:
         """Gibbs free energy of a crystal at constant temperature and pressure using Frenkel-Ladd Hamiltonian integration algorithm. Computed through one equilibrium NPT simulation ('preFL') and one NONequilibrium NVT simulation ('FL').
@@ -59,12 +60,15 @@ class TestDriver(SingleCrystalTestDriver):
 
         # Determine appropriate number of processors based on system size
         natoms = len(self.supercell)
+        """
         # Rule of thumb: aim for at least 500 atoms per processor for good parallel efficiency
         max_reasonable_procs = max(1, min(nprocs, natoms // 500))
         self.nprocs = max_reasonable_procs
         if max_reasonable_procs < nprocs:
             print(f"Warning: Requested {nprocs} processors but system only has {natoms} atoms.")
             print(f"Reducing to {max_reasonable_procs} processors for better parallel efficiency.")
+        """
+        self.nprocs = nprocs
 
         # Create temporary accuracies.py and run_length_control_preFL.py, and modify the temp accuracies.py
         self._modify_accuracies()
@@ -88,7 +92,12 @@ class TestDriver(SingleCrystalTestDriver):
 
         reduced_atoms_preFL = self._reduce_average_and_verify_symmetry(atoms_npt=self.output_dir / "lammps_preFL.data", reduced_atoms_save_path=self.output_dir / "reduced_atoms_preFL.data")
         
-        self._update_nominal_parameter_values(reduced_atoms_preFL)
+        try:
+            self._update_nominal_parameter_values(reduced_atoms_preFL)
+        except AFLOW.FailedToSolveException:
+            fname = str(np.random.randint(0,1000))+".extxyz"
+            print(f"Failed to solve equations. Dumping atoms to {fname}")
+            reduced_atoms_preFL.write(fname)
 
         # crystal-structure-npt
         self._add_property_instance_and_common_crystal_genome_keys("crystal-structure-npt", write_temp=True, write_stress=True)#, stress_unit="bars")
@@ -121,7 +130,12 @@ class TestDriver(SingleCrystalTestDriver):
 
         reduced_atoms_FL = self._reduce_average_and_verify_symmetry(atoms_npt=self.output_dir / "lammps_FL.data", reduced_atoms_save_path=self.output_dir / "reduced_atoms_FL.data")
 
-        self._update_nominal_parameter_values(reduced_atoms_FL)
+        try:
+            self._update_nominal_parameter_values(reduced_atoms_FL)
+        except AFLOW.FailedToSolveException:
+            fname = str(np.random.randint(0,1000))+".extxyz"
+            print(f"Failed to solve equations. Dumping atoms to {fname}")
+            reduced_atoms_FL.write(fname)
 
         self._add_property_instance_and_common_crystal_genome_keys("crystal-structure-npt", write_temp=True, write_stress=True)#, stress_unit="bars")
         self._add_file_to_current_property_instance("restart-file", str(self.output_dir / "lammps_FL.restart"))
@@ -149,13 +163,13 @@ class TestDriver(SingleCrystalTestDriver):
             "free-energy", write_stress=True, write_temp=True
         )
         self._add_key_to_current_property_instance(
-            "gibbs_free_energy_per_atom", free_energy_per_atom, "eV/atom"
+            "gibbs-free-energy-per-atom", free_energy_per_atom, "eV/atom"
         )
         self._add_key_to_current_property_instance(
-            "gibbs_free_energy_per_formula", free_energy_per_formula, "eV/formula"
+            "gibbs-free-energy-per-formula", free_energy_per_formula, "eV/formula"
         )
         self._add_key_to_current_property_instance(
-            "specific_gibbs_free_energy", specific_free_energy, "eV/amu"
+            "specific-gibbs-free-energy", specific_free_energy, "eV/amu"
         )
 
     def _validate_inputs(self):
@@ -228,7 +242,9 @@ class TestDriver(SingleCrystalTestDriver):
         if not self._check_if_lammps_run_to_completiton(
             lammps_log=self.output_dir / "lammps_preFL.log"
         ):
-
+            os.rename(self.output_dir / "lammps_preFL.log", str(self.output_dir / self.kim_model_name) + "_" + self._get_nominal_crystal_structure_npt()["prototype-label"][
+            "source-value"
+        ] + ".log")
             atom_style = "charge"
             self.supercell.write(
                 self.zero_k_structure_path,
@@ -274,9 +290,9 @@ class TestDriver(SingleCrystalTestDriver):
         
         # Use mpirun if multiple processors requested
         if self.nprocs > 1:
-            command = f"mpirun -np {self.nprocs} lammps {lammps_cmd}"
+            command = f"mpirun -np {self.nprocs} lmp {lammps_cmd}"
         else:
-            command = f"lammps {lammps_cmd}"
+            command = f"lmp {lammps_cmd}"
             
         try:
             subprocess.run(command, check=True, shell=True)
@@ -335,9 +351,9 @@ class TestDriver(SingleCrystalTestDriver):
         
         # Use mpirun if multiple processors requested
         if self.nprocs > 1:
-            command = f"mpirun -np {self.nprocs} lammps {lammps_cmd}"
+            command = f"mpirun -np {self.nprocs} lmp {lammps_cmd}"
         else:
-            command = f"lammps {lammps_cmd}"
+            command = f"lmp {lammps_cmd}"
             
         subprocess.run(command, check=True, shell=True)
 
