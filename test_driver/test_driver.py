@@ -274,9 +274,9 @@ class TestDriver(SingleCrystalTestDriver):
         
         # Use mpirun if multiple processors requested
         if self.nprocs > 1:
-            command = f"mpirun -np {self.nprocs} lammps {lammps_cmd}"
+            command = f"mpirun -np {self.nprocs} lmp {lammps_cmd}"
         else:
-            command = f"lammps {lammps_cmd}"
+            command = f"lmp {lammps_cmd}"
             
         try:
             subprocess.run(command, check=True, shell=True)
@@ -335,9 +335,9 @@ class TestDriver(SingleCrystalTestDriver):
         
         # Use mpirun if multiple processors requested
         if self.nprocs > 1:
-            command = f"mpirun -np {self.nprocs} lammps {lammps_cmd}"
+            command = f"mpirun -np {self.nprocs} lmp {lammps_cmd}"
         else:
-            command = f"lammps {lammps_cmd}"
+            command = f"lmp {lammps_cmd}"
             
         subprocess.run(command, check=True, shell=True)
 
