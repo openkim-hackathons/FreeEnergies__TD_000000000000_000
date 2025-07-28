@@ -149,13 +149,13 @@ class TestDriver(SingleCrystalTestDriver):
             "free-energy", write_stress=True, write_temp=True
         )
         self._add_key_to_current_property_instance(
-            "gibbs_free_energy_per_atom", free_energy_per_atom, "eV/atom"
+            "gibbs-free-energy-per-atom", free_energy_per_atom, "eV/atom"
         )
         self._add_key_to_current_property_instance(
-            "gibbs_free_energy_per_formula", free_energy_per_formula, "eV/formula"
+            "gibbs-free-energy-per-formula", free_energy_per_formula, "eV/formula"
         )
         self._add_key_to_current_property_instance(
-            "specific_gibbs_free_energy", specific_free_energy, "eV/amu"
+            "specific-gibbs-free-energy", specific_free_energy, "eV/amu"
         )
 
     def _validate_inputs(self):

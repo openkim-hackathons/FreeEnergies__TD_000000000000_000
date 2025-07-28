@@ -11,21 +11,21 @@
 ; CHANGE THE SECTION BELOW WHEN CREATING NEW PROPERTIES
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-  "gibbs_free_energy_per_atom" {
+  "gibbs-free-energy-per-atom" {
     "type"         "float"
     "has-unit"     true
     "extent"       []
     "required"     true
     "description" "Gibbs free energy per atom."
   }
-  "gibbs_free_energy_per_formula" {
+  "gibbs-free-energy-per-formula" {
     "type"         "float"
     "has-unit"     true
     "extent"       []
     "required"     true
     "description" "Gibbs free energy formula unit."
   }
-  "specific_gibbs_free_energy" {
+  "specific-gibbs-free-energy" {
     "type"         "float"
     "has-unit"     true
     "extent"       []
