@@ -143,6 +143,7 @@ class TestDriver(SingleCrystalTestDriver):
         print("####################################")
 
         print(f"G_FL = {free_energy_per_atom:.5f} (eV/atom)")
+        print(f"Isolated atom energy = {isolated_atom_energy:.5f} (eV/atom)")
 
         # Write keys to property
         self._add_property_instance_and_common_crystal_genome_keys(
@@ -260,6 +261,7 @@ class TestDriver(SingleCrystalTestDriver):
             "output_filename": str(self.output_dir / "lammps_preFL.dat"),
             "write_restart_filename": str(self.output_dir / "lammps_preFL.restart"),
             "write_data_filename": str(self.output_dir / "lammps_preFL.data"),
+            "write_dump_filename": str(self.output_dir / "lammps_preFL.dump"),
             "zero_temperature_crystal": str(self.output_dir / "zero_temperature_crystal.data"),
             "melted_crystal_output": str(self.output_dir / "melted_crystal.dump"),
             "run_length_control": str(self.temp_rlc_path)
@@ -475,13 +477,13 @@ class TestDriver(SingleCrystalTestDriver):
         self.temp_rlc_path = temp_rlc_path
 
     def _reduce_average_and_verify_symmetry(self, atoms_npt: Path, reduced_atoms_save_path: Path):
-        # Read lammps dump file of average positions
+        # Read lammps data file of average positions
         atoms_npt = read(atoms_npt, format='lammps-data')
         # Reduce to unit cell
         reduced_atoms, reduced_distances = reduce_and_avg(atoms_npt, self.size)
         kstest_reduced_distances(reduced_distances)
         # Print reduced_atoms for verification
-        reduced_atoms.write(reduced_atoms_save_path, format='lammps-data',masses=True)
+        reduced_atoms.write(reduced_atoms_save_path, format='lammps-data', masses=True)
 
         # Check symmetry
         if not self._verify_unchanged_symmetry(reduced_atoms):

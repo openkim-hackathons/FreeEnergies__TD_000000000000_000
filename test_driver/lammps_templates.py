@@ -108,22 +108,23 @@ class LammpsTemplates:
 
         # Define variables for fix ave/time
         variable N_every equal 100 # sample msd at intervals of this many steps
-        variable run_time equal 50000 # can be an input variable
-        variable N_repeat equal v_run_time/(2*v_N_every)
-        variable N_start equal v_run_time/2
+        variable run_time equal 100000 # can be an input variable
+        variable N_repeat equal v_run_time/v_N_every
 
         # compute averages of box vectors and msd
         {avg_template}
 
         # Compute unwrapped atom positions
         compute unwrapped all property/atom xu yu zu
-
         variable xu atom c_unwrapped[1]
         variable yu atom c_unwrapped[2]
         variable zu atom c_unwrapped[3]
+        #variable xsu atom "(c_up[1]-xlo)/(xhi-xlo) - (xy*(c_up[2]-ylo))/((xhi-xlo)*(yhi-ylo)) + ((xy*yz-(yhi-ylo)*xz)*(c_up[3]-zlo))/((xhi-xlo)*(yhi-ylo)*(zhi-zlo))"
+        #variable ysu atom "(c_up[2]-ylo)/(yhi-ylo) - (yz*(c_up[3]-zlo))/((yhi-ylo)*(zhi-zlo))"
+        #variable zsu atom "(c_up[3]-zlo)/(zhi-zlo)"
 
         # Average unwrapped atom positions
-        fix avePos all ave/atom ${N_every} $(v_run_time/v_N_every) ${run_time} v_xu v_yu v_zu
+        fix avePos all ave/atom ${N_every} ${N_repeat} ${run_time} v_xu v_yu v_zu
 
         # Run steps in the converged regime.
         run ${run_time}
@@ -148,8 +149,14 @@ class LammpsTemplates:
         set group all x v_ave_x y v_ave_y z v_ave_z
 
         # Set box dimensions to time-averaged dimensions
-        change_box all x scale $(f_AVG[1]/lx) y scale $(f_AVG[2]/ly) z scale $(f_AVG[3]/lz) xy final $(f_AVG[4]) yz final $(f_AVG[5]) xz final $(f_AVG[6]) remap
+        if "$(abs(f_AVG[4])) < 0.01" then "variable avg_xy equal 0" else "variable avg_xy equal f_AVG[4]"
+        if "$(abs(f_AVG[5])) < 0.01" then "variable avg_xz equal 0" else "variable avg_xz equal f_AVG[5]"
+        if "$(abs(f_AVG[6])) < 0.01" then "variable avg_yz equal 0" else "variable avg_yz equal f_AVG[6]"
+        change_box all x scale $(f_AVG[1]/lx) y scale $(f_AVG[2]/ly) z scale $(f_AVG[3]/lz) xy final ${avg_xy} xz final ${avg_xz} yz final ${avg_yz}
 
+        # Write dump
+        #write_dump all custom ${write_dump_filename} id f_avePos[1] f_avePos[2] f_avePos[3]
+        
         # Reset.
         unfix ensemble
         unfix AVG
@@ -368,7 +375,7 @@ class LammpsTemplates:
         self.pre_fl = self.pre_fl.replace("{thermo_template}", thermo_template)
 
         avg_template = """
-        fix          AVG all ave/time ${{N_every}} ${{N_repeat}} ${{run_time}} v_lx_metal v_ly_metal v_lz_metal v_xy_metal v_yz_metal v_xz_metal {msd_data} ave running start ${{N_start}}
+        fix          AVG all ave/time ${{N_every}} ${{N_repeat}} ${{run_time}} v_lx_metal v_ly_metal v_lz_metal v_xy_metal v_yz_metal v_xz_metal {msd_data} ave running
         """
 
         fix_entries = [
