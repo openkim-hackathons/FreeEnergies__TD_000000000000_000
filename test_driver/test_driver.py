@@ -16,9 +16,10 @@ from kim_tools import (
     get_isolated_energy_per_atom,
     get_stoich_reduced_list_from_prototype,
 )
-from kim_tools.symmetry_util.core import kstest_reduced_distances, reduce_and_avg
+from kim_tools.symmetry_util.core import reduce_and_avg
 
 from .lammps_templates import LammpsTemplates
+from .lammps_template import LammpsTemplate
 
 EV = sc.value("electron volt")
 MU = sc.value("atomic mass constant")
@@ -27,14 +28,38 @@ KB = sc.value("Boltzmann constant in eV/K")
 
 
 
+def run_lammps(atoms, species, lmp_cmd, model, atom_style):
+    LAMMPS_INPUT = os.path.join(
+        os.path.dirname(os.path.realpath(__file__)), "in.lammps"
+    )
+    with NamedTemporaryFile() as f_config:
+        atoms.write(
+            f_config.name, format="lammps-data", atom_style=atom_style, masses=True
+        )
+        f_config.seek(0)
+        species_str = " ".join(species)
+        with NamedTemporaryFile() as f_out:
+            subprocess.run(
+                f"{lmp_cmd} -i {LAMMPS_INPUT} -var model {model} "
+                f'-var datafile {f_config.name} -var species "{species_str}" '
+                f"-var outfile {f_out.name}",
+                shell=True,
+            )
+            f_out.seek(0)
+            return float(f_out.read())
+
+
+
 class TestDriver(SingleCrystalTestDriver):
     def _calculate(
         self,
+        lmp_cmd = "lmp",
         size: Tuple[int, int, int] = (0,0,0),
         output_dir: str = "output",
         nprocs: int = multiprocessing.cpu_count(),
         **kwargs,
     ) -> None:
+
         """Gibbs free energy of a crystal at constant temperature and pressure using Frenkel-Ladd Hamiltonian integration algorithm. Computed through one equilibrium NPT simulation ('preFL') and one NONequilibrium NVT simulation ('FL').
 
         Args:
@@ -52,6 +77,20 @@ class TestDriver(SingleCrystalTestDriver):
         self.pressure = -self.cauchy_stress[0] 
         self.atoms = self._get_atoms()
         self.size = size
+
+        model = self.kim_model_name
+        atom_style = self._get_supported_lammps_atom_style()
+        species = self._get_nominal_crystal_structure_npt()["stoichiometric-species"][
+            "source-value"
+        ]
+
+        #energy = run_lammps(
+        #    atoms=self.atoms,
+        #    species=species,
+        #    lmp_cmd=lmp_cmd,
+        #    model=model,
+        #    atom_style=atom_style,
+        #)
         
         self._validate_inputs()
 
@@ -60,7 +99,7 @@ class TestDriver(SingleCrystalTestDriver):
         # Determine appropriate number of processors based on system size
         natoms = len(self.supercell)
         # Rule of thumb: aim for at least 500 atoms per processor for good parallel efficiency
-        max_reasonable_procs = max(1, min(nprocs, natoms // 500))
+        max_reasonable_procs = max(1, min(nprocs, natoms // 200))
         self.nprocs = max_reasonable_procs
         if max_reasonable_procs < nprocs:
             print(f"Warning: Requested {nprocs} processors but system only has {natoms} atoms.")
@@ -70,70 +109,52 @@ class TestDriver(SingleCrystalTestDriver):
         self._modify_accuracies()
 
         # Write initial template file
-        templates_dir = self.output_dir / "lammps_templates"
-        self.templates = LammpsTemplates(root=str(templates_dir) + "/")
+        lmp_files_dir = self.output_dir
+        self.templates = LammpsTemplates(root=str(self.output_dir) + "/")
         self.templates._write_pre_fl_lammps_templates(
             nspecies=len(self.species), is_triclinic=self.is_triclinic
         )
 
-        # preFL computes the equilibrium lattice parameter and spring constants for a given temperature and pressure.
-        equilibrium_cell, self.spring_constants, self.volume, self.atom_style = self._run_preFL()
-        
+        # Write initial template file
+        self.templates = LammpsTemplate(root=str(self.output_dir) + "/")
+        self.templates._write_lammps_file(
+            nspecies=len(self.species), is_triclinic=self.is_triclinic
+        )
 
+        # preFL computes the equilibrium lattice parameter and spring constants for a given temperature and pressure.
+        equilibrium_cell, self.spring_constants, self.volume, self.atom_style = self._run()
+
+        free_energy_per_atom = self._compute_free_energy()
+
+        self._add_property_instance_and_common_crystal_genome_keys("crystal-structure-npt", write_temp=True, write_stress=True)#, stress_unit="bars")
+        self._add_file_to_current_property_instance("restart-file", str(self.output_dir / "free_energy.restart"))
+        
         # If the crystal melts or vaporizes, kim-convergence may run indefinately.
         # If lammps detects diffusion, it prints a specific string, then quits.
         # The 'if' statement below handles that case.
         # This is a first implementation. It's probably cleaner to leave the responsibility of quitting to some standardized function that is common across finite-temperature test-drivers
         #self._check_diffusion(lammps_log=self.output_dir / "lammps_preFL.log")
 
-        reduced_atoms_preFL = self._reduce_average_and_verify_symmetry(atoms_npt=self.output_dir / "lammps_preFL.data", reduced_atoms_save_path=self.output_dir / "reduced_atoms_preFL.data")
-        
-        self._update_nominal_parameter_values(reduced_atoms_preFL)
-
         # crystal-structure-npt
-        self._add_property_instance_and_common_crystal_genome_keys("crystal-structure-npt", write_temp=True, write_stress=True)#, stress_unit="bars")
-        self._add_file_to_current_property_instance("restart-file", str(self.output_dir / "lammps_preFL.restart"))
-    
-        
-        # Rescaling 0K supercell to have equilibrium lattice constant.
-        # equilibrium_cell is 3x3 matrix or can also have [len(a), len(b), len(c), angle(b,c), angle(a,c), angle(a,b)]
-        self.supercell.set_cell(equilibrium_cell, scale_atoms=True)
-        self.supercell.write(
-            self.output_dir / "equilibrium_crystal.data",
-            format="lammps-data",
-            masses=True,
-            atom_style=self.atom_style,
-        )
-        # self._add_file_to_current_property_instance("data-file", str(self.output_dir / "equilibrium_crystal.data"))
-
-        # Collect the energies of isolated atoms to subtract from final values
-        isolated_atom_energy = self._collect_isolated_atom_energies(reduced_atoms_preFL)
-
-        # FL computes the free energy at a given pressure and temperature.
-        self.templates._write_fl_lammps_templates(
-            spring_constants=self.spring_constants
-        )
-        
-        free_energy_per_atom = self._FL() - isolated_atom_energy
-
+        #self._add_property_instance_and_common_crystal_genome_keys("crystal-structure-npt", write_temp=True, write_stress=True)#, stress_unit="bars")
+        #self._add_file_to_current_property_instance("restart-file", str(self.output_dir / "lammps_preFL.restart"))
         
         #self._check_diffusion(lammps_log=self.output_dir / "lammps_FL.log")
 
-        reduced_atoms_FL = self._reduce_average_and_verify_symmetry(atoms_npt=self.output_dir / "lammps_FL.data", reduced_atoms_save_path=self.output_dir / "reduced_atoms_FL.data")
+        reduced_atoms = self._reduce_average_and_verify_symmetry(atoms_npt=self.output_dir / "free_energy.data", reduced_atoms_save_path=self.output_dir / "reduced_atoms.data")
+        self._update_nominal_parameter_values(reduced_atoms)
 
-        self._update_nominal_parameter_values(reduced_atoms_FL)
-
-        self._add_property_instance_and_common_crystal_genome_keys("crystal-structure-npt", write_temp=True, write_stress=True)#, stress_unit="bars")
-        self._add_file_to_current_property_instance("restart-file", str(self.output_dir / "lammps_FL.restart"))
+        # Collect the energies of isolated atoms to subtract from final values
+        isolated_atom_energy = self._collect_isolated_atom_energies(reduced_atoms)
+        free_energy_per_atom = free_energy_per_atom - isolated_atom_energy
 
         # Convert to eV/formula (originally in eV/atom)
-        # get_stoich_reduced_list_from_prototype returns a list corresponding to the stoichiometry of the prototype label, e.g. "A2B_hP9_152_c_a" -> [2,1]
         num_atoms_in_formula = sum(self.stoichiometry)
         free_energy_per_formula = free_energy_per_atom * num_atoms_in_formula
 
         # Convert to eV/amu (originally in eV/atom)
-        atoms_per_cell = len(reduced_atoms_preFL.get_masses())
-        mass_per_cell = sum(reduced_atoms_preFL.get_masses())
+        atoms_per_cell = len(reduced_atoms.get_masses())
+        mass_per_cell = sum(reduced_atoms.get_masses())
         free_energy_per_cell = free_energy_per_atom * atoms_per_cell
         specific_free_energy = free_energy_per_cell / mass_per_cell
 
@@ -180,7 +201,7 @@ class TestDriver(SingleCrystalTestDriver):
         # Build supercell
         if self.size == (0,0,0):
             # Get a size close to 10K atoms (shown to give good convergence)
-            x = int(np.ceil(np.cbrt(10_000 / len(self.atoms))))
+            x = int(np.ceil(np.cbrt(100 / len(self.atoms))))
             self.size = (x,x,x)
 
         atoms_new = atoms_new.repeat(self.size)
@@ -217,61 +238,54 @@ class TestDriver(SingleCrystalTestDriver):
        
         return atoms_new
 
-    def _run_preFL(self):
+    def _run(self):
 
-        atom_style = "atomic"
-        equilibrium_cell, spring_constants, volume = self._preFL()
-
-        # Check for diffusion or an incomplete run
-        # Some models want atom_style="charge", others want "atomic"
-        # We tried with 'atomic', if it fails, try 'charge'
+        self.supercell.write(
+            self.zero_k_structure_path,
+            format="lammps-data",
+            masses=True,
+            atom_style=atom_style,
+        )
+        equilibrium_cell, spring_constants, volume = self._free_energy()
         
-        if not self._check_if_lammps_run_to_completiton(
-            lammps_log=self.output_dir / "lammps_preFL.log"
-        ):
-
-            atom_style = "charge"
-            self.supercell.write(
-                self.zero_k_structure_path,
-                format="lammps-data",
-                masses=True,
-                atom_style=atom_style,
-            )
-            equilibrium_cell, spring_constants, volume = self._preFL()
-        
-        if self._check_if_lammps_run_to_completiton(
-            lammps_log=self.output_dir / "lammps_preFL.log"
+        if self._check_if_lammps_run_to_completion(
+            lammps_log=self.output_dir / "free_energy.log"
         ) == str("Crystal melted or vaporized"):
             raise Exception("Crystal melted or vaporized")
 
         assert len(self.species) == len(spring_constants)
         return equilibrium_cell, spring_constants, volume, atom_style
     
-    def _preFL(self) -> Tuple[List[float], List[float]]:
+    def _free_energy(self) -> Tuple[List[float], List[float]]:
+
         variables = {
             "modelname": self.kim_model_name,
             "temperature": self.temperature_K,
             "temperature_damping": 0.1, # ps
             "temperature_seed": np.random.randint(low=100000, high=999999, dtype=int),
             "pressure": self.pressure,
+            "t_switch": 10000,
+            "t_equil": 10000,
             "pressure_damping": 1.0, # ps
             "msd_threshold": 0.1, # Angstrom^2 per 100 femtoseconds
             "timestep": 0.001,  # ps
             "species": " ".join(self.species),
-            "output_filename": str(self.output_dir / "lammps_preFL.dat"),
-            "write_restart_filename": str(self.output_dir / "lammps_preFL.restart"),
-            "write_data_filename": str(self.output_dir / "lammps_preFL.data"),
-            "write_dump_filename": str(self.output_dir / "lammps_preFL.dump"),
+            "output_filename": str(self.output_dir / "free_energy.dat"),
+            "write_restart_filename": str(self.output_dir / "free_energy.restart"),
+            "write_data_filename": str(self.output_dir / "free_energy.data"),
+            "write_dump_filename": str(self.output_dir / "free_energy.dump"),
             "zero_temperature_crystal": str(self.output_dir / "zero_temperature_crystal.data"),
             "melted_crystal_output": str(self.output_dir / "melted_crystal.dump"),
+            "switch1_output_file": str(self.output_dir / "FL_switch1.dat"),
+            "switch2_output_file": str(self.output_dir / "FL_switch2.dat"),
             "run_length_control": str(self.temp_rlc_path)
         }
         
         # Construct base LAMMPS command
         lammps_cmd = (
             " ".join(f"-var {key} '{item}'" for key, item in variables.items())
-            + f" -log {self.output_dir / 'lammps_preFL.log'}"
-            + f" -in {self.templates.root}preFL_template.lmp"
+            + f" -log {self.output_dir / 'free_energy.log'}"
+            + f" -in {self.templates.root}free_energy.lmp"
         )
         
         # Use mpirun if multiple processors requested
@@ -285,10 +299,8 @@ class TestDriver(SingleCrystalTestDriver):
         except:
             return (None, None, None)
 
-        # handling the case where it did not create lammps_preFL (e.g, when atomic style needs to be charge)
-
         # Analyse lammps outputs
-        data = np.loadtxt(self.output_dir / "lammps_preFL.dat", unpack=True)
+        data = np.loadtxt(self.output_dir / "free_energy.dat", unpack=True)
         # xx, xy, xz, yx, yy, yz, zx, zy, zz, spring_constants = data
 
         (lx, ly, lz, xy, yz, xz, volume), spring_constants = (
@@ -302,48 +314,6 @@ class TestDriver(SingleCrystalTestDriver):
         equilibrium_cell = np.array([[lx, 0, 0], [xy, ly, 0], [xz, yz, lz]])
 
         return equilibrium_cell, np.array(spring_constants), volume
-
-    def _FL(
-        self,
-    ) -> float:
-
-        variables = {
-            "modelname": self.kim_model_name,
-            "temperature": self.temperature_K,
-            "pressure": self.pressure,
-            "species": " ".join(self.species),
-            "t_switch": 10000,
-            "temperature_damping": 0.1,
-            "temperature_seed": np.random.randint(low=100000, high=999999, dtype=int),
-            "msd_threshold": 0.1, # Angstrom^2 per 100 femtoseconds
-            "t_equil": 10000,
-            "timestep": 0.001,  # ps
-            "spring_constant": self.spring_constants,
-            "output_filename": str(self.output_dir / "lammps_FL.dat"),
-            "write_restart_filename": str(self.output_dir / "lammps_FL.restart"),
-            "switch1_output_file": str(self.output_dir / "FL_switch1.dat"),
-            "switch2_output_file": str(self.output_dir / "FL_switch2.dat"),
-            "write_data_filename": str(self.output_dir / "lammps_FL.data"),
-            "equilibrium_crystal": str(self.output_dir / "equilibrium_crystal.data"),
-            "melted_crystal_output": str(self.output_dir / "melted_crystal.dump")
-        }
-        
-        # Construct base LAMMPS command
-        lammps_cmd = (
-            " ".join(f"-var {key} '{item}'" for key, item in variables.items())
-            + f" -log {self.output_dir / 'lammps_FL.log'}"
-            + f" -in {self.templates.root}FL_template.lmp"
-        )
-        
-        # Use mpirun if multiple processors requested
-        if self.nprocs > 1:
-            command = f"mpirun -np {self.nprocs} lmp {lammps_cmd}"
-        else:
-            command = f"lmp {lammps_cmd}"
-            
-        subprocess.run(command, check=True, shell=True)
-
-        return self._compute_free_energy()
 
     def _compute_free_energy(self) -> float:
         """Compute free energy via integration of FL path"""
@@ -407,7 +377,7 @@ class TestDriver(SingleCrystalTestDriver):
         return free_energy
 
  
-    def _check_if_lammps_run_to_completiton(self, lammps_log: Path):
+    def _check_if_lammps_run_to_completion(self, lammps_log: Path):
         try:
             with open(lammps_log, "r") as file:
                 lines = file.readlines()
