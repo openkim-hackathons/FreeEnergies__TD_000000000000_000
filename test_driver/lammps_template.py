@@ -36,10 +36,10 @@ class LammpsTemplate:
         variable      Pdamp_converted equal ${pressure_damping}*${_u_time}
 
         # Initialize velocities.
-        velocity      all create ${temp_converted} ${temperature_seed}
+        velocity      all create ${temp_converted} ${velocity_seed}
 
         # Run NPT ensemble (barostat type depends on box type)
-        fix          ensemble all npt temp ${temp_converted} ${temp_converted} ${Tdamp_converted} tri ${press_converted} ${press_converted} ${Pdamp_converted}
+        fix          ensemble all npt temp ${temp_converted} ${temp_converted} ${Tdamp_converted} tri ${press_converted} ${press_converted} ${Pdamp_converted} flip no
 
         # Temperature may be off because of rigid bodies or SHAKE constraints. See https://docs.lammps.org/velocity.html
         run 0
@@ -192,7 +192,7 @@ class LammpsTemplate:
         {fix_springs}
         
         # set langevin thermostat (NVE-Langevin samples spring system more accurately than NVT)
-        fix           thermostat all langevin ${temp_converted} ${temp_converted} ${Tdamp_converted} ${temperature_seed} zero yes
+        fix           thermostat all langevin ${temp_converted} ${temp_converted} ${Tdamp_converted} ${langevin_seed} zero yes
 
         # run equil 1
         run ${t_equil}
@@ -377,15 +377,6 @@ class LammpsTemplate:
         self.free_energy = self.free_energy.replace("{print_template}", print_template)
 
         #===================================#
-
-        # determine barostat type based on self.is_triclinic
-        '''
-        self.free_energy = (
-            self.free_energy.replace("{cell_type}", "tri")
-            if is_triclinic
-            else self.free_energy.replace("{cell_type}", "aniso")
-        )
-        '''
     
     def _write_lammps_file(self, nspecies: int, is_triclinic: bool):
         
@@ -393,4 +384,4 @@ class LammpsTemplate:
 
         self._add_fl_fix_for_multicomponent(nspecies)
 
-        open(self.root + "free_energy.lmp", "w").write(self.free_energy)
+        open(self.root + "in.lammps", "w").write(self.free_energy)
