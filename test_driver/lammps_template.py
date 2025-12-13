@@ -64,7 +64,7 @@ class LammpsTemplate:
         compute msd all msd com yes
 
         # Perform a short run to equilibrate MSD
-        run 5000
+        run ${number_msd_timesteps}
         
         # Calculate slope of MSD to detect diffusion
         fix msd_vector all vector 100 c_msd[4]
@@ -75,7 +75,7 @@ class LammpsTemplate:
         thermo 1000
         
         # Perform a short run and decide whether or not to quit
-        run 5000
+        run ${number_msd_timesteps}
         if "${msd_slope} > $(v_msd_threshold*(v__u_distance^2)/v__u_time)" then "write_dump all atom ${melted_crystal_output}" &
                                       "print 'Crystal melted or vaporized'" &
                                       "quit"
@@ -87,9 +87,10 @@ class LammpsTemplate:
         print '#================================== Kim-convergence ==================================#'
 
         # Set up convergence check with kim-convergence.
-        python run_length_control input 18 SELF 1 variable vol_metal variable temp_metal variable lx_metal variable ly_metal variable lz_metal variable xy_metal variable xz_metal variable yz_metal format pissssssssssssssss file ${run_length_control}
+        #python run_length_control input 18 SELF 1 variable vol_metal variable temp_metal variable lx_metal variable ly_metal variable lz_metal variable xy_metal variable xz_metal variable yz_metal format pissssssssssssssss file ${run_length_control}
+        python run_length_control input 12 SELF 1 variable vol_metal variable temp_metal variable xy_metal variable xz_metal variable yz_metal format pissssssssss file ${run_length_control}
 
-        # Run until converged (minimum runtime 30000 steps)
+        # Run until converged
         python run_length_control invoke
 
         unfix cr_fix # From run_length_control.py
@@ -160,6 +161,9 @@ class LammpsTemplate:
         variable      kB equal (8.617333262e-5)*(v__u_energy/v__u_temperature) # eV/K unless converted
         {k_lines}
 
+        # write spring constants
+        {write_k_lines}
+
         # Write final averages and spring constant
         print "# lx | ly | lz [Ang] | vol [Ang^3] | spring constant [eV/Ang^2]" file ${output_filename}
         {print_template}
@@ -221,6 +225,10 @@ class LammpsTemplate:
                     screen no file ${switch2_output_file}
         run ${t_switch}
         unfix record
+
+        print "$(v_vol_metal:%.10f)" file ${output_dir}/volume.dat
+
+        write_restart ${output_dir}/free_energy.restart
 
         print '#================================== LAMMPS finished ==================================#'
         quit 0
@@ -353,6 +361,24 @@ class LammpsTemplate:
         k_lines = "".join([k_template.format(**entry) for entry in k_entries])
 
         self.free_energy = self.free_energy.replace("{k_lines}", k_lines)
+
+        #===================================#
+
+        write_k_template = """
+        print "$(v_{variable_name}:%.6f)" file ${{output_dir}}/{output_file}
+        """
+
+        write_k_entries = [
+            {
+                "variable_name": f"spring_constant_{i}",
+                "output_file": f"k{i}.dat",
+            }
+            for i in range(nspecies)
+        ]
+
+        write_k_lines = "".join([write_k_template.format(**entry) for entry in write_k_entries])
+
+        self.free_energy = self.free_energy.replace("{write_k_lines}", write_k_lines)
 
         #===================================#
 

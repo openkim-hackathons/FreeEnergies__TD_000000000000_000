@@ -76,13 +76,13 @@ class TestDriver(SingleCrystalTestDriver):
         self._modify_accuracies()
 
         # Write initial template file "in.lammps"
-        self.templates = LammpsTemplate(root=str(self.output_dir) + "/")
+        self.templates = LammpsTemplate(root=f"{self.output_dir}/")
         self.templates._write_lammps_file(
             nspecies=len(self.species), is_triclinic=self.is_triclinic
         )
 
         # Run LAMMPS
-        log_filename, restart_filename = run_lammps(
+        log_filename, restart_filename, self.spring_constants, self.volume = run_lammps(
             self.kim_model_name, self.temperature_K, self.pressure, self.timestep_ps, self.number_sampling_timesteps, species,
             self.msd_threshold_angstrom_squared_per_sampling_timesteps, self.number_msd_timesteps,
             self.lammps_command, self.random_seed, self.output_dir, self.test_driver_directory)
@@ -94,8 +94,12 @@ class TestDriver(SingleCrystalTestDriver):
         # Compute free-energy
         free_energy_per_atom = self._free_energy()
 
+        ################
+
         self._add_property_instance_and_common_crystal_genome_keys("crystal-structure-npt", write_temp=True, write_stress=True)#, stress_unit="bars")
         self._add_file_to_current_property_instance("restart-file", f"{self.output_dir}/free_energy.restart")
+
+        print("=========================== FLAG ===========================")
 
         reduced_atoms = self._reduce_average_and_verify_symmetry(atoms_npt=f"{self.output_dir}/free_energy.data", reduced_atoms_save_path=f"{self.output_dir}/reduced_atoms.data")
         self._update_nominal_parameter_values(reduced_atoms)
@@ -226,12 +230,12 @@ class TestDriver(SingleCrystalTestDriver):
     def _free_energy(self) -> float:
 
         Hi_f, Hf_f, lamb_f = np.loadtxt(
-            self.output_dir / "FL_switch1.dat", unpack=True, skiprows=1
+            f"{self.output_dir}/FL_switch1.dat", unpack=True, skiprows=1
         )
         W_forw = np.trapz(Hf_f - Hi_f, lamb_f)
 
         Hf_b, Hi_b, lamb_b = np.loadtxt(
-            self.output_dir / "FL_switch2.dat", unpack=True, skiprows=1
+            f"{self.output_dir}/FL_switch2.dat", unpack=True, skiprows=1
         )
         W_back = np.trapz(Hf_b - Hi_b, 1 - lamb_b)
 
@@ -306,8 +310,8 @@ class TestDriver(SingleCrystalTestDriver):
     
     def _modify_accuracies(self):
         # Start accuracy lists (temperature, volume, x, y, and z are normal)
-        relative_accuracy = [0.1, 0.1, 0.1, 0.1, 0.1]
-        absolute_accuracy = [None, None, None, None, None]
+        relative_accuracy = [0.01, 0.01]
+        absolute_accuracy = [None, None]
 
         # Get cell parameters and add appropriate values to accuracy lists (0.1 and None for non-zero tilt factors, vice-versa for zero)
         # get_cell_lengths_and_angles() returns angles (in degrees) in place of tilt factors. Angle = 90 --> tilt factor = 0.0.
@@ -320,12 +324,8 @@ class TestDriver(SingleCrystalTestDriver):
         # Process each cell angle and set appropriate accuracy values
         for angle in [XY_cell, XZ_cell, YZ_cell]:
             is_orthogonal = abs(90 - angle) < ORTHOGONAL_THRESHOLD
-            relative_accuracy.append(None if is_orthogonal else 0.1)
-            absolute_accuracy.append(0.1 if is_orthogonal else None)
-        
-        # Temporary directory
-        temp_dir = tempfile.mkdtemp()
-        temp_rlc_path = Path(temp_dir) / "run_length_control.py"
+            relative_accuracy.append(None if is_orthogonal else 0.01)
+            absolute_accuracy.append(0.01 if is_orthogonal else None)
         
         # Read the template content from the original accuracies.py
         original_rlc_file = Path(__file__).parent / "run_length_control.py"
@@ -345,20 +345,18 @@ class TestDriver(SingleCrystalTestDriver):
         )
         
         # Write the modified content to the temporary file
-        with open(temp_rlc_path, 'w') as file:
+        with open(original_rlc_file, 'w') as file:
             file.write(new_content)
-        
-        # Store the temporary directory path so it can be used by kim-tools
-        # and cleaned up later if needed
-        self.temp_accuracies_dir = temp_dir
-        self.temp_rlc_path = temp_rlc_path
 
     def _reduce_average_and_verify_symmetry(self, atoms_npt: Path, reduced_atoms_save_path: Path):
+
         # Read lammps data file of average positions
         atoms_npt = read(atoms_npt, format='lammps-data')
+
         # Reduce to unit cell
         reduced_atoms, reduced_distances = reduce_and_avg(atoms_npt, self.repeat)
         kstest_reduced_distances(reduced_distances)
+        
         # Print reduced_atoms for verification
         reduced_atoms.write(reduced_atoms_save_path, format='lammps-data', masses=True)
 
