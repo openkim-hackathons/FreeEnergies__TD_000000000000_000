@@ -87,8 +87,8 @@ class LammpsTemplate:
         print '#================================== Kim-convergence ==================================#'
 
         # Set up convergence check with kim-convergence.
-        #python run_length_control input 18 SELF 1 variable vol_metal variable temp_metal variable lx_metal variable ly_metal variable lz_metal variable xy_metal variable xz_metal variable yz_metal format pissssssssssssssss file ${run_length_control}
-        python run_length_control input 12 SELF 1 variable vol_metal variable temp_metal variable xy_metal variable xz_metal variable yz_metal format pissssssssss file ${run_length_control}
+        python run_length_control input 18 SELF 1 variable vol_metal variable temp_metal variable lx_metal variable ly_metal variable lz_metal variable xy_metal variable xz_metal variable yz_metal format pissssssssssssssss file ${run_length_control}
+        #python run_length_control input 12 SELF 1 variable vol_metal variable temp_metal variable xy_metal variable xz_metal variable yz_metal format pissssssssss file ${run_length_control}
 
         # Run until converged
         python run_length_control invoke
@@ -104,12 +104,12 @@ class LammpsTemplate:
         thermo 1000
 
         # Define variables for fix ave/time
-        variable N_every equal 100 # sample every this many steps
-        variable run_time equal 20000 # can be an input variable
+        variable N_every equal 10 # sample every this many steps
+        variable run_time equal ${number_avePOS_timesteps} # can be an input variable
         variable N_repeat equal v_run_time/v_N_every
 
         # compute averages of box vectors
-        fix AVG all ave/time ${N_every} ${N_repeat} ${run_time} v_lx_metal v_ly_metal v_lz_metal v_xy_metal v_yz_metal v_xz_metal ave running
+        fix aveCell all ave/time ${N_every} ${N_repeat} ${run_time} v_lx_metal v_ly_metal v_lz_metal v_xy_metal v_yz_metal v_xz_metal ave running
 
         # Compute unwrapped atom positions
         compute unwrapped all property/atom xu yu zu
@@ -117,24 +117,39 @@ class LammpsTemplate:
         variable yu atom c_unwrapped[2]
         variable zu atom c_unwrapped[3]
 
+        variable xsu atom "(c_unwrapped[1]-xlo)/(xhi-xlo) - (xy*(c_unwrapped[2]-ylo))/((xhi-xlo)*(yhi-ylo)) + ((xy*yz-(yhi-ylo)*xz)*(c_unwrapped[3]-zlo))/((xhi-xlo)*(yhi-ylo)*(zhi-zlo))"
+        variable ysu atom "(c_unwrapped[2]-ylo)/(yhi-ylo) - (yz*(c_unwrapped[3]-zlo))/((yhi-ylo)*(zhi-zlo))"
+        variable zsu atom "(c_unwrapped[3]-zlo)/(zhi-zlo)"
+
         # Average unwrapped atom positions
         fix avePos all ave/atom ${N_every} ${N_repeat} ${run_time} v_xu v_yu v_zu
 
         # Run for thermal expansion
         run ${run_time}
 
-        # Create per-atom variables for averaged positions
+        # Create per-atom variables for averaged positions and dimensions
         variable ave_x atom f_avePos[1]
         variable ave_y atom f_avePos[2]
         variable ave_z atom f_avePos[3]
 
-        # Set atom positions to time-averaged positions
+        variable ave_lx equal f_aveCell[1]
+        variable ave_ly equal f_aveCell[2]
+        variable ave_lz equal f_aveCell[3]
+
+        variable ave_xy equal f_aveCell[4]
+        variable ave_yz equal f_aveCell[5]
+        variable ave_xz equal f_aveCell[6]
+
+        # Set box dimension to time-averaged dimensions
+        change_box all x final 0 ${ave_lx} y final 0 ${ave_ly} z final 0 ${ave_lz} xy final ${ave_xy} xz final ${ave_xz} yz final ${ave_yz} remap units box
+
+        # Set atom positions to time-averaged positions within new cell
         set group all x v_ave_x y v_ave_y z v_ave_z
 
         # Write data file of averaged positions and box dimensions
         write_data ${write_data_filename}
 
-        unfix AVG
+        unfix aveCell
         unfix avePos
         unfix ensemble
         uncompute unwrapped

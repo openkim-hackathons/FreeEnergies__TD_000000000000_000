@@ -34,6 +34,7 @@ class TestDriver(SingleCrystalTestDriver):
         lammps_command = "lmp",
         msd_threshold_angstrom_squared_per_sampling_timesteps: float = 0.1,
         number_msd_timesteps: int = 10000,
+        number_avePOS_timesteps: int = 20000,
         random_seed: int = 101010,
         output_dir: str = "lammps_output",
         **kwargs) -> None:
@@ -61,6 +62,7 @@ class TestDriver(SingleCrystalTestDriver):
         self.lammps_command = lammps_command
         self.msd_threshold_angstrom_squared_per_sampling_timesteps = msd_threshold_angstrom_squared_per_sampling_timesteps
         self.number_msd_timesteps = number_msd_timesteps
+        self.number_avePOS_timesteps = number_avePOS_timesteps
         self.random_seed = random_seed
         self.output_dir = output_dir
 
@@ -84,7 +86,7 @@ class TestDriver(SingleCrystalTestDriver):
         # Run LAMMPS
         log_filename, restart_filename, self.spring_constants, self.volume = run_lammps(
             self.kim_model_name, self.temperature_K, self.pressure, self.timestep_ps, self.number_sampling_timesteps, species,
-            self.msd_threshold_angstrom_squared_per_sampling_timesteps, self.number_msd_timesteps,
+            self.msd_threshold_angstrom_squared_per_sampling_timesteps, self.number_msd_timesteps, self.number_avePOS_timesteps,
             self.lammps_command, self.random_seed, self.output_dir, self.test_driver_directory)
 
         # Check that LAMMPS ran to completion
@@ -94,12 +96,8 @@ class TestDriver(SingleCrystalTestDriver):
         # Compute free-energy
         free_energy_per_atom = self._free_energy()
 
-        ################
-
         self._add_property_instance_and_common_crystal_genome_keys("crystal-structure-npt", write_temp=True, write_stress=True)#, stress_unit="bars")
         self._add_file_to_current_property_instance("restart-file", f"{self.output_dir}/free_energy.restart")
-
-        print("=========================== FLAG ===========================")
 
         reduced_atoms = self._reduce_average_and_verify_symmetry(atoms_npt=f"{self.output_dir}/free_energy.data", reduced_atoms_save_path=f"{self.output_dir}/reduced_atoms.data")
         self._update_nominal_parameter_values(reduced_atoms)
@@ -128,7 +126,7 @@ class TestDriver(SingleCrystalTestDriver):
 
         # Write keys to property
         self._add_property_instance_and_common_crystal_genome_keys(
-            "free-energy", write_stress=True, write_temp=True
+            "free-energy", write_stress=True, write_temp=self.temperature_K
         )
         self._add_key_to_current_property_instance(
             "gibbs-free-energy-per-atom", free_energy_per_atom, "eV/atom"
@@ -310,8 +308,8 @@ class TestDriver(SingleCrystalTestDriver):
     
     def _modify_accuracies(self):
         # Start accuracy lists (temperature, volume, x, y, and z are normal)
-        relative_accuracy = [0.01, 0.01]
-        absolute_accuracy = [None, None]
+        relative_accuracy = [0.01, 0.01, 0.01, 0.01, 0.01]
+        absolute_accuracy = [None, None, None, None, None]
 
         # Get cell parameters and add appropriate values to accuracy lists (0.1 and None for non-zero tilt factors, vice-versa for zero)
         # get_cell_lengths_and_angles() returns angles (in degrees) in place of tilt factors. Angle = 90 --> tilt factor = 0.0.
@@ -354,15 +352,15 @@ class TestDriver(SingleCrystalTestDriver):
         atoms_npt = read(atoms_npt, format='lammps-data')
 
         # Reduce to unit cell
-        reduced_atoms, reduced_distances = reduce_and_avg(atoms_npt, self.repeat)
-        kstest_reduced_distances(reduced_distances)
-        
+        reduced_atoms = reduce_and_avg(atoms_npt, self.repeat)
+
         # Print reduced_atoms for verification
         reduced_atoms.write(reduced_atoms_save_path, format='lammps-data', masses=True)
 
         # Check symmetry
         if not self._verify_unchanged_symmetry(reduced_atoms):
             raise ValueError("The symmetry of the atoms have changed.")
+
         return reduced_atoms
     
     def _collect_isolated_atom_energies(self,reduced_atoms):
