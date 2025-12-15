@@ -228,7 +228,7 @@ class LammpsTemplate:
 
         print "$(v_vol_metal:%.10f)" file ${output_dir}/volume.dat
 
-        write_restart ${output_dir}/free_energy.restart
+        write_restart ${write_restart_filename}
 
         print '#================================== LAMMPS finished ==================================#'
         quit 0

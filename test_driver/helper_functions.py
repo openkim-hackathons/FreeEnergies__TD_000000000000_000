@@ -34,7 +34,7 @@ def run_lammps(modelname: str, temperature_K: float, pressure_bar: float, timest
         "species": " ".join(species),
         "output_dir": f"{output_dir}",
         "output_filename": f"{output_dir}/free_energy.dat",
-        "write_restart_filename": restart_filename,
+        "write_restart_filename": f"{restart_filename}",
         "write_data_filename": f"{output_dir}/free_energy.data",
         "write_dump_filename": f"{output_dir}/free_energy.dump",
         "zero_temperature_crystal": f"{output_dir}/zero_temperature_crystal.data",
