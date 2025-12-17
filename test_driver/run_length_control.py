@@ -9,7 +9,7 @@ RELATIVE_ACCURACY: Sequence[Optional[float]] = [0.01, 0.01, 0.01, 0.01, 0.01, 0.
 ABSOLUTE_ACCURACY: Sequence[Optional[float]] = [None, None, None, None, None, None, None, None]
 
 # Initial run length
-INITIAL_RUN_LENGTH: int = 20000
+INITIAL_RUN_LENGTH: int = 500
 
 # Run length increasing factor
 RUN_LENGTH_FACTOR: float = 1
@@ -24,7 +24,7 @@ MAX_RUN_LENGTH: int = 1000 * INITIAL_RUN_LENGTH
 MAX_EQUILIBRATION_STEP: Optional[int] = 500 * INITIAL_RUN_LENGTH
 
 # Minimum number of independent samples.
-MINIMUM_NUMBER_OF_INDEPENDENT_SAMPLES: Optional[int] = 1000
+MINIMUM_NUMBER_OF_INDEPENDENT_SAMPLES: Optional[int] = 50
 
 # Probability (or confidence interval) and must be between 0.0 and 1.0, and
 # represents the confidence for calculation of relative halfwidths estimation.

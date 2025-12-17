@@ -15,6 +15,8 @@ from kim_tools import KIMTestDriverError, get_isolated_energy_per_atom, get_stoi
 from kim_tools.test_driver import SingleCrystalTestDriver
 from kim_tools.symmetry_util.core import reduce_and_avg
 
+import matplotlib.pyplot as plt
+
 from .lammps_template import LammpsTemplate
 from .helper_functions import run_lammps
 
@@ -34,9 +36,11 @@ class TestDriver(SingleCrystalTestDriver):
         lammps_command = "lmp",
         msd_threshold_angstrom_squared_per_sampling_timesteps: float = 0.1,
         number_msd_timesteps: int = 10000,
-        number_avePOS_timesteps: int = 20000,
+        number_avePOS_timesteps: int = 30000,
         random_seed: int = 101010,
         output_dir: str = "lammps_output",
+        equilibration_plots: bool = True,
+        FL_plots: bool = True,
         **kwargs) -> None:
 
         """
@@ -95,6 +99,86 @@ class TestDriver(SingleCrystalTestDriver):
 
         # Compute free-energy
         free_energy_per_atom = self._free_energy()
+
+        # Make equilibration plots
+        if equilibration_plots:
+
+            step, vol, temp, lx, ly, lz, xy, xz, yz = np.loadtxt(f"{self.output_dir}/equilibration.dat", unpack=True)
+
+            # ============================== Volume ============================== #
+
+            fig = plt.figure()
+
+            plt.plot(step/1000, vol, marker='none', ls='-')
+
+            plt.xlabel("Time [ps]")
+            plt.ylabel(r"Volume [$\AA^3$]")
+
+            plt.savefig(f"{self.output_dir}/volume.pdf", bbox_inches='tight')
+            plt.close(fig)
+
+            # ============================== Temp ============================== #
+
+            fig = plt.figure()
+
+            plt.plot(step/1000, temp, marker='none', ls='-')
+
+            plt.xlabel("Time [ps]")
+            plt.ylabel("T [K]")
+
+            plt.savefig(f"{self.output_dir}/temp.pdf", bbox_inches='tight')
+            plt.close(fig)
+
+            # ============================== lx, ly, lz ============================== #
+
+            fig = plt.figure()
+
+            plt.plot(step/1000, lx, marker='none', ls='-', label='lx')
+            plt.plot(step/1000, ly, marker='none', ls='-', label='ly')
+            plt.plot(step/1000, lz, marker='none', ls='-', label='lz')
+
+            plt.xlabel("Time [ps]")
+            plt.ylabel(r"$\AA$")
+
+            plt.legend(loc='best')
+
+            plt.savefig(f"{self.output_dir}/box_lengths.pdf", bbox_inches='tight')
+            plt.close(fig)
+
+            # ============================== lx, ly, lz ============================== #
+
+            fig = plt.figure()
+
+            plt.plot(step/1000, xy, marker='none', ls='-', label='xy')
+            plt.plot(step/1000, xz, marker='none', ls='-', label='xz')
+            plt.plot(step/1000, yz, marker='none', ls='-', label='yz')
+
+            plt.xlabel("Time [ps]")
+            plt.ylabel("Tilt Factor")
+
+            plt.legend(loc='best')
+
+            plt.savefig(f"{self.output_dir}/tilt_factors.pdf", bbox_inches='tight')
+            plt.close(fig)
+
+        # Make Frenkel-Ladd plots
+        if FL_plots:
+
+            PE1, PE1_springs, lamb1 = np.loadtxt(f"{self.output_dir}/FL_switch1.dat", unpack=True) # Forward (potential --> springs)
+            PE2, PE2_springs, lamb2 = np.loadtxt(f"{self.output_dir}/FL_switch2.dat", unpack=True) # Reverse (springs --> potential)
+
+            fig = plt.figure()
+
+            plt.plot(lamb1, PE1, color='blue', marker='none', ls='-', label='Forward')
+            plt.plot(lamb2, PE2, color='red', marker='none', ls='-', label='Reverse')
+
+            plt.xlabel(r'$\lambda$')
+            plt.ylabel('Potential Energy [eV/atom]')
+
+            plt.legend(loc='best')
+
+            plt.savefig(f'{self.output_dir}/E_vs_lambda.pdf', bbox_inches='tight')
+            plt.close(fig)
 
         self._add_property_instance_and_common_crystal_genome_keys("crystal-structure-npt", write_temp=True, write_stress=True)#, stress_unit="bars")
         self._add_file_to_current_property_instance("restart-file", f"{self.output_dir}/free_energy.restart")

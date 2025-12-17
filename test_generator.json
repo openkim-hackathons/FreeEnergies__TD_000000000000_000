@@ -1,1 +1,1 @@
-{"stoichiometric_species": ["Al"], "prototype_label": "A_cF4_225_a", "crystal_genome_test_args": {"lammps_command": "mpirun -np 4 lmp"}, "kimnum": "537722331165", "temperature_K": 100, "version": "000"}
+{"stoichiometric_species": ["Al"], "prototype_label": "A_cF4_225_a", "crystal_genome_test_args": {"lammps_command": "mpirun -np 4 lmp"}, "kimnum": "537722331165", "temperature_K": 500, "version": "000"}

@@ -1,0 +1,121 @@
+[
+  {
+    "property-id": "tag:staff@noreply.openkim.org,2023-02-21:property/crystal-structure-npt",
+    "instance-id": 1,
+    "prototype-label": {
+      "source-value": "A_cF4_225_a"
+    },
+    "stoichiometric-species": {
+      "source-value": [
+        "Al"
+      ]
+    },
+    "a": {
+      "source-value": 4.032081970847309,
+      "source-unit": "angstrom"
+    },
+    "short-name": {
+      "source-value": [
+        "Face-Centered Cubic (Cu, $A1$, fcc) Structure"
+      ]
+    },
+    "library-prototype-label": {
+      "source-value": "A_cF4_225_a-001"
+    },
+    "cell-cauchy-stress": {
+      "source-value": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "source-unit": "eV/angstrom^3"
+    },
+    "temperature": {
+      "source-value": 100.0,
+      "source-unit": "K"
+    },
+    "crystal-genome-source-structure-id": {
+      "source-value": [
+        [
+          "RD_562379038684_000"
+        ]
+      ]
+    },
+    "coordinates-file": {
+      "source-value": "instance-1.poscar"
+    },
+    "coordinates-file-conventional": {
+      "source-value": "conventional.instance-1.poscar"
+    },
+    "restart-file": {
+      "source-value": "lammps_output/free_energy-1.restart"
+    }
+  },
+  {
+    "property-id": "tag:staff@noreply.openkim.org,2024-03-11:property/free-energy",
+    "instance-id": 2,
+    "prototype-label": {
+      "source-value": "A_cF4_225_a"
+    },
+    "stoichiometric-species": {
+      "source-value": [
+        "Al"
+      ]
+    },
+    "a": {
+      "source-value": 4.037972587904126,
+      "source-unit": "angstrom"
+    },
+    "short-name": {
+      "source-value": [
+        "Face-Centered Cubic (Cu, $A1$, fcc) Structure"
+      ]
+    },
+    "library-prototype-label": {
+      "source-value": "A_cF4_225_a-001"
+    },
+    "cell-cauchy-stress": {
+      "source-value": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "source-unit": "eV/angstrom^3"
+    },
+    "temperature": {
+      "source-value": 100.0,
+      "source-unit": "K"
+    },
+    "crystal-genome-source-structure-id": {
+      "source-value": [
+        [
+          "RD_562379038684_000"
+        ]
+      ]
+    },
+    "coordinates-file": {
+      "source-value": "instance-2.poscar"
+    },
+    "coordinates-file-conventional": {
+      "source-value": "conventional.instance-2.poscar"
+    },
+    "gibbs-free-energy-per-atom": {
+      "source-value": -3.33536509680105,
+      "source-unit": "eV/atom"
+    },
+    "gibbs-free-energy-per-formula": {
+      "source-value": -3.33536509680105,
+      "source-unit": "eV/formula"
+    },
+    "specific-gibbs-free-energy": {
+      "source-value": -0.12361656459289935,
+      "source-unit": "eV/amu"
+    }
+  }
+]

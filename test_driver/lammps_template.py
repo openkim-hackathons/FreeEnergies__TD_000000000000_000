@@ -8,6 +8,9 @@ class LammpsTemplate:
         os.makedirs(self.root, exist_ok=True)
         
         self.free_energy = """
+        variable melt_check equal 0
+        label top
+
         kim init ${modelname} metal unit_conversion_mode
 
         # periodic boundary conditions along all three dimensions
@@ -56,7 +59,10 @@ class LammpsTemplate:
         variable       temp_metal equal temp/${_u_temperature}
 
         thermo_style custom lx ly lz xy yz xz temp press vol etotal step
-        thermo 1000
+        thermo 100
+
+        # If we already checked for melting, jump to run_length_control with the initial structure. Otherwise, check melting with MSD.
+        if "${melt_check} == 1" then "jump SELF run_length_control"
 
         #==================================== Check melting with MSD ==================================#
 
@@ -72,21 +78,35 @@ class LammpsTemplate:
 
         # Thermodynamic output
         thermo_style custom lx ly lz xy yz xz temp press vol etotal c_msd[4] v_msd_slope step
-        thermo 1000
+        thermo 100
         
         # Perform a short run and decide whether or not to quit
         run ${number_msd_timesteps}
         if "${msd_slope} > $(v_msd_threshold*(v__u_distance^2)/v__u_time)" then "write_dump all atom ${melted_crystal_output}" &
                                       "print 'Crystal melted or vaporized'" &
                                       "quit"
-        unfix msd_vector
+        
+        #uncompute msd
+        #unfix msd_vector
+        #reset_timestep 0
+        
+        # Clear everything, set melt_check to true, and jump to the top of the script
+        # Doing this so that run_length_control sees MD data from a true initial state instead of an intermediate state
+        clear
+        variable melt_check equal 1
+        jump SELF top
 
-        thermo_style custom lx ly lz xy yz xz temp press vol etotal step
-        thermo 1000
+        print '#================================== Run_length_control ==================================#'
 
-        print '#================================== Kim-convergence ==================================#'
+        label run_length_control
 
-        # Set up convergence check with kim-convergence.
+        #thermo_style custom lx ly lz xy yz xz temp press vol etotal step
+        #thermo 100
+
+        # Print raw data for plotting later
+        fix PRINT all print 10 "$(step) $(v_vol_metal:%.6f) $(v_temp_metal:%.6f) $(v_lx_metal:%.5f) $(v_ly_metal:%.5f) $(v_lz_metal:%.5f) $(v_xy_metal:%.5f) $(v_xz_metal:%.5f) $(v_yz_metal:%.5f)" file ${output_dir}/equilibration.dat screen no title "# step [fs] | vol [Ang^3] | Temp [K] | lx, ly, lz [Ang] | xy, xz, yz [tilt factors]"
+
+        # Set up convergence check with run_length_control.py
         python run_length_control input 18 SELF 1 variable vol_metal variable temp_metal variable lx_metal variable ly_metal variable lz_metal variable xy_metal variable xz_metal variable yz_metal format pissssssssssssssss file ${run_length_control}
         #python run_length_control input 12 SELF 1 variable vol_metal variable temp_metal variable xy_metal variable xz_metal variable yz_metal format pissssssssss file ${run_length_control}
 
@@ -94,14 +114,14 @@ class LammpsTemplate:
         python run_length_control invoke
 
         unfix cr_fix # From run_length_control.py
-        uncompute msd
+        unfix PRINT
         reset_timestep 0
 
         print '#================================== Thermal expansion ==================================#'
 
         # Thermodynamic output
         thermo_style custom lx ly lz xy yz xz temp press vol etotal step
-        thermo 1000
+        thermo 100
 
         # Define variables for fix ave/time
         variable N_every equal 10 # sample every this many steps
@@ -202,7 +222,7 @@ class LammpsTemplate:
 
         # Thermodynamic output
         thermo_style custom temp press vol etotal c_msd[4] v_msd_slope step
-        thermo 1000
+        thermo 100
 
         # set NVE ensemble
         fix ensemble all nve
@@ -216,7 +236,7 @@ class LammpsTemplate:
         # run equil 1
         run ${t_equil}
 
-        if "${msd_slope} > $(v_msd_threshold*(v__u_distance^2)/v__u_time)" then "write_dump all atom ${melted_crystal_output}" &
+        if "${msd_slope} > $(v_msd_threshold*(v__u_distance^2))" then "write_dump all atom ${melted_crystal_output}" &
                                       "print 'Crystal melted or vaporized'" &
                                       "quit"
 
@@ -231,7 +251,7 @@ class LammpsTemplate:
 
         variable msd_slope equal slope(f_msd_vector)
 
-        if "${msd_slope} > $(v_msd_threshold*(v__u_distance^2)/v__u_time)" then "write_dump all atom ${melted_crystal_output}" &
+        if "${msd_slope} > $(v_msd_threshold*(v__u_distance^2))" then "write_dump all atom ${melted_crystal_output}" &
                                       "print 'Crystal melted or vaporized'" &
                                       "quit"
 
