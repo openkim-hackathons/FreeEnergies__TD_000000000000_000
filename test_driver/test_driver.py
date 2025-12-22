@@ -38,6 +38,9 @@ class TestDriver(SingleCrystalTestDriver):
         number_msd_timesteps: int = 10000,
         number_avePOS_timesteps: int = 30000,
         random_seed: int = 101010,
+        rlc_N_every: int = 10,
+        rlc_inital_run_length: int = 500,
+        rlc_min_samples: int = 100,
         output_dir: str = "lammps_output",
         equilibration_plots: bool = True,
         FL_plots: bool = True,
@@ -64,6 +67,9 @@ class TestDriver(SingleCrystalTestDriver):
         self.target_size = target_size
         self.repeat = repeat
         self.lammps_command = lammps_command
+        self.rlc_N_every = rlc_N_every
+        self.rlc_inital_run_length = rlc_inital_run_length
+        self.rlc_min_samples = rlc_min_samples
         self.msd_threshold_angstrom_squared_per_sampling_timesteps = msd_threshold_angstrom_squared_per_sampling_timesteps
         self.number_msd_timesteps = number_msd_timesteps
         self.number_avePOS_timesteps = number_avePOS_timesteps
@@ -78,8 +84,8 @@ class TestDriver(SingleCrystalTestDriver):
 
         self.supercell = self._setup_initial_structure(filename=f"{self.output_dir}/zero_temperature_crystal.data")
 
-        # Create temporary accuracies.py and run_length_control.py, and modify the temp accuracies.py
-        self._modify_accuracies()
+        # Modify the variables in run_length_control.py
+        self._modify_run_length_control()
 
         # Write initial template file "in.lammps"
         self.templates = LammpsTemplate(root=f"{self.output_dir}/")
@@ -91,7 +97,7 @@ class TestDriver(SingleCrystalTestDriver):
         log_filename, restart_filename, self.spring_constants, self.volume = run_lammps(
             self.kim_model_name, self.temperature_K, self.pressure, self.timestep_ps, self.number_sampling_timesteps, species,
             self.msd_threshold_angstrom_squared_per_sampling_timesteps, self.number_msd_timesteps, self.number_avePOS_timesteps,
-            self.lammps_command, self.random_seed, self.output_dir, self.test_driver_directory)
+            self.rlc_N_every, self.lammps_command, self.random_seed, self.output_dir, self.test_driver_directory)
 
         # Check that LAMMPS ran to completion
         if self._check_if_lammps_ran_to_completion(lammps_log=f"{self.output_dir}/free_energy.log") == str("Crystal melted or vaporized"):
@@ -390,7 +396,7 @@ class TestDriver(SingleCrystalTestDriver):
         except FileNotFoundError:
             return str(f"LAMMPS log does not exist.")
     
-    def _modify_accuracies(self):
+    def _modify_run_length_control(self):
         # Start accuracy lists (temperature, volume, x, y, and z are normal)
         relative_accuracy = [0.01, 0.01, 0.01, 0.01, 0.01]
         absolute_accuracy = [None, None, None, None, None]
@@ -400,7 +406,8 @@ class TestDriver(SingleCrystalTestDriver):
         # The criterion for an orthogonal tilt factor ("abs(90-angle) < 0.1") can be modified, depending on how small of a tilt factor is too small for kim-convergence
         [X_cell, Y_cell, Z_cell, YZ_cell, XZ_cell, XY_cell] = self.supercell.get_cell_lengths_and_angles()
         
-        # Define threshold for considering angles as orthogonal (in degrees)
+        # Define threshold for considering angles as orthogonal (in degrees).
+        # This should probably be replaced with something like self._get_supported_lammps_atom_style(), but to check orthogonality
         ORTHOGONAL_THRESHOLD = 0.1
         
         # Process each cell angle and set appropriate accuracy values
@@ -409,20 +416,36 @@ class TestDriver(SingleCrystalTestDriver):
             relative_accuracy.append(None if is_orthogonal else 0.01)
             absolute_accuracy.append(0.01 if is_orthogonal else None)
         
-        # Read the template content from the original accuracies.py
+        # Read the template content from the original run_length_control.py
         original_rlc_file = Path(__file__).parent / "run_length_control.py"
         with open(original_rlc_file, 'r') as file:
             template_content = file.read()
         
-        # Replace the accuracy values in the template
+        # Set RELATIVE_ACCURACY
         new_content = re.sub(
             r"RELATIVE_ACCURACY: Sequence\[Optional\[float\]\]\s*=\s*\[.*?\]",
             f"RELATIVE_ACCURACY: Sequence[Optional[float]] = {relative_accuracy}",
             template_content
         )
+
+        # Set ABSOLUTE_ACCURACY
         new_content = re.sub(
             r"ABSOLUTE_ACCURACY: Sequence\[Optional\[float\]\]\s*=\s*\[.*?\]",
             f"ABSOLUTE_ACCURACY: Sequence[Optional[float]] = {absolute_accuracy}",
+            new_content
+        )
+
+        # Set INITAL_RUN_LENGTH
+        new_content = re.sub(
+            r"INITIAL_RUN_LENGTH: int\s*=\s*.*",
+            f"INITIAL_RUN_LENGTH: int = {self.rlc_inital_run_length}",
+            new_content
+        )
+
+        # Set MINIMUM_NUMBER_OF_INDEPENDENT_SAMPLES
+        new_content = re.sub(
+            r"MINIMUM_NUMBER_OF_INDEPENDENT_SAMPLES: Optional\[int\]\s*=\s*.*",
+            f"MINIMUM_NUMBER_OF_INDEPENDENT_SAMPLES: Optional[int] = {self.rlc_min_samples}",
             new_content
         )
         

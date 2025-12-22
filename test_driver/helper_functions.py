@@ -10,7 +10,7 @@ import numpy.typing as npt
 def run_lammps(modelname: str, temperature_K: float, pressure_bar: float, timestep_ps: float,
                number_sampling_timesteps: int, species: List[str],
                msd_threshold_angstrom_squared_per_sampling_timesteps: float, number_msd_timesteps: int, number_avePOS_timesteps: int,
-               lammps_command: str, random_seed: int, output_dir: str, test_driver_dir: str) -> Tuple[str, str, list]:
+               rlc_N_every: int, lammps_command: str, random_seed: int, output_dir: str, test_driver_dir: str) -> Tuple[str, str, list]:
     
     pdamp = timestep_ps * 1000.0
     tdamp = timestep_ps * 100.0
@@ -29,6 +29,7 @@ def run_lammps(modelname: str, temperature_K: float, pressure_bar: float, timest
         "t_equil": 10000,
         "number_msd_timesteps": number_msd_timesteps,
         "number_avePOS_timesteps": number_avePOS_timesteps,
+        "rlc_N_every": rlc_N_every,
         "pressure_damping": pdamp, # picoseconds
         "msd_threshold": 0.1, # Angstrom^2 per 100 timesteps
         "timestep": timestep_ps,  # picoseconds

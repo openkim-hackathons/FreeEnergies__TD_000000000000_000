@@ -100,15 +100,11 @@ class LammpsTemplate:
 
         label run_length_control
 
-        #thermo_style custom lx ly lz xy yz xz temp press vol etotal step
-        #thermo 100
-
         # Print raw data for plotting later
         fix PRINT all print 10 "$(step) $(v_vol_metal:%.6f) $(v_temp_metal:%.6f) $(v_lx_metal:%.5f) $(v_ly_metal:%.5f) $(v_lz_metal:%.5f) $(v_xy_metal:%.5f) $(v_xz_metal:%.5f) $(v_yz_metal:%.5f)" file ${output_dir}/equilibration.dat screen no title "# step [fs] | vol [Ang^3] | Temp [K] | lx, ly, lz [Ang] | xy, xz, yz [tilt factors]"
 
         # Set up convergence check with run_length_control.py
-        python run_length_control input 18 SELF 1 variable vol_metal variable temp_metal variable lx_metal variable ly_metal variable lz_metal variable xy_metal variable xz_metal variable yz_metal format pissssssssssssssss file ${run_length_control}
-        #python run_length_control input 12 SELF 1 variable vol_metal variable temp_metal variable xy_metal variable xz_metal variable yz_metal format pissssssssss file ${run_length_control}
+        python run_length_control input 18 SELF ${rlc_N_every} variable vol_metal variable temp_metal variable lx_metal variable ly_metal variable lz_metal variable xy_metal variable xz_metal variable yz_metal format pissssssssssssssss file ${run_length_control}
 
         # Run until converged
         python run_length_control invoke
