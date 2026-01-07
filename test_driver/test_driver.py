@@ -1,8 +1,6 @@
 import multiprocessing
 import os
 import re
-import subprocess
-import tempfile
 from pathlib import Path
 from typing import List, Tuple, Sequence
 
@@ -30,6 +28,8 @@ class TestDriver(SingleCrystalTestDriver):
     def _calculate(
         self,
         timestep_ps: float = 0.001,
+        FL_switch_timesteps: int = 50000,
+        FL_equil_timesteps: int = 10000,
         number_sampling_timesteps: int = 100,
         target_size: int = 1000,
         repeat: Sequence[int] = (0, 0, 0),
@@ -63,6 +63,8 @@ class TestDriver(SingleCrystalTestDriver):
         self.pressure = -self.cauchy_stress[0] 
         self.atoms = self._get_atoms()
         self.timestep_ps = timestep_ps
+        self.FL_switch_timesteps = FL_switch_timesteps
+        self.FL_equil_timesteps = FL_equil_timesteps
         self.number_sampling_timesteps = number_sampling_timesteps
         self.target_size = target_size
         self.repeat = repeat
@@ -95,7 +97,7 @@ class TestDriver(SingleCrystalTestDriver):
 
         # Run LAMMPS
         log_filename, restart_filename, self.spring_constants, self.volume = run_lammps(
-            self.kim_model_name, self.temperature_K, self.pressure, self.timestep_ps, self.number_sampling_timesteps, species,
+            self.kim_model_name, self.temperature_K, self.pressure, self.timestep_ps, self.FL_switch_timesteps, self.FL_equil_timesteps, self.number_sampling_timesteps, species,
             self.msd_threshold_angstrom_squared_per_sampling_timesteps, self.number_msd_timesteps, self.number_avePOS_timesteps,
             self.rlc_N_every, self.lammps_command, self.random_seed, self.output_dir, self.test_driver_directory)
 

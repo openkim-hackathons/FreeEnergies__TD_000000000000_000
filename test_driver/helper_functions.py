@@ -7,10 +7,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import numpy.typing as npt
 
-def run_lammps(modelname: str, temperature_K: float, pressure_bar: float, timestep_ps: float,
-               number_sampling_timesteps: int, species: List[str],
-               msd_threshold_angstrom_squared_per_sampling_timesteps: float, number_msd_timesteps: int, number_avePOS_timesteps: int,
-               rlc_N_every: int, lammps_command: str, random_seed: int, output_dir: str, test_driver_dir: str) -> Tuple[str, str, list]:
+def run_lammps(modelname: str, temperature_K: float, pressure_bar: float, timestep_ps: float, FL_switch_timesteps: int, FL_equil_timesteps: int,
+               number_sampling_timesteps: int, species: List[str], msd_threshold_angstrom_squared_per_sampling_timesteps: float,
+               number_msd_timesteps: int, number_avePOS_timesteps: int, rlc_N_every: int, lammps_command: str, random_seed: int,
+               output_dir: str, test_driver_dir: str) -> Tuple[str, str, list]:
     
     pdamp = timestep_ps * 1000.0
     tdamp = timestep_ps * 100.0
@@ -25,8 +25,8 @@ def run_lammps(modelname: str, temperature_K: float, pressure_bar: float, timest
         "velocity_seed": random_seed,
         "langevin_seed": int(7*(random_seed)/5), # if random_seed is 101010 (default), this is 141414
         "pressure": pressure_bar,
-        "t_switch": 10000,
-        "t_equil": 10000,
+        "t_switch": FL_switch_timesteps,
+        "t_equil": FL_equil_timesteps,
         "number_msd_timesteps": number_msd_timesteps,
         "number_avePOS_timesteps": number_avePOS_timesteps,
         "rlc_N_every": rlc_N_every,

@@ -7,20 +7,20 @@
     },
     "stoichiometric-species": {
       "source-value": [
-        "Al"
+        "Au"
       ]
     },
     "a": {
-      "source-value": 4.032081970847309,
+      "source-value": 3.7407,
       "source-unit": "angstrom"
     },
     "short-name": {
       "source-value": [
-        "Face-Centered Cubic (Cu, $A1$, fcc) Structure"
+        "Face-Centered Cubic"
       ]
     },
     "library-prototype-label": {
-      "source-value": "A_cF4_225_a-001"
+      "source-value": "A_cF4_225_a"
     },
     "cell-cauchy-stress": {
       "source-value": [
@@ -34,15 +34,8 @@
       "source-unit": "eV/angstrom^3"
     },
     "temperature": {
-      "source-value": 100.0,
+      "source-value": 300.0,
       "source-unit": "K"
-    },
-    "crystal-genome-source-structure-id": {
-      "source-value": [
-        [
-          "RD_562379038684_000"
-        ]
-      ]
     },
     "coordinates-file": {
       "source-value": "instance-1.poscar"
@@ -62,11 +55,11 @@
     },
     "stoichiometric-species": {
       "source-value": [
-        "Al"
+        "Au"
       ]
     },
     "a": {
-      "source-value": 4.037972587904126,
+      "source-value": 3.7425438920081686,
       "source-unit": "angstrom"
     },
     "short-name": {
@@ -89,15 +82,8 @@
       "source-unit": "eV/angstrom^3"
     },
     "temperature": {
-      "source-value": 100.0,
+      "source-value": 300.0,
       "source-unit": "K"
-    },
-    "crystal-genome-source-structure-id": {
-      "source-value": [
-        [
-          "RD_562379038684_000"
-        ]
-      ]
     },
     "coordinates-file": {
       "source-value": "instance-2.poscar"
@@ -106,15 +92,15 @@
       "source-value": "conventional.instance-2.poscar"
     },
     "gibbs-free-energy-per-atom": {
-      "source-value": -3.33536509680105,
+      "source-value": -19.148030208548626,
       "source-unit": "eV/atom"
     },
     "gibbs-free-energy-per-formula": {
-      "source-value": -3.33536509680105,
+      "source-value": -19.148030208548626,
       "source-unit": "eV/formula"
     },
     "specific-gibbs-free-energy": {
-      "source-value": -0.12361656459289935,
+      "source-value": -0.09721462025643872,
       "source-unit": "eV/amu"
     }
   }

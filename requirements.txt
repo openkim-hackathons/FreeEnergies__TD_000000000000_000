@@ -1,1 +1,12 @@
-kim-tools
+kim_tools
+kim-convergence
+numpy
+scipy
+matplotlib
+ase
+multiprocessing
+os
+re
+subprocess
+pathlib
+typing

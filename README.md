@@ -1,6 +1,6 @@
 # Free Energy Crystal Genome Test Driver
 
-Gibbs free energy per conventional unit cell, with rhombohedral crystals using the hexagonal cell, of a crystal at constant temperature and pressure using the Frenkel-Ladd Hamiltonian integration algorithm ([Freitas, R., Asta, M. & de Koning, M. Nonequilibrium free-energy calculation of solids using LAMMPS](https://www.sciencedirect.com/science/article/abs/pii/S0927025615007089)). The free energy is computed through one equilibrium NPT simulation ('preFL') and one NONequilibrium NVT simulation ('FL').
+Gibbs free energy per conventional unit cell, with rhombohedral crystals using the hexagonal cell, of a crystal at constant temperature and pressure using the Frenkel-Ladd Hamiltonian integration algorithm ([Freitas, R., Asta, M. & de Koning, M. Nonequilibrium free-energy calculation of solids using LAMMPS](https://www.sciencedirect.com/science/article/abs/pii/S0927025615007089)).
 
 ## Example of usage 
 ```python 
@@ -26,7 +26,7 @@ print(
     )
 )
 ```
-An example on how to compute the free energy versus temeperature of Sillicon can be found [here](examples/01_Sillicon/).
+An example on how to compute the free energy versus temeperature of Silicon can be found [here](examples/01_Sillicon/).
 ## Notes
 Frenkel-Ladd method is more accurate for larger systems (~10k atoms) and longer nonequilibrium simulation time ($\geq 10\text{k}$ integration steps)
 
