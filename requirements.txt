@@ -4,7 +4,6 @@ numpy
 scipy
 matplotlib
 ase
-multiprocessing
 os
 re
 subprocess
