@@ -9,7 +9,7 @@ RELATIVE_ACCURACY: Sequence[Optional[float]] = [0.01, 0.01, 0.01, 0.01, 0.01, 0.
 ABSOLUTE_ACCURACY: Sequence[Optional[float]] = [None, None, None, None, None, None, None, None]
 
 # Initial run length
-INITIAL_RUN_LENGTH: int = 500
+INITIAL_RUN_LENGTH: int = 1000
 
 # Run length increasing factor
 RUN_LENGTH_FACTOR: float = 1

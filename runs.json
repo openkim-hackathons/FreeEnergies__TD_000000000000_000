@@ -44,7 +44,7 @@
       "source-value": "conventional.instance-1.poscar"
     },
     "restart-file": {
-      "source-value": "lammps_output/free_energy-1.restart"
+      "source-value": "output.3/free_energy-1.restart"
     }
   },
   {
@@ -59,7 +59,7 @@
       ]
     },
     "a": {
-      "source-value": 3.7425438920081686,
+      "source-value": 3.7425409944550068,
       "source-unit": "angstrom"
     },
     "short-name": {
@@ -92,15 +92,15 @@
       "source-value": "conventional.instance-2.poscar"
     },
     "gibbs-free-energy-per-atom": {
-      "source-value": -19.148030208548626,
+      "source-value": -19.14795966027215,
       "source-unit": "eV/atom"
     },
     "gibbs-free-energy-per-formula": {
-      "source-value": -19.148030208548626,
+      "source-value": -19.14795966027215,
       "source-unit": "eV/formula"
     },
     "specific-gibbs-free-energy": {
-      "source-value": -0.09721462025643872,
+      "source-value": -0.09721426208257787,
       "source-unit": "eV/amu"
     }
   }

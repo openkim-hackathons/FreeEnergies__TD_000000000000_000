@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import List, Tuple, Sequence
 
 import numpy as np
+from scipy import integrate
 import scipy.constants as sc
 from ase import Atoms
 from ase.data import atomic_masses, atomic_numbers
@@ -38,7 +39,7 @@ class TestDriver(SingleCrystalTestDriver):
         number_avePOS_timesteps: int = 30000,
         random_seed: int = 101010,
         rlc_N_every: int = 10,
-        rlc_inital_run_length: int = 500,
+        rlc_inital_run_length: int = 1000,
         rlc_min_samples: int = 100,
         output_dir: str = "output",
         equilibration_plots: bool = True,
@@ -342,12 +343,14 @@ class TestDriver(SingleCrystalTestDriver):
         Hi_f, Hf_f, lamb_f = np.loadtxt(
             f"{self.output_dir}/FL_switch1.dat", unpack=True, skiprows=1
         )
-        W_forw = np.trapezoid(Hf_f - Hi_f, lamb_f)
+        W_forw = integrate.simpson(Hf_f - Hi_f, lamb_f) # Result: -19.14796 eV/atom
+        #W_forw = np.trapz(Hf_f - Hi_f, lamb_f) # Result: -19.14796 eV/atom
 
         Hf_b, Hi_b, lamb_b = np.loadtxt(
             f"{self.output_dir}/FL_switch2.dat", unpack=True, skiprows=1
         )
-        W_back = np.trapezoid(Hf_b - Hi_b, 1 - lamb_b)
+        W_back = integrate.simpson(Hf_b - Hi_b, 1 - lamb_b) # Result: -19.14796 eV/atom
+        #W_back = np.trapz(Hf_b - Hi_b, 1 - lamb_b) # Result: -19.14796 eV/atom
 
         Work = (W_forw - W_back) / 2
         Dissipation = (W_forw + W_back) / 2
