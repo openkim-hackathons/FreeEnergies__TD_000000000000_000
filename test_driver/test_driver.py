@@ -342,12 +342,12 @@ class TestDriver(SingleCrystalTestDriver):
         Hi_f, Hf_f, lamb_f = np.loadtxt(
             f"{self.output_dir}/FL_switch1.dat", unpack=True, skiprows=1
         )
-        W_forw = np.trapz(Hf_f - Hi_f, lamb_f)
+        W_forw = np.trapezoid(Hf_f - Hi_f, lamb_f)
 
         Hf_b, Hi_b, lamb_b = np.loadtxt(
             f"{self.output_dir}/FL_switch2.dat", unpack=True, skiprows=1
         )
-        W_back = np.trapz(Hf_b - Hi_b, 1 - lamb_b)
+        W_back = np.trapezoid(Hf_b - Hi_b, 1 - lamb_b)
 
         Work = (W_forw - W_back) / 2
         Dissipation = (W_forw + W_back) / 2
