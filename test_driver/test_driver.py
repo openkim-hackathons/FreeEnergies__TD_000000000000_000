@@ -40,7 +40,7 @@ class TestDriver(SingleCrystalTestDriver):
         rlc_N_every: int = 10,
         rlc_inital_run_length: int = 500,
         rlc_min_samples: int = 100,
-        output_dir: str = "",
+        output_dir: str = "output",
         equilibration_plots: bool = True,
         FL_plots: bool = True,
         **kwargs) -> None:
@@ -75,6 +75,27 @@ class TestDriver(SingleCrystalTestDriver):
         self.number_msd_timesteps = number_msd_timesteps
         self.number_avePOS_timesteps = number_avePOS_timesteps
         self.random_seed = random_seed
+
+        max_idx = -1
+        has_plain_output = False
+        pattern = re.compile(r"^output(?:\.(\d+))?$")
+
+        for name in os.listdir("."):
+            if os.path.isdir(name):
+                m = pattern.match(name)
+                if m:
+                    if m.group(1) is None:
+                        has_plain_output = True
+                    else:
+                        max_idx = max(max_idx, int(m.group(1)))
+
+        if max_idx >= 0:
+            output_dir = f"output.{max_idx}"
+        elif has_plain_output:
+            output_dir = "output"
+        else:
+            output_dir = None  # no output directory found
+
         self.output_dir = output_dir
 
         self.atom_style = self._get_supported_lammps_atom_style()
