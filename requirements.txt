@@ -4,8 +4,3 @@ numpy
 scipy
 matplotlib
 ase
-os
-re
-subprocess
-pathlib
-typing
