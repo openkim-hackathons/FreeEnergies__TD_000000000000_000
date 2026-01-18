@@ -304,7 +304,7 @@ class TestDriver(SingleCrystalTestDriver):
             self.concentration[i] = (symbols == self.species[i]).sum()
         self.concentration *= 1 / len(symbols)
 
-        atoms_new.write(filename, format="lammps-data", masses=True)
+        atoms_new.write(filename, format="lammps-data", masses=True, atom_style=self.atom_style)
         self.zero_k_structure_path = filename
 
         # Check if the cell is triclinic by checking if any of the cell lengths or angles are different from the others.
