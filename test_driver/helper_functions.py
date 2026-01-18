@@ -1,16 +1,11 @@
-from math import ceil
-import os
-import re
 import subprocess
-from typing import Iterable, List, Tuple
-import matplotlib.pyplot as plt
+from typing import List, Tuple
 import numpy as np
-import numpy.typing as npt
 
 def run_lammps(modelname: str, temperature_K: float, pressure_bar: float, timestep_ps: float, FL_switch_timesteps: int, FL_equil_timesteps: int,
                number_sampling_timesteps: int, species: List[str], msd_threshold_angstrom_squared_per_sampling_timesteps: float,
                number_msd_timesteps: int, number_avePOS_timesteps: int, rlc_N_every: int, lammps_command: str, random_seed: int,
-               output_dir: str, test_driver_dir: str) -> Tuple[str, str, list]:
+               output_dir: str) -> Tuple[str, str, list, float]:
     
     pdamp = timestep_ps * 1000.0
     tdamp = timestep_ps * 100.0
@@ -43,7 +38,7 @@ def run_lammps(modelname: str, temperature_K: float, pressure_bar: float, timest
         "melted_crystal_output": f"{output_dir}/melted_crystal.dump",
         "switch1_output_file": f"{output_dir}/FL_switch1.dat",
         "switch2_output_file": f"{output_dir}/FL_switch2.dat",
-        "run_length_control": f"{test_driver_dir}/run_length_control.py",
+        "run_length_control": f"{output_dir}/run_length_control.py",
     }
     
     # Construct base LAMMPS command

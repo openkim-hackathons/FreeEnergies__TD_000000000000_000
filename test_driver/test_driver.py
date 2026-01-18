@@ -1,7 +1,7 @@
 import os
 import re
 from pathlib import Path
-from typing import List, Tuple, Sequence
+from typing import Sequence
 
 import numpy as np
 from scipy import integrate
@@ -9,7 +9,7 @@ import scipy.constants as sc
 from ase import Atoms
 from ase.data import atomic_masses, atomic_numbers
 from ase.io import read
-from kim_tools import KIMTestDriverError, get_isolated_energy_per_atom, get_stoich_reduced_list_from_prototype
+from kim_tools import get_isolated_energy_per_atom, get_stoich_reduced_list_from_prototype
 from kim_tools.test_driver import SingleCrystalTestDriver
 from kim_tools.symmetry_util.core import reduce_and_avg
 
@@ -55,9 +55,6 @@ class TestDriver(SingleCrystalTestDriver):
         # Set prototype label
         self.prototype_label = self._get_nominal_crystal_structure_npt()["prototype-label"]["source-value"]
 
-        self.test_driver_directory = os.path.dirname(os.path.realpath(__file__))
-        print(self.test_driver_directory)
-
         self.temperature_K = self._get_temperature(unit="K")
         self.cauchy_stress = self._get_cell_cauchy_stress(unit='bars')
         self.pressure = -self.cauchy_stress[0] 
@@ -99,7 +96,7 @@ class TestDriver(SingleCrystalTestDriver):
         log_filename, restart_filename, self.spring_constants, self.volume = run_lammps(
             self.kim_model_name, self.temperature_K, self.pressure, self.timestep_ps, self.FL_switch_timesteps, self.FL_equil_timesteps, self.number_sampling_timesteps, species,
             self.msd_threshold_angstrom_squared_per_sampling_timesteps, self.number_msd_timesteps, self.number_avePOS_timesteps,
-            self.rlc_N_every, self.lammps_command, self.random_seed, self.output_dir, self.test_driver_directory)
+            self.rlc_N_every, self.lammps_command, self.random_seed, self.output_dir)
 
         # Check that LAMMPS ran to completion
         if self._check_if_lammps_ran_to_completion(lammps_log=f"{self.output_dir}/free_energy.log") == str("Crystal melted or vaporized"):
@@ -454,7 +451,7 @@ class TestDriver(SingleCrystalTestDriver):
         )
         
         # Write the modified content to the temporary file
-        with open(original_rlc_file, 'w') as file:
+        with open(f"{self.output_dir}/run_length_control.py", 'w') as file:
             file.write(new_content)
 
     def _reduce_average_and_verify_symmetry(self, atoms_npt: Path, reduced_atoms_save_path: Path):
