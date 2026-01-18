@@ -31,7 +31,7 @@ class TestDriver(SingleCrystalTestDriver):
         FL_switch_timesteps: int = 50000,
         FL_equil_timesteps: int = 10000,
         number_sampling_timesteps: int = 100,
-        target_size: int = 1000,
+        target_size: int = 10000,
         repeat: Sequence[int] = (0, 0, 0),
         lammps_command = "lmp",
         msd_threshold_angstrom_squared_per_sampling_timesteps: float = 0.1,
