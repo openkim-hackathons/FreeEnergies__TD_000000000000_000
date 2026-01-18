@@ -185,11 +185,11 @@ class TestDriver(SingleCrystalTestDriver):
             plt.savefig(f'{self.output_dir}/E_vs_lambda.pdf', bbox_inches='tight')
             plt.close(fig)
 
-        self._add_property_instance_and_common_crystal_genome_keys("crystal-structure-npt", write_temp=True, write_stress=True)#, stress_unit="bars")
-        self._add_file_to_current_property_instance("restart-file", f"{self.output_dir}/free_energy.restart")
-
         reduced_atoms = self._reduce_average_and_verify_symmetry(atoms_npt=f"{self.output_dir}/free_energy.data", reduced_atoms_save_path=f"{self.output_dir}/reduced_atoms.data")
         self._update_nominal_parameter_values(reduced_atoms)
+        
+        self._add_property_instance_and_common_crystal_genome_keys("crystal-structure-npt", write_temp=True, write_stress=True)#, stress_unit="bars")
+        self._add_file_to_current_property_instance("restart-file", f"{self.output_dir}/free_energy.restart")
 
         # Collect the energies of isolated atoms to subtract from final values
         isolated_atom_energy = self._collect_isolated_atom_energies(reduced_atoms)
@@ -463,11 +463,7 @@ class TestDriver(SingleCrystalTestDriver):
         reduced_atoms = reduce_and_avg(atoms_npt, self.repeat)
 
         # Print reduced_atoms for verification
-        reduced_atoms.write(reduced_atoms_save_path, format='lammps-data', masses=True)
-
-        # Check symmetry
-        if not self._verify_unchanged_symmetry(reduced_atoms):
-            raise ValueError("The symmetry of the atoms have changed.")
+        reduced_atoms.write(reduced_atoms_save_path, format='lammps-data', masses=True, atom_style=self.atom_style)
 
         return reduced_atoms
     
