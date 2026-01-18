@@ -41,7 +41,7 @@ class TestDriver(SingleCrystalTestDriver):
         rlc_N_every: int = 10,
         rlc_inital_run_length: int = 1000,
         rlc_min_samples: int = 100,
-        output_dir: str = "",
+        output_dir: str = "output",
         equilibration_plots: bool = True,
         FL_plots: bool = True,
         **kwargs) -> None:
