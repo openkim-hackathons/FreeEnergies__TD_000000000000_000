@@ -1,3 +1,5 @@
 output export-ignore
 local-props export-ignore
 run.py export-ignore
+examples export-ignore
+test_results export-ignore

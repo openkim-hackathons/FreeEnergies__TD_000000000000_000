@@ -1,7 +1,1 @@
-{"stoichiometric_species": ["O", "Ti"], "prototype_label": "A2B_tP6_136_f_a", "crystal_genome_test_args": {"nprocs": 16}, "kimnum": "401977972282", "temperature_K": 300}
-{"stoichiometric_species": ["Al", "Pd"], "prototype_label": "AB_hR26_148_a2f_b2f", "crystal_genome_test_args": {"nprocs": 16}, "kimnum": "656160753733", "temperature_K": 300}
-{"stoichiometric_species": ["O", "Si"], "prototype_label": "A2B_hP9_154_c_a", "crystal_genome_test_args": {"nprocs": 16}, "kimnum": "049895803181", "temperature_K": 300}
-{"stoichiometric_species": ["Fe", "P"], "prototype_label": "A2B_hP9_189_fg_ad", "crystal_genome_test_args": {"nprocs": 16}, "kimnum": "882762774277", "temperature_K": 300}
-{"stoichiometric_species": ["As", "Ge"], "prototype_label": "AB_cP16_205_c_c", "crystal_genome_test_args": {"nprocs": 16}, "kimnum": "604177769233", "temperature_K": 300}
-{"stoichiometric_species": ["Ce", "O"], "prototype_label": "AB2_cF12_225_a_c", "crystal_genome_test_args": {"nprocs": 16}, "kimnum": "532229287401", "temperature_K": 300}
-{"stoichiometric_species": ["Al"], "prototype_label": "A_cF4_225_a", "crystal_genome_test_args": {"nprocs": 16}, "kimnum": "487326835912", "temperature_K": 300}
+{"stoichiometric_species": ["Au"], "prototype_label": "A_cF4_225_a", "crystal_genome_test_args": {"lammps_command": "mpirun -np 4 lmp"}, "kimnum": "882762774277", "temperature_K": 300, "version": "000"}

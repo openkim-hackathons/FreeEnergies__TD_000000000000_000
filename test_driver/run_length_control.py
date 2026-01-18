@@ -5,28 +5,34 @@ from typing import Optional, Sequence
 from lammps import lammps
 import kim_convergence as cr
 
-RELATIVE_ACCURACY: Sequence[Optional[float]] = [0.1, 0.1, 0.1, 0.1, 0.1, None, None, None]
-ABSOLUTE_ACCURACY: Sequence[Optional[float]] = [None, None, None, None, None, 0.1, 0.1, 0.1]
+RELATIVE_ACCURACY: Sequence[Optional[float]] = [0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01]
+ABSOLUTE_ACCURACY: Sequence[Optional[float]] = [None, None, None, None, None, None, None, None]
 
 # Initial run length
-INITIAL_RUN_LENGTH: int = 10000
+INITIAL_RUN_LENGTH: int = 1000
+
 # Run length increasing factor
 RUN_LENGTH_FACTOR: float = 1
+
 # The maximum run length represents a cost constraint.
 MAX_RUN_LENGTH: int = 1000 * INITIAL_RUN_LENGTH
+
 # The maximum number of steps as an equilibration hard limit. If the
 # algorithm finds equilibration_step greater than this limit it will fail.
 # For the default None, the function is using `maximum_run_length // 2` as
 # the maximum equilibration step.
 MAX_EQUILIBRATION_STEP: Optional[int] = 500 * INITIAL_RUN_LENGTH
-MAX_EQUILIBRATION_STEP: Optional[int] = 500 * INITIAL_RUN_LENGTH
-# Maximum number of independent samples.
-MINIMUM_NUMBER_OF_INDEPENDENT_SAMPLES: Optional[int] = 1000
+
+# Minimum number of independent samples.
+MINIMUM_NUMBER_OF_INDEPENDENT_SAMPLES: Optional[int] = 100
+
 # Probability (or confidence interval) and must be between 0.0 and 1.0, and
 # represents the confidence for calculation of relative halfwidths estimation.
 CONFIDENCE: float = 0.95
+
 # Method to use for approximating the upper confidence limit of the mean.
 UCL_METHOD: str = 'uncorrelated_sample'
+
 # if ``True``, dump the final trajectory data to a file.
 DUMP_TRAJECTORY: bool = False
 
@@ -596,7 +602,8 @@ def run_length_control(lmpptr, nevery: int, *argv) -> None:
             confidence_coefficient=CONFIDENCE,
             confidence_interval_approximation_method=UCL_METHOD,
             heidel_welch_number_points=cr._default._DEFAULT_HEIDEL_WELCH_NUMBER_POINTS,
-            fft=cr._default._DEFAULT_FFT,
+            #fft=cr._default._DEFAULT_FFT,
+            fft=False,
             test_size=cr._default._DEFAULT_TEST_SIZE,
             train_size=cr._default._DEFAULT_TRAIN_SIZE,
             batch_size=cr._default._DEFAULT_BATCH_SIZE,
