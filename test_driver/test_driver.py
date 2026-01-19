@@ -352,6 +352,22 @@ class TestDriver(SingleCrystalTestDriver):
             raise ValueError("The random seed has to be bigger than zero.")
 
     def _setup_initial_structure(self, filename: Path) -> Atoms:
+        """Set up the initial supercell structure for the simulation.
+        
+        Creates a supercell from the primitive cell based on the specified sizing
+        method (repeat, target_size, or target_radius). Determines species, masses,
+        and concentrations, then writes the structure to a LAMMPS data file.
+        
+        Args:
+            filename: Path to write the LAMMPS data file.
+            
+        Returns:
+            ASE Atoms object representing the supercell.
+            
+        Note:
+            Sets instance variables: species, mass, concentration, zero_k_structure_path,
+            is_triclinic. May modify self.repeat if it was (0,0,0).
+        """
         # Copy original atoms so that their information does not get lost when the new atoms are modified.
 
         atoms_new = self.atoms.copy()
