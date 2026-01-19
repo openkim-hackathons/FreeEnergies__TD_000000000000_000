@@ -1,6 +1,15 @@
 import re
+from enum import Enum
 from pathlib import Path
 from typing import Sequence
+
+
+class LammpsStatus(Enum):
+    """Status of LAMMPS simulation completion."""
+    SUCCESS = "success"
+    MELTED = "melted"
+    NOT_FOUND = "not_found"
+    INCOMPLETE = "incomplete"
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -106,8 +115,13 @@ class TestDriver(SingleCrystalTestDriver):
             self.rlc_N_every, self.lammps_command, self.random_seed, self.output_dir)
 
         # Check that LAMMPS ran to completion
-        if self._check_if_lammps_ran_to_completion(lammps_log=f"{self.output_dir}/free_energy.log") == str("Crystal melted or vaporized"):
-            raise Exception("Crystal melted or vaporized")
+        lammps_status = self._check_lammps_completion(lammps_log=f"{self.output_dir}/free_energy.log")
+        if lammps_status == LammpsStatus.MELTED:
+            raise RuntimeError("Crystal melted or vaporized")
+        elif lammps_status == LammpsStatus.NOT_FOUND:
+            raise FileNotFoundError(f"LAMMPS log file not found: {self.output_dir}/free_energy.log")
+        elif lammps_status == LammpsStatus.INCOMPLETE:
+            raise RuntimeError("LAMMPS simulation did not complete successfully")
 
         # Compute free-energy
         free_energy_per_atom = self._free_energy()
@@ -411,25 +425,34 @@ class TestDriver(SingleCrystalTestDriver):
 
         return free_energy
 
-    def _check_if_lammps_ran_to_completion(self, lammps_log: Path):
+    def _check_lammps_completion(self, lammps_log: Path) -> LammpsStatus:
+        """Check if LAMMPS simulation completed successfully.
+        
+        Args:
+            lammps_log: Path to the LAMMPS log file.
+            
+        Returns:
+            LammpsStatus indicating the outcome of the simulation.
+        """
         try:
             with open(lammps_log, "r") as file:
                 lines = file.readlines()
 
                 if not lines:
-                    return False
+                    return LammpsStatus.INCOMPLETE
                 
-                last_line = lines[-2].strip()
+                # Check second-to-last line for melting indicator
+                if len(lines) >= 2 and lines[-2].strip().startswith("Crystal melted or vaporized"):
+                    return LammpsStatus.MELTED
 
-                if last_line.startswith("Crystal melted or vaporized"):
-                    return str("Crystal melted or vaporized")
-
-                last_line = lines[-1].strip()
-
-                return last_line.startswith("Total wall time:")
+                # Check last line for successful completion
+                if lines[-1].strip().startswith("Total wall time:"):
+                    return LammpsStatus.SUCCESS
+                    
+                return LammpsStatus.INCOMPLETE
 
         except FileNotFoundError:
-            return str(f"LAMMPS log does not exist.")
+            return LammpsStatus.NOT_FOUND
     
     def _modify_run_length_control(self):
         # Start accuracy lists (temperature, volume, x, y, and z are normal)
