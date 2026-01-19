@@ -230,7 +230,7 @@ class TestDriver(SingleCrystalTestDriver):
         """
         # Reduce supercell and update crystal structure
         reduced_atoms = self._reduce_and_average_supercell(
-            atoms_npt=f"{self.output_dir}/free_energy.data",
+            atoms_npt_path=f"{self.output_dir}/free_energy.data",
             reduced_atoms_save_path=f"{self.output_dir}/reduced_atoms.data"
         )
         self._update_nominal_parameter_values(reduced_atoms)
@@ -426,12 +426,12 @@ class TestDriver(SingleCrystalTestDriver):
         Hi_f, Hf_f, lamb_f = np.loadtxt(
             f"{self.output_dir}/FL_switch1.dat", unpack=True, skiprows=1
         )
-        w_forw = integrate.simpson(Hf_f - Hi_f, lamb_f)
+        w_forw = integrate.simpson(Hf_f - Hi_f, x=lamb_f)
 
         Hf_b, Hi_b, lamb_b = np.loadtxt(
             f"{self.output_dir}/FL_switch2.dat", unpack=True, skiprows=1
         )
-        w_back = integrate.simpson(Hf_b - Hi_b, 1 - lamb_b)
+        w_back = integrate.simpson(Hf_b - Hi_b, x=(1 - lamb_b))
 
         work = (w_forw - w_back) / 2
 
