@@ -3,14 +3,6 @@ from enum import Enum
 from pathlib import Path
 from typing import Sequence
 
-
-class LammpsStatus(Enum):
-    """Status of LAMMPS simulation completion."""
-    SUCCESS = "success"
-    MELTED = "melted"
-    NOT_FOUND = "not_found"
-    INCOMPLETE = "incomplete"
-
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.constants as sc
@@ -32,13 +24,32 @@ from .structure_utils import (
     compute_supercell_reps_uniform_cubic,
 )
 
+# Physical constants from scipy
 EV = sc.value("electron volt")
 MU = sc.value("atomic mass constant")
 HBAR = sc.value("Planck constant in eV/Hz") / (2 * np.pi)
 KB = sc.value("Boltzmann constant in eV/K")
 
 
+class LammpsStatus(Enum):
+    """Status of LAMMPS simulation completion."""
+    SUCCESS = "success"
+    MELTED = "melted"
+    NOT_FOUND = "not_found"
+    INCOMPLETE = "incomplete"
+
+
 class TestDriver(SingleCrystalTestDriver):
+    """Test driver for computing Gibbs free energy using Frenkel-Ladd method."""
+    
+    # Unit conversion constants
+    BAR_TO_PA = 1e5
+    ANGSTROM3_TO_M3 = 1e-30
+    JOULE_TO_EV = 6.2415e18
+    
+    # Accuracy thresholds
+    DEFAULT_RELATIVE_ACCURACY = 0.01
+    ORTHOGONAL_THRESHOLD_DEGREES = 0.1
     def _calculate(
         self,
         timestep_ps: float = 0.001,
@@ -413,12 +424,8 @@ class TestDriver(SingleCrystalTestDriver):
             / natoms
         )  # correction for fixed center of mass
 
-        bar_to_Pa = 1e5
-        A3_to_m3 = 1e-30
-        J_to_eV = 6.2415e18
-
         PV_term = (
-            self.pressure * bar_to_Pa * self.volume * A3_to_m3 * J_to_eV
+            self.pressure * self.BAR_TO_PA * self.volume * self.ANGSTROM3_TO_M3 * self.JOULE_TO_EV
         ) / natoms
 
         free_energy = np.sum(F_harm) - Work + F_CM + PV_term
@@ -456,23 +463,19 @@ class TestDriver(SingleCrystalTestDriver):
     
     def _modify_run_length_control(self):
         # Start accuracy lists (temperature, volume, x, y, and z are normal)
-        relative_accuracy = [0.01, 0.01, 0.01, 0.01, 0.01]
-        absolute_accuracy = [None, None, None, None, None]
+        relative_accuracy = [self.DEFAULT_RELATIVE_ACCURACY] * 5
+        absolute_accuracy = [None] * 5
 
-        # Get cell parameters and add appropriate values to accuracy lists (0.1 and None for non-zero tilt factors, vice-versa for zero)
-        # get_cell_lengths_and_angles() returns angles (in degrees) in place of tilt factors. Angle = 90 --> tilt factor = 0.0.
-        # The criterion for an orthogonal tilt factor ("abs(90-angle) < 0.1") can be modified, depending on how small of a tilt factor is too small for kim-convergence
+        # Get cell parameters and add appropriate values to accuracy lists
+        # get_cell_lengths_and_angles() returns angles (in degrees) in place of tilt factors.
+        # Angle = 90 --> tilt factor = 0.0.
         [X_cell, Y_cell, Z_cell, YZ_cell, XZ_cell, XY_cell] = self.supercell.get_cell_lengths_and_angles()
-        
-        # Define threshold for considering angles as orthogonal (in degrees).
-        # This should probably be replaced with something like self._get_supported_lammps_atom_style(), but to check orthogonality
-        ORTHOGONAL_THRESHOLD = 0.1
         
         # Process each cell angle and set appropriate accuracy values
         for angle in [XY_cell, XZ_cell, YZ_cell]:
-            is_orthogonal = abs(90 - angle) < ORTHOGONAL_THRESHOLD
-            relative_accuracy.append(None if is_orthogonal else 0.01)
-            absolute_accuracy.append(0.01 if is_orthogonal else None)
+            is_orthogonal = abs(90 - angle) < self.ORTHOGONAL_THRESHOLD_DEGREES
+            relative_accuracy.append(None if is_orthogonal else self.DEFAULT_RELATIVE_ACCURACY)
+            absolute_accuracy.append(self.DEFAULT_RELATIVE_ACCURACY if is_orthogonal else None)
         
         # Read the template content from the original run_length_control.py
         original_rlc_file = Path(__file__).parent / "run_length_control.py"
