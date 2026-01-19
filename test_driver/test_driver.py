@@ -2,17 +2,19 @@ import re
 from pathlib import Path
 from typing import Sequence
 
+import matplotlib.pyplot as plt
 import numpy as np
-from scipy import integrate
 import scipy.constants as sc
 from ase import Atoms
 from ase.data import atomic_masses, atomic_numbers
 from ase.io import read
-from kim_tools import get_isolated_energy_per_atom, get_stoich_reduced_list_from_prototype
-from kim_tools.test_driver import SingleCrystalTestDriver
+from kim_tools import (
+    get_isolated_energy_per_atom,
+    get_stoich_reduced_list_from_prototype,
+)
 from kim_tools.symmetry_util.core import reduce_and_avg
-
-import matplotlib.pyplot as plt
+from kim_tools.test_driver import SingleCrystalTestDriver
+from scipy import integrate
 
 from .helper_functions import run_lammps
 from .lammps_template import LammpsTemplate
