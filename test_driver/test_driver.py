@@ -71,20 +71,63 @@ class TestDriver(SingleCrystalTestDriver):
         equilibration_plots: bool = True,
         FL_plots: bool = True,
         **kwargs) -> None:
-
+        """Compute Gibbs free energy using Frenkel-Ladd thermodynamic integration.
+        
+        Uses a nonequilibrium thermodynamic integration method implemented in LAMMPS.
+        Reference: doi = 10.1016/j.commatsci.2015.10.050
         """
-        Gibbs free energy of a crystal at constant temperature and stress using a nonequilibrium thermodynamic integration method implemented in LAMMPS (doi = 10.1016/j.commatsci.2015.10.050).
+        # Initialize parameters and validate
+        self._initialize_params(
+            timestep_ps, FL_switch_timesteps, FL_equil_timesteps,
+            number_sampling_timesteps, target_size, target_radius, repeat,
+            lammps_command, msd_threshold_angstrom_squared_per_sampling_timesteps,
+            number_msd_timesteps, number_avePOS_timesteps, random_seed,
+            rlc_N_every, rlc_initial_run_length, rlc_min_samples, output_dir
+        )
+        
+        # Run LAMMPS simulation
+        self._run_simulation()
+        
+        # Compute free energy
+        free_energy_per_atom = self._free_energy()
 
-        Args:
-        """
+        # Make diagnostic plots
+        if equilibration_plots:
+            self._plot_equilibration()
+        if FL_plots:
+            self._plot_frenkel_ladd()
 
-        # Set prototype label
+        # Process and report results
+        self._finalize_and_report_results(free_energy_per_atom)
+
+    def _initialize_params(
+        self,
+        timestep_ps: float,
+        FL_switch_timesteps: int,
+        FL_equil_timesteps: int,
+        number_sampling_timesteps: int,
+        target_size: int,
+        target_radius: Optional[float],
+        repeat: Sequence[int],
+        lammps_command: str,
+        msd_threshold_angstrom_squared_per_sampling_timesteps: float,
+        number_msd_timesteps: int,
+        number_avePOS_timesteps: int,
+        random_seed: int,
+        rlc_N_every: int,
+        rlc_initial_run_length: int,
+        rlc_min_samples: int,
+        output_dir: str
+    ) -> None:
+        """Initialize calculation parameters and instance variables."""
+        # Get crystal structure info
         self.prototype_label = self._get_nominal_crystal_structure_npt()["prototype-label"]["source-value"]
-
         self.temperature_K = self._get_temperature(unit="K")
         self.cauchy_stress = self._get_cell_cauchy_stress(unit='bars')
-        self.pressure = -self.cauchy_stress[0] 
+        self.pressure = -self.cauchy_stress[0]
         self.atoms = self._get_atoms()
+        
+        # Store simulation parameters
         self.timestep_ps = timestep_ps
         self.FL_switch_timesteps = FL_switch_timesteps
         self.FL_equil_timesteps = FL_equil_timesteps
@@ -101,63 +144,85 @@ class TestDriver(SingleCrystalTestDriver):
         self.number_avePOS_timesteps = number_avePOS_timesteps
         self.random_seed = random_seed
         self.output_dir = output_dir
-
+        
         self.atom_style = self._get_supported_lammps_atom_style()
-        symbols = self.atoms.get_chemical_symbols()
-        species = sorted(set(symbols))
-
+        
         self._validate_inputs()
 
-        self.supercell = self._setup_initial_structure(filename=f"{self.output_dir}/zero_temperature_crystal.data")
-
-        # Modify the variables in run_length_control.py
+    def _run_simulation(self) -> None:
+        """Set up and run the LAMMPS simulation."""
+        # Set up initial structure
+        self.supercell = self._setup_initial_structure(
+            filename=f"{self.output_dir}/zero_temperature_crystal.data"
+        )
+        
+        # Prepare LAMMPS input files
         self._modify_run_length_control()
-
-        # Write initial template file "in.lammps"
         self.templates = LammpsTemplate(root=f"{self.output_dir}/")
         self.templates._write_lammps_file(
             nspecies=len(self.species), is_triclinic=self.is_triclinic
         )
-
+        
+        # Get species list for LAMMPS
+        symbols = self.atoms.get_chemical_symbols()
+        species = sorted(set(symbols))
+        
         # Run LAMMPS
-        log_filename, restart_filename, self.spring_constants, self.volume = run_lammps(
-            self.kim_model_name, self.temperature_K, self.pressure, self.timestep_ps, self.FL_switch_timesteps, self.FL_equil_timesteps, self.number_sampling_timesteps, species,
-            self.msd_threshold_angstrom_squared_per_sampling_timesteps, self.number_msd_timesteps, self.number_avePOS_timesteps,
-            self.rlc_N_every, self.lammps_command, self.random_seed, self.output_dir)
+        _, _, self.spring_constants, self.volume = run_lammps(
+            self.kim_model_name, self.temperature_K, self.pressure,
+            self.timestep_ps, self.FL_switch_timesteps, self.FL_equil_timesteps,
+            self.number_sampling_timesteps, species,
+            self.msd_threshold_angstrom_squared_per_sampling_timesteps,
+            self.number_msd_timesteps, self.number_avePOS_timesteps,
+            self.rlc_N_every, self.lammps_command, self.random_seed, self.output_dir
+        )
+        
+        # Verify simulation completed successfully
+        self._verify_lammps_completion()
 
-        # Check that LAMMPS ran to completion
-        lammps_status = self._check_lammps_completion(lammps_log=f"{self.output_dir}/free_energy.log")
+    def _verify_lammps_completion(self) -> None:
+        """Verify that LAMMPS simulation completed successfully."""
+        lammps_status = self._check_lammps_completion(
+            lammps_log=f"{self.output_dir}/free_energy.log"
+        )
         if lammps_status == LammpsStatus.MELTED:
             raise RuntimeError("Crystal melted or vaporized")
         elif lammps_status == LammpsStatus.NOT_FOUND:
-            raise FileNotFoundError(f"LAMMPS log file not found: {self.output_dir}/free_energy.log")
+            raise FileNotFoundError(
+                f"LAMMPS log file not found: {self.output_dir}/free_energy.log"
+            )
         elif lammps_status == LammpsStatus.INCOMPLETE:
             raise RuntimeError("LAMMPS simulation did not complete successfully")
 
-        # Compute free-energy
-        free_energy_per_atom = self._free_energy()
-
-        # Make diagnostic plots
-        if equilibration_plots:
-            self._plot_equilibration()
-        if FL_plots:
-            self._plot_frenkel_ladd()
-
-        reduced_atoms = self._reduce_average_and_verify_symmetry(atoms_npt=f"{self.output_dir}/free_energy.data", reduced_atoms_save_path=f"{self.output_dir}/reduced_atoms.data")
+    def _finalize_and_report_results(self, free_energy_per_atom: float) -> None:
+        """Process results, compute derived quantities, and write properties.
+        
+        Args:
+            free_energy_per_atom: Raw free energy per atom from Frenkel-Ladd integration.
+        """
+        # Reduce supercell and update crystal structure
+        reduced_atoms = self._reduce_average_and_verify_symmetry(
+            atoms_npt=f"{self.output_dir}/free_energy.data",
+            reduced_atoms_save_path=f"{self.output_dir}/reduced_atoms.data"
+        )
         self._update_nominal_parameter_values(reduced_atoms)
         
-        self._add_property_instance_and_common_crystal_genome_keys("crystal-structure-npt", write_temp=True, write_stress=True)#, stress_unit="bars")
-        self._add_file_to_current_property_instance("restart-file", f"{self.output_dir}/free_energy.restart")
+        # Write crystal structure property
+        self._add_property_instance_and_common_crystal_genome_keys(
+            "crystal-structure-npt", write_temp=True, write_stress=True
+        )
+        self._add_file_to_current_property_instance(
+            "restart-file", f"{self.output_dir}/free_energy.restart"
+        )
 
-        # Collect the energies of isolated atoms to subtract from final values
+        # Subtract isolated atom energies
         isolated_atom_energy = self._collect_isolated_atom_energies(reduced_atoms)
         free_energy_per_atom = free_energy_per_atom - isolated_atom_energy
 
-        # Convert to eV/formula (originally in eV/atom)
+        # Compute derived quantities
         num_atoms_in_formula = sum(self.stoichiometry)
         free_energy_per_formula = free_energy_per_atom * num_atoms_in_formula
 
-        # Convert to eV/amu (originally in eV/atom)
         atoms_per_cell = len(reduced_atoms.get_masses())
         mass_per_cell = sum(reduced_atoms.get_masses())
         free_energy_per_cell = free_energy_per_atom * atoms_per_cell
@@ -167,11 +232,10 @@ class TestDriver(SingleCrystalTestDriver):
         print("####################################")
         print("# Frenkel Ladd Free Energy Results #")
         print("####################################")
-
         print(f"G_FL = {free_energy_per_atom:.5f} (eV/atom)")
         print(f"Isolated atom energy = {isolated_atom_energy:.5f} (eV/atom)")
 
-        # Write keys to property
+        # Write free energy properties
         self._add_property_instance_and_common_crystal_genome_keys(
             "free-energy", write_stress=True, write_temp=self.temperature_K
         )
