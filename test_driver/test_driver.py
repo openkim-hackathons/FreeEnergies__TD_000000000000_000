@@ -75,7 +75,6 @@ class TestDriver(SingleCrystalTestDriver):
         """Compute Gibbs free energy using Frenkel-Ladd thermodynamic integration.
         
         Uses a nonequilibrium thermodynamic integration method implemented in LAMMPS.
-        Reference: doi = 10.1016/j.commatsci.2015.10.050
         
         Args:
             timestep_ps: MD timestep in picoseconds.
@@ -460,7 +459,7 @@ class TestDriver(SingleCrystalTestDriver):
 
         total_mass = np.sum(natoms * self.concentration * self.mass)
 
-        # Center of mass correction (Khanna 2021, J. Chem. Phys., eq. 10)
+        # Center of mass correction
         f_cm = (
             KB
             * self.temperature_K
