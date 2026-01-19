@@ -352,7 +352,7 @@ class TestDriver(SingleCrystalTestDriver):
         if not self.random_seed > 0:
             raise ValueError("The random seed has to be bigger than zero.")
 
-    def _setup_initial_structure(self, filename: Path) -> Atoms:
+    def _setup_initial_structure(self, filename: str) -> Atoms:
         """Set up the initial supercell structure for the simulation.
         
         Creates a supercell from the primitive cell based on the specified sizing
@@ -400,19 +400,17 @@ class TestDriver(SingleCrystalTestDriver):
             ]
         )
 
-        self.concentration = np.zeros(len(self.species))
-        symbols = np.array(self.atoms.get_chemical_symbols())
-        for i in range(len(self.species)):
-
-            self.concentration[i] = (symbols == self.species[i]).sum()
-        self.concentration *= 1 / len(symbols)
+        symbols = self.atoms.get_chemical_symbols()
+        self.concentration = np.array([
+            symbols.count(s) / len(symbols) for s in self.species
+        ])
 
         atoms_new.write(filename, format="lammps-data", masses=True, atom_style=self.atom_style)
         self.zero_k_structure_path = filename
 
         # Treat all cells as triclinic for simplicity
         self.is_triclinic = True
-       
+
         return atoms_new
     
     def _free_energy(self) -> float:
@@ -428,14 +426,14 @@ class TestDriver(SingleCrystalTestDriver):
         Hi_f, Hf_f, lamb_f = np.loadtxt(
             f"{self.output_dir}/FL_switch1.dat", unpack=True, skiprows=1
         )
-        W_forw = integrate.simpson(Hf_f - Hi_f, lamb_f)
+        w_forw = integrate.simpson(Hf_f - Hi_f, lamb_f)
 
         Hf_b, Hi_b, lamb_b = np.loadtxt(
             f"{self.output_dir}/FL_switch2.dat", unpack=True, skiprows=1
         )
-        W_back = integrate.simpson(Hf_b - Hi_b, 1 - lamb_b)
+        w_back = integrate.simpson(Hf_b - Hi_b, 1 - lamb_b)
 
-        work = (W_forw - W_back) / 2
+        work = (w_forw - w_back) / 2
 
         # array of omegas, one per component
         omega = (
@@ -445,7 +443,7 @@ class TestDriver(SingleCrystalTestDriver):
         natoms = len(self.supercell)
 
         # array of harmonic free energies, one per component
-        F_harm = (
+        f_harm = (
             self.concentration
             * 3
             * KB
@@ -455,27 +453,27 @@ class TestDriver(SingleCrystalTestDriver):
 
         total_mass = np.sum(natoms * self.concentration * self.mass)
 
-        F_CM = (
+        # Center of mass correction (Khanna 2021, J. Chem. Phys., eq. 10)
+        f_cm = (
             KB
             * self.temperature_K
             * np.log(
                 (natoms / self.volume)
                 * (
                     (2 * np.pi * KB * self.temperature_K)
-                    # Khanna 2021, J. Chem. Phys., eq. 10
                     / (np.sum(natoms * self.concentration * total_mass**2 * self.spring_constants * EV
                               / (self.mass*MU)**2))
                 )
                 ** (3 / 2)
             )
             / natoms
-        )  # correction for fixed center of mass
+        )
 
-        PV_term = (
+        pv_term = (
             self.pressure * self.BAR_TO_PA * self.volume * self.ANGSTROM3_TO_M3 * self.JOULE_TO_EV
         ) / natoms
 
-        free_energy = np.sum(F_harm) - work + F_CM + PV_term
+        free_energy = np.sum(f_harm) - work + f_cm + pv_term
 
         return free_energy
 
@@ -489,7 +487,7 @@ class TestDriver(SingleCrystalTestDriver):
             LammpsStatus indicating the outcome of the simulation.
         """
         try:
-            with open(lammps_log, "r") as file:
+            with open(lammps_log, "r", encoding="utf-8") as file:
                 lines = file.readlines()
 
                 if not lines:
@@ -614,17 +612,17 @@ class TestDriver(SingleCrystalTestDriver):
         # Get cell parameters and add appropriate values to accuracy lists
         # get_cell_lengths_and_angles() returns angles (in degrees) in place of tilt factors.
         # Angle = 90 --> tilt factor = 0.0.
-        [_, _, _, YZ_cell, XZ_cell, XY_cell] = self.supercell.get_cell_lengths_and_angles()
+        [_, _, _, yz_angle, xz_angle, xy_angle] = self.supercell.get_cell_lengths_and_angles()
         
         # Process each cell angle and set appropriate accuracy values
-        for angle in [XY_cell, XZ_cell, YZ_cell]:
+        for angle in [xy_angle, xz_angle, yz_angle]:
             is_orthogonal = abs(90 - angle) < self.ORTHOGONAL_THRESHOLD_DEGREES
             relative_accuracy.append(None if is_orthogonal else self.DEFAULT_RELATIVE_ACCURACY)
             absolute_accuracy.append(self.DEFAULT_RELATIVE_ACCURACY if is_orthogonal else None)
         
         # Read the template content from the original run_length_control.py
         original_rlc_file = Path(__file__).parent / "run_length_control.py"
-        with open(original_rlc_file, 'r') as file:
+        with open(original_rlc_file, 'r', encoding='utf-8') as file:
             template_content = file.read()
         
         # Set RELATIVE_ACCURACY
@@ -656,21 +654,21 @@ class TestDriver(SingleCrystalTestDriver):
         )
         
         # Write the modified content to the temporary file
-        with open(f"{self.output_dir}/run_length_control.py", 'w') as file:
+        with open(f"{self.output_dir}/run_length_control.py", 'w', encoding='utf-8') as file:
             file.write(new_content)
 
-    def _reduce_and_average_supercell(self, atoms_npt: Path, reduced_atoms_save_path: Path) -> Atoms:
+    def _reduce_and_average_supercell(self, atoms_npt_path: str, reduced_atoms_save_path: str) -> Atoms:
         """Reduce supercell to unit cell by averaging equivalent atom positions.
         
         Args:
-            atoms_npt: Path to LAMMPS data file with average positions.
+            atoms_npt_path: Path to LAMMPS data file with average positions.
             reduced_atoms_save_path: Path to save the reduced atoms structure.
             
         Returns:
             Reduced ASE Atoms object.
         """
         # Read lammps data file of average positions
-        atoms_npt = read(atoms_npt, format='lammps-data')
+        atoms_npt = read(atoms_npt_path, format='lammps-data')
 
         # Reduce to unit cell
         reduced_atoms = reduce_and_avg(atoms_npt, self.repeat)
