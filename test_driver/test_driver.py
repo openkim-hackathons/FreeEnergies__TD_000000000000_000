@@ -137,85 +137,11 @@ class TestDriver(SingleCrystalTestDriver):
         # Compute free-energy
         free_energy_per_atom = self._free_energy()
 
-        # Make equilibration plots
+        # Make diagnostic plots
         if equilibration_plots:
-
-            step, vol, temp, lx, ly, lz, xy, xz, yz = np.loadtxt(f"{self.output_dir}/equilibration.dat", unpack=True)
-
-            # ============================== Volume ============================== #
-
-            fig = plt.figure()
-
-            plt.plot(step/1000, vol, marker='none', ls='-')
-
-            plt.xlabel("Time [ps]")
-            plt.ylabel(r"Volume [$\AA^3$]")
-
-            plt.savefig(f"{self.output_dir}/volume.pdf", bbox_inches='tight')
-            plt.close(fig)
-
-            # ============================== Temp ============================== #
-
-            fig = plt.figure()
-
-            plt.plot(step/1000, temp, marker='none', ls='-')
-
-            plt.xlabel("Time [ps]")
-            plt.ylabel("T [K]")
-
-            plt.savefig(f"{self.output_dir}/temp.pdf", bbox_inches='tight')
-            plt.close(fig)
-
-            # ============================== lx, ly, lz ============================== #
-
-            fig = plt.figure()
-
-            plt.plot(step/1000, lx, marker='none', ls='-', label='lx')
-            plt.plot(step/1000, ly, marker='none', ls='-', label='ly')
-            plt.plot(step/1000, lz, marker='none', ls='-', label='lz')
-
-            plt.xlabel("Time [ps]")
-            plt.ylabel(r"$\AA$")
-
-            plt.legend(loc='best')
-
-            plt.savefig(f"{self.output_dir}/box_lengths.pdf", bbox_inches='tight')
-            plt.close(fig)
-
-            # ============================== lx, ly, lz ============================== #
-
-            fig = plt.figure()
-
-            plt.plot(step/1000, xy, marker='none', ls='-', label='xy')
-            plt.plot(step/1000, xz, marker='none', ls='-', label='xz')
-            plt.plot(step/1000, yz, marker='none', ls='-', label='yz')
-
-            plt.xlabel("Time [ps]")
-            plt.ylabel("Tilt Factor")
-
-            plt.legend(loc='best')
-
-            plt.savefig(f"{self.output_dir}/tilt_factors.pdf", bbox_inches='tight')
-            plt.close(fig)
-
-        # Make Frenkel-Ladd plots
+            self._plot_equilibration()
         if FL_plots:
-
-            PE1, PE1_springs, lamb1 = np.loadtxt(f"{self.output_dir}/FL_switch1.dat", unpack=True) # Forward (potential --> springs)
-            PE2, PE2_springs, lamb2 = np.loadtxt(f"{self.output_dir}/FL_switch2.dat", unpack=True) # Reverse (springs --> potential)
-
-            fig = plt.figure()
-
-            plt.plot(lamb1, PE1, color='blue', marker='none', ls='-', label='Forward')
-            plt.plot(lamb2, PE2, color='red', marker='none', ls='-', label='Reverse')
-
-            plt.xlabel(r'$\lambda$')
-            plt.ylabel('Potential Energy [eV/atom]')
-
-            plt.legend(loc='best')
-
-            plt.savefig(f'{self.output_dir}/E_vs_lambda.pdf', bbox_inches='tight')
-            plt.close(fig)
+            self._plot_frenkel_ladd()
 
         reduced_atoms = self._reduce_average_and_verify_symmetry(atoms_npt=f"{self.output_dir}/free_energy.data", reduced_atoms_save_path=f"{self.output_dir}/reduced_atoms.data")
         self._update_nominal_parameter_values(reduced_atoms)
@@ -460,6 +386,103 @@ class TestDriver(SingleCrystalTestDriver):
 
         except FileNotFoundError:
             return LammpsStatus.NOT_FOUND
+
+    def _plot_equilibration(self) -> None:
+        """Generate equilibration diagnostic plots (volume, temperature, box dimensions)."""
+        data = np.loadtxt(f"{self.output_dir}/equilibration.dat", unpack=True)
+        step, vol, temp, lx, ly, lz, xy, xz, yz = data
+        time_ps = step / 1000
+
+        # Volume plot
+        self._save_plot(
+            time_ps, vol,
+            xlabel="Time [ps]", ylabel=r"Volume [$\AA^3$]",
+            filename="volume.pdf"
+        )
+
+        # Temperature plot
+        self._save_plot(
+            time_ps, temp,
+            xlabel="Time [ps]", ylabel="T [K]",
+            filename="temp.pdf"
+        )
+
+        # Box lengths plot
+        self._save_multiline_plot(
+            time_ps, [lx, ly, lz], ["lx", "ly", "lz"],
+            xlabel="Time [ps]", ylabel=r"$\AA$",
+            filename="box_lengths.pdf"
+        )
+
+        # Tilt factors plot
+        self._save_multiline_plot(
+            time_ps, [xy, xz, yz], ["xy", "xz", "yz"],
+            xlabel="Time [ps]", ylabel="Tilt Factor",
+            filename="tilt_factors.pdf"
+        )
+
+    def _plot_frenkel_ladd(self) -> None:
+        """Generate Frenkel-Ladd switching plots."""
+        # Forward switch (potential --> springs)
+        PE1, PE1_springs, lamb1 = np.loadtxt(
+            f"{self.output_dir}/FL_switch1.dat", unpack=True
+        )
+        # Reverse switch (springs --> potential)
+        PE2, PE2_springs, lamb2 = np.loadtxt(
+            f"{self.output_dir}/FL_switch2.dat", unpack=True
+        )
+
+        fig, ax = plt.subplots()
+        ax.plot(lamb1, PE1, color='blue', marker='none', ls='-', label='Forward')
+        ax.plot(lamb2, PE2, color='red', marker='none', ls='-', label='Reverse')
+        ax.set_xlabel(r'$\lambda$')
+        ax.set_ylabel('Potential Energy [eV/atom]')
+        ax.legend(loc='best')
+        fig.savefig(f'{self.output_dir}/E_vs_lambda.pdf', bbox_inches='tight')
+        plt.close(fig)
+
+    def _save_plot(
+        self, x: np.ndarray, y: np.ndarray,
+        xlabel: str, ylabel: str, filename: str
+    ) -> None:
+        """Save a simple line plot to file.
+        
+        Args:
+            x: X-axis data.
+            y: Y-axis data.
+            xlabel: X-axis label.
+            ylabel: Y-axis label.
+            filename: Output filename (saved to output_dir).
+        """
+        fig, ax = plt.subplots()
+        ax.plot(x, y, marker='none', ls='-')
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel(ylabel)
+        fig.savefig(f"{self.output_dir}/{filename}", bbox_inches='tight')
+        plt.close(fig)
+
+    def _save_multiline_plot(
+        self, x: np.ndarray, ys: list, labels: list,
+        xlabel: str, ylabel: str, filename: str
+    ) -> None:
+        """Save a multi-line plot to file.
+        
+        Args:
+            x: X-axis data.
+            ys: List of Y-axis data arrays.
+            labels: List of labels for each line.
+            xlabel: X-axis label.
+            ylabel: Y-axis label.
+            filename: Output filename (saved to output_dir).
+        """
+        fig, ax = plt.subplots()
+        for y, label in zip(ys, labels):
+            ax.plot(x, y, marker='none', ls='-', label=label)
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel(ylabel)
+        ax.legend(loc='best')
+        fig.savefig(f"{self.output_dir}/{filename}", bbox_inches='tight')
+        plt.close(fig)
     
     def _modify_run_length_control(self) -> None:
         """Generate run_length_control.py with calculated accuracy values based on cell geometry."""
