@@ -1,4 +1,3 @@
-import os
 import re
 from pathlib import Path
 from typing import Sequence
@@ -15,8 +14,12 @@ from kim_tools.symmetry_util.core import reduce_and_avg
 
 import matplotlib.pyplot as plt
 
-from .lammps_template import LammpsTemplate
 from .helper_functions import run_lammps
+from .lammps_template import LammpsTemplate
+from .structure_utils import (
+    compute_supercell_reps_for_cutoff,
+    compute_supercell_reps_uniform_cubic,
+)
 
 EV = sc.value("electron volt")
 MU = sc.value("atomic mass constant")
@@ -32,6 +35,7 @@ class TestDriver(SingleCrystalTestDriver):
         FL_equil_timesteps: int = 10000,
         number_sampling_timesteps: int = 100,
         target_size: int = 10000,
+        target_radius: float = None,
         repeat: Sequence[int] = (0, 0, 0),
         lammps_command = "lmp",
         msd_threshold_angstrom_squared_per_sampling_timesteps: float = 0.1,
@@ -64,6 +68,7 @@ class TestDriver(SingleCrystalTestDriver):
         self.FL_equil_timesteps = FL_equil_timesteps
         self.number_sampling_timesteps = number_sampling_timesteps
         self.target_size = target_size
+        self.target_radius = target_radius
         self.repeat = repeat
         self.lammps_command = lammps_command
         self.rlc_N_every = rlc_N_every
@@ -255,6 +260,26 @@ class TestDriver(SingleCrystalTestDriver):
         if not all(r >= 0 for r in self.repeat):
             raise ValueError("All number of repeats must be bigger than zero.")
 
+        # Validate mutually exclusive supercell sizing options
+        repeat_is_default = self.repeat == (0, 0, 0)
+        target_size_is_default = self.target_size == 10000
+        target_radius_is_default = self.target_radius is None
+        
+        num_specified = sum([
+            not repeat_is_default,
+            not target_size_is_default,
+            not target_radius_is_default
+        ])
+        
+        if num_specified > 1:
+            raise ValueError(
+                "Cannot specify more than one of 'target_size', 'target_radius', or 'repeat'. "
+                "Choose one method to control supercell size:\n"
+                "  - target_size: uniform cubic expansion to target atom count\n"
+                "  - target_radius: expansion based on minimum image distance (good for non-cubic cells)\n"
+                "  - repeat: explicit (nx, ny, nz) repetitions"
+            )
+
         if not self.msd_threshold_angstrom_squared_per_sampling_timesteps > 0.0:
             raise ValueError("The mean-squared displacement threshold has to be bigger than zero.")
 
@@ -275,10 +300,17 @@ class TestDriver(SingleCrystalTestDriver):
         atoms_new = self.atoms.copy()
 
         # Build supercell
-        if self.repeat == (0,0,0):
-            # Get a size close to 10K atoms (shown to give good convergence)
-            x = int(np.ceil(np.cbrt(self.target_size / len(self.atoms))))
-            self.repeat = (x,x,x)
+        if self.repeat == (0, 0, 0):
+            if self.target_radius is not None:
+                # Use cutoff-based expansion (good for non-cubic cells)
+                self.repeat = compute_supercell_reps_for_cutoff(
+                    self.atoms.get_cell(), self.target_radius
+                )
+            else:
+                # Use uniform cubic expansion to target atom count
+                self.repeat = compute_supercell_reps_uniform_cubic(
+                    len(self.atoms), self.target_size
+                )
 
         atoms_new = atoms_new.repeat(self.repeat)
 
