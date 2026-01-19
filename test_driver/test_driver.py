@@ -3,20 +3,22 @@ import re
 from pathlib import Path
 from typing import Sequence
 
+import matplotlib.pyplot as plt
 import numpy as np
-from scipy import integrate
 import scipy.constants as sc
 from ase import Atoms
 from ase.data import atomic_masses, atomic_numbers
 from ase.io import read
-from kim_tools import get_isolated_energy_per_atom, get_stoich_reduced_list_from_prototype
-from kim_tools.test_driver import SingleCrystalTestDriver
+from kim_tools import (
+    get_isolated_energy_per_atom,
+    get_stoich_reduced_list_from_prototype,
+)
 from kim_tools.symmetry_util.core import reduce_and_avg
+from kim_tools.test_driver import SingleCrystalTestDriver
+from scipy import integrate
 
-import matplotlib.pyplot as plt
-
-from .lammps_template import LammpsTemplate
 from .helper_functions import run_lammps
+from .lammps_template import LammpsTemplate
 
 EV = sc.value("electron volt")
 MU = sc.value("atomic mass constant")
@@ -185,7 +187,7 @@ class TestDriver(SingleCrystalTestDriver):
             plt.savefig(f'{self.output_dir}/E_vs_lambda.pdf', bbox_inches='tight')
             plt.close(fig)
 
-        reduced_atoms = self._reduce_average_and_verify_symmetry(atoms_npt=f"{self.output_dir}/free_energy.data", reduced_atoms_save_path=f"{self.output_dir}/reduced_atoms.data")
+        reduced_atoms = self._reduce_and_average(atoms_npt=f"{self.output_dir}/free_energy.data", reduced_atoms_save_path=f"{self.output_dir}/reduced_atoms.data")
         self._update_nominal_parameter_values(reduced_atoms)
         
         self._add_property_instance_and_common_crystal_genome_keys("crystal-structure-npt", write_temp=True, write_stress=True)#, stress_unit="bars")
@@ -454,7 +456,7 @@ class TestDriver(SingleCrystalTestDriver):
         with open(f"{self.output_dir}/run_length_control.py", 'w') as file:
             file.write(new_content)
 
-    def _reduce_average_and_verify_symmetry(self, atoms_npt: Path, reduced_atoms_save_path: Path):
+    def _reduce_and_average(self, atoms_npt: Path, reduced_atoms_save_path: Path):
 
         # Read lammps data file of average positions
         atoms_npt = read(atoms_npt, format='lammps-data')
