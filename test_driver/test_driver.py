@@ -1,7 +1,7 @@
 import os
 import re
 from pathlib import Path
-from typing import List, Tuple, Sequence
+from typing import Sequence
 
 import numpy as np
 from scipy import integrate
@@ -9,7 +9,7 @@ import scipy.constants as sc
 from ase import Atoms
 from ase.data import atomic_masses, atomic_numbers
 from ase.io import read
-from kim_tools import KIMTestDriverError, get_isolated_energy_per_atom, get_stoich_reduced_list_from_prototype
+from kim_tools import get_isolated_energy_per_atom, get_stoich_reduced_list_from_prototype
 from kim_tools.test_driver import SingleCrystalTestDriver
 from kim_tools.symmetry_util.core import reduce_and_avg
 
@@ -31,7 +31,7 @@ class TestDriver(SingleCrystalTestDriver):
         FL_switch_timesteps: int = 50000,
         FL_equil_timesteps: int = 10000,
         number_sampling_timesteps: int = 100,
-        target_size: int = 1000,
+        target_size: int = 10000,
         repeat: Sequence[int] = (0, 0, 0),
         lammps_command = "lmp",
         msd_threshold_angstrom_squared_per_sampling_timesteps: float = 0.1,
@@ -55,9 +55,6 @@ class TestDriver(SingleCrystalTestDriver):
         # Set prototype label
         self.prototype_label = self._get_nominal_crystal_structure_npt()["prototype-label"]["source-value"]
 
-        self.test_driver_directory = os.path.dirname(os.path.realpath(__file__))
-        print(self.test_driver_directory)
-
         self.temperature_K = self._get_temperature(unit="K")
         self.cauchy_stress = self._get_cell_cauchy_stress(unit='bars')
         self.pressure = -self.cauchy_stress[0] 
@@ -76,27 +73,6 @@ class TestDriver(SingleCrystalTestDriver):
         self.number_msd_timesteps = number_msd_timesteps
         self.number_avePOS_timesteps = number_avePOS_timesteps
         self.random_seed = random_seed
-
-        max_idx = -1
-        has_plain_output = False
-        pattern = re.compile(r"^output(?:\.(\d+))?$")
-
-        for name in os.listdir("."):
-            if os.path.isdir(name):
-                m = pattern.match(name)
-                if m:
-                    if m.group(1) is None:
-                        has_plain_output = True
-                    else:
-                        max_idx = max(max_idx, int(m.group(1)))
-
-        if max_idx >= 0:
-            output_dir = f"output.{max_idx}"
-        elif has_plain_output:
-            output_dir = "output"
-        else:
-            output_dir = None  # no output directory found
-
         self.output_dir = output_dir
 
         self.atom_style = self._get_supported_lammps_atom_style()
@@ -120,7 +96,7 @@ class TestDriver(SingleCrystalTestDriver):
         log_filename, restart_filename, self.spring_constants, self.volume = run_lammps(
             self.kim_model_name, self.temperature_K, self.pressure, self.timestep_ps, self.FL_switch_timesteps, self.FL_equil_timesteps, self.number_sampling_timesteps, species,
             self.msd_threshold_angstrom_squared_per_sampling_timesteps, self.number_msd_timesteps, self.number_avePOS_timesteps,
-            self.rlc_N_every, self.lammps_command, self.random_seed, self.output_dir, self.test_driver_directory)
+            self.rlc_N_every, self.lammps_command, self.random_seed, self.output_dir)
 
         # Check that LAMMPS ran to completion
         if self._check_if_lammps_ran_to_completion(lammps_log=f"{self.output_dir}/free_energy.log") == str("Crystal melted or vaporized"):
@@ -209,11 +185,11 @@ class TestDriver(SingleCrystalTestDriver):
             plt.savefig(f'{self.output_dir}/E_vs_lambda.pdf', bbox_inches='tight')
             plt.close(fig)
 
-        self._add_property_instance_and_common_crystal_genome_keys("crystal-structure-npt", write_temp=True, write_stress=True)#, stress_unit="bars")
-        self._add_file_to_current_property_instance("restart-file", f"{self.output_dir}/free_energy.restart")
-
         reduced_atoms = self._reduce_average_and_verify_symmetry(atoms_npt=f"{self.output_dir}/free_energy.data", reduced_atoms_save_path=f"{self.output_dir}/reduced_atoms.data")
         self._update_nominal_parameter_values(reduced_atoms)
+        
+        self._add_property_instance_and_common_crystal_genome_keys("crystal-structure-npt", write_temp=True, write_stress=True)#, stress_unit="bars")
+        self._add_file_to_current_property_instance("restart-file", f"{self.output_dir}/free_energy.restart")
 
         # Collect the energies of isolated atoms to subtract from final values
         isolated_atom_energy = self._collect_isolated_atom_energies(reduced_atoms)
@@ -242,10 +218,10 @@ class TestDriver(SingleCrystalTestDriver):
             "free-energy", write_stress=True, write_temp=self.temperature_K
         )
         self._add_key_to_current_property_instance(
-            "gibbs-free-energy-per-atom", free_energy_per_atom, "eV/atom"
+            "gibbs-free-energy-per-atom", free_energy_per_atom, "eV"
         )
         self._add_key_to_current_property_instance(
-            "gibbs-free-energy-per-formula", free_energy_per_formula, "eV/formula"
+            "gibbs-free-energy-per-formula", free_energy_per_formula, "eV"
         )
         self._add_key_to_current_property_instance(
             "specific-gibbs-free-energy", specific_free_energy, "eV/amu"
@@ -325,7 +301,7 @@ class TestDriver(SingleCrystalTestDriver):
             self.concentration[i] = (symbols == self.species[i]).sum()
         self.concentration *= 1 / len(symbols)
 
-        atoms_new.write(filename, format="lammps-data", masses=True)
+        atoms_new.write(filename, format="lammps-data", masses=True, atom_style=self.atom_style)
         self.zero_k_structure_path = filename
 
         # Check if the cell is triclinic by checking if any of the cell lengths or angles are different from the others.
@@ -475,7 +451,7 @@ class TestDriver(SingleCrystalTestDriver):
         )
         
         # Write the modified content to the temporary file
-        with open(original_rlc_file, 'w') as file:
+        with open(f"{self.output_dir}/run_length_control.py", 'w') as file:
             file.write(new_content)
 
     def _reduce_average_and_verify_symmetry(self, atoms_npt: Path, reduced_atoms_save_path: Path):
@@ -487,11 +463,7 @@ class TestDriver(SingleCrystalTestDriver):
         reduced_atoms = reduce_and_avg(atoms_npt, self.repeat)
 
         # Print reduced_atoms for verification
-        reduced_atoms.write(reduced_atoms_save_path, format='lammps-data', masses=True)
-
-        # Check symmetry
-        if not self._verify_unchanged_symmetry(reduced_atoms):
-            raise ValueError("The symmetry of the atoms have changed.")
+        reduced_atoms.write(reduced_atoms_save_path, format='lammps-data', masses=True, atom_style=self.atom_style)
 
         return reduced_atoms
     

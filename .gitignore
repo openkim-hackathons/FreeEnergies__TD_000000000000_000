@@ -3,7 +3,7 @@ examples/01_Silicon/output/*
 !examples/01_Silicon/output/results/
 !examples/01_Silicon/output/results/*
 *log*
-output/*
+output*
 *.out
 lammps_templates/*
 test_results/*
