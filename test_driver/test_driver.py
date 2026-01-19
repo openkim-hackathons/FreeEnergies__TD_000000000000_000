@@ -53,8 +53,8 @@ class TestDriver(SingleCrystalTestDriver):
     def _calculate(
         self,
         timestep_ps: float = 0.001,
-        FL_switch_timesteps: int = 50000,
-        FL_equil_timesteps: int = 10000,
+        fl_switch_timesteps: int = 50000,
+        fl_equil_timesteps: int = 10000,
         number_sampling_timesteps: int = 100,
         target_size: int = 10000,
         target_radius: Optional[float] = None,
@@ -69,7 +69,7 @@ class TestDriver(SingleCrystalTestDriver):
         rlc_min_samples: int = 100,
         output_dir: str = "output",
         equilibration_plots: bool = True,
-        FL_plots: bool = True,
+        fl_plots: bool = True,
         **kwargs) -> None:
         """Compute Gibbs free energy using Frenkel-Ladd thermodynamic integration.
         
@@ -78,8 +78,8 @@ class TestDriver(SingleCrystalTestDriver):
         
         Args:
             timestep_ps: MD timestep in picoseconds.
-            FL_switch_timesteps: Number of timesteps for Frenkel-Ladd switching.
-            FL_equil_timesteps: Number of timesteps for equilibration before/after switching.
+            fl_switch_timesteps: Number of timesteps for Frenkel-Ladd switching.
+            fl_equil_timesteps: Number of timesteps for equilibration before/after switching.
             number_sampling_timesteps: Interval between data sampling in timesteps.
             target_size: Target number of atoms for supercell (used if repeat not specified).
             target_radius: Target radius for minimum image distance in Angstroms.
@@ -95,7 +95,7 @@ class TestDriver(SingleCrystalTestDriver):
             rlc_min_samples: Minimum number of independent samples for convergence.
             output_dir: Directory for output files.
             equilibration_plots: Whether to generate equilibration diagnostic plots.
-            FL_plots: Whether to generate Frenkel-Ladd switching plots.
+            fl_plots: Whether to generate Frenkel-Ladd switching plots.
             **kwargs: Additional keyword arguments (unused).
             
         Raises:
@@ -105,7 +105,7 @@ class TestDriver(SingleCrystalTestDriver):
         """
         # Initialize parameters and validate
         self._initialize_params(
-            timestep_ps, FL_switch_timesteps, FL_equil_timesteps,
+            timestep_ps, fl_switch_timesteps, fl_equil_timesteps,
             number_sampling_timesteps, target_size, target_radius, repeat,
             lammps_command, msd_threshold_angstrom_squared_per_sampling_timesteps,
             number_msd_timesteps, number_avePOS_timesteps, random_seed,
@@ -121,7 +121,7 @@ class TestDriver(SingleCrystalTestDriver):
         # Make diagnostic plots
         if equilibration_plots:
             self._plot_equilibration()
-        if FL_plots:
+        if fl_plots:
             self._plot_frenkel_ladd()
 
         # Process and report results
@@ -130,8 +130,8 @@ class TestDriver(SingleCrystalTestDriver):
     def _initialize_params(
         self,
         timestep_ps: float,
-        FL_switch_timesteps: int,
-        FL_equil_timesteps: int,
+        fl_switch_timesteps: int,
+        fl_equil_timesteps: int,
         number_sampling_timesteps: int,
         target_size: int,
         target_radius: Optional[float],
@@ -156,8 +156,8 @@ class TestDriver(SingleCrystalTestDriver):
         
         # Store simulation parameters
         self.timestep_ps = timestep_ps
-        self.FL_switch_timesteps = FL_switch_timesteps
-        self.FL_equil_timesteps = FL_equil_timesteps
+        self.fl_switch_timesteps = fl_switch_timesteps
+        self.fl_equil_timesteps = fl_equil_timesteps
         self.number_sampling_timesteps = number_sampling_timesteps
         self.target_size = target_size
         self.target_radius = target_radius
@@ -197,7 +197,7 @@ class TestDriver(SingleCrystalTestDriver):
         # Run LAMMPS
         _, _, self.spring_constants, self.volume = run_lammps(
             self.kim_model_name, self.temperature_K, self.pressure,
-            self.timestep_ps, self.FL_switch_timesteps, self.FL_equil_timesteps,
+            self.timestep_ps, self.fl_switch_timesteps, self.fl_equil_timesteps,
             self.number_sampling_timesteps, species,
             self.msd_threshold_angstrom_squared_per_sampling_timesteps,
             self.number_msd_timesteps, self.number_avePOS_timesteps,
