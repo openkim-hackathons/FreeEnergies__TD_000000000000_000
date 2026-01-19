@@ -7,59 +7,11 @@
     },
     "stoichiometric-species": {
       "source-value": [
-        "Au"
+        "Al"
       ]
     },
     "a": {
-      "source-value": 3.7407,
-      "source-unit": "angstrom"
-    },
-    "short-name": {
-      "source-value": [
-        "Face-Centered Cubic"
-      ]
-    },
-    "library-prototype-label": {
-      "source-value": "A_cF4_225_a"
-    },
-    "cell-cauchy-stress": {
-      "source-value": [
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        0.0
-      ],
-      "source-unit": "eV/angstrom^3"
-    },
-    "temperature": {
-      "source-value": 300.0,
-      "source-unit": "K"
-    },
-    "coordinates-file": {
-      "source-value": "instance-1.poscar"
-    },
-    "coordinates-file-conventional": {
-      "source-value": "conventional.instance-1.poscar"
-    },
-    "restart-file": {
-      "source-value": "output.3/free_energy-1.restart"
-    }
-  },
-  {
-    "property-id": "tag:staff@noreply.openkim.org,2024-03-11:property/free-energy",
-    "instance-id": 2,
-    "prototype-label": {
-      "source-value": "A_cF4_225_a"
-    },
-    "stoichiometric-species": {
-      "source-value": [
-        "Au"
-      ]
-    },
-    "a": {
-      "source-value": 3.7425409944550068,
+      "source-value": 4.052039798221666,
       "source-unit": "angstrom"
     },
     "short-name": {
@@ -85,6 +37,68 @@
       "source-value": 300.0,
       "source-unit": "K"
     },
+    "crystal-genome-source-structure-id": {
+      "source-value": [
+        [
+          "RD_562379038684_000"
+        ]
+      ]
+    },
+    "coordinates-file": {
+      "source-value": "instance-1.poscar"
+    },
+    "coordinates-file-conventional": {
+      "source-value": "conventional.instance-1.poscar"
+    },
+    "restart-file": {
+      "source-value": "free_energy-1.restart"
+    }
+  },
+  {
+    "property-id": "tag:staff@noreply.openkim.org,2024-03-11:property/free-energy",
+    "instance-id": 2,
+    "prototype-label": {
+      "source-value": "A_cF4_225_a"
+    },
+    "stoichiometric-species": {
+      "source-value": [
+        "Al"
+      ]
+    },
+    "a": {
+      "source-value": 4.052039798221666,
+      "source-unit": "angstrom"
+    },
+    "short-name": {
+      "source-value": [
+        "Face-Centered Cubic (Cu, $A1$, fcc) Structure"
+      ]
+    },
+    "library-prototype-label": {
+      "source-value": "A_cF4_225_a-001"
+    },
+    "cell-cauchy-stress": {
+      "source-value": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "source-unit": "eV/angstrom^3"
+    },
+    "temperature": {
+      "source-value": 300.0,
+      "source-unit": "K"
+    },
+    "crystal-genome-source-structure-id": {
+      "source-value": [
+        [
+          "RD_562379038684_000"
+        ]
+      ]
+    },
     "coordinates-file": {
       "source-value": "instance-2.poscar"
     },
@@ -92,15 +106,15 @@
       "source-value": "conventional.instance-2.poscar"
     },
     "gibbs-free-energy-per-atom": {
-      "source-value": -19.14795966027215,
-      "source-unit": "eV/atom"
+      "source-value": -3.371352330525062,
+      "source-unit": "eV"
     },
     "gibbs-free-energy-per-formula": {
-      "source-value": -19.14795966027215,
-      "source-unit": "eV/formula"
+      "source-value": -3.371352330525062,
+      "source-unit": "eV"
     },
     "specific-gibbs-free-energy": {
-      "source-value": -0.09721426208257787,
+      "source-value": -0.12495033708048421,
       "source-unit": "eV/amu"
     }
   }

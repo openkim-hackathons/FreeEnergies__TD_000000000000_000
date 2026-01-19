@@ -10,7 +10,7 @@ from json import dump
 import subprocess
 
 calcs = [
-    ["LJ_ElliottAkerson_2015_Universal__MO_959249795837_003"],
+    ["EAM_Dynamo_ErcolessiAdams_1994_Al__MO_123629422045_006"],
 ]
 
 # LJ_ElliottAkerson_2015_Universal__MO_959249795837_003

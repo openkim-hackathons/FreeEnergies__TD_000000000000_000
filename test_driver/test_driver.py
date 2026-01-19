@@ -57,7 +57,7 @@ class TestDriver(SingleCrystalTestDriver):
         fl_switch_timesteps: int = 50000,
         fl_equil_timesteps: int = 10000,
         number_sampling_timesteps: int = 100,
-        target_size: int = 10000,
+        target_size: int = 1000,
         target_radius: Optional[float] = None,
         repeat: Sequence[int] = (0, 0, 0),
         lammps_command: str = "lmp",
@@ -91,7 +91,7 @@ class TestDriver(SingleCrystalTestDriver):
             
         Note:
             Supercell sizing: Only ONE of target_size, target_radius, or repeat should be
-            specified. A ValueError is raised if more than one is set to a non-default value.
+                specified. A ValueError is raised if more than one is set to a non-default value.
             msd_threshold_angstrom_squared_per_sampling_timesteps: MSD threshold for
                 detecting melting/vaporization.
             number_msd_timesteps: Number of timesteps to monitor MSD for melting detection.
@@ -202,7 +202,7 @@ class TestDriver(SingleCrystalTestDriver):
         species = sorted(set(symbols))
         
         # Run LAMMPS
-        _, _, self.spring_constants, self.volume = run_lammps(
+        _, _, self.spring_constants, self.volume, self.lammps_status = run_lammps(
             self.kim_model_name, self.temperature_K, self.pressure,
             self.timestep_ps, self.fl_switch_timesteps, self.fl_equil_timesteps,
             self.number_sampling_timesteps, species,
@@ -216,16 +216,13 @@ class TestDriver(SingleCrystalTestDriver):
 
     def _verify_lammps_completion(self) -> None:
         """Verify that LAMMPS simulation completed successfully."""
-        lammps_status = self._check_lammps_completion(
-            lammps_log=f"{self.output_dir}/free_energy.log"
-        )
-        if lammps_status == LammpsStatus.MELTED:
+        if self.lammps_status == LammpsStatus.MELTED:
             raise RuntimeError("Crystal melted or vaporized")
-        elif lammps_status == LammpsStatus.NOT_FOUND:
+        elif self.lammps_status == LammpsStatus.NOT_FOUND:
             raise FileNotFoundError(
                 f"LAMMPS log file not found: {self.output_dir}/free_energy.log"
             )
-        elif lammps_status == LammpsStatus.INCOMPLETE:
+        elif self.lammps_status == LammpsStatus.INCOMPLETE:
             raise RuntimeError("LAMMPS simulation did not complete successfully")
 
     def _finalize_and_report_results(self, free_energy_per_atom: float) -> None:
@@ -482,35 +479,6 @@ class TestDriver(SingleCrystalTestDriver):
         free_energy = np.sum(f_harm) - work + f_cm + pv_term
 
         return free_energy
-
-    def _check_lammps_completion(self, lammps_log: Path) -> LammpsStatus:
-        """Check if LAMMPS simulation completed successfully.
-        
-        Args:
-            lammps_log: Path to the LAMMPS log file.
-            
-        Returns:
-            LammpsStatus indicating the outcome of the simulation.
-        """
-        try:
-            with open(lammps_log, "r", encoding="utf-8") as file:
-                lines = file.readlines()
-
-                if not lines:
-                    return LammpsStatus.INCOMPLETE
-                
-                # Check second-to-last line for melting indicator
-                if len(lines) >= 2 and lines[-2].strip().startswith("Crystal melted or vaporized"):
-                    return LammpsStatus.MELTED
-
-                # Check last line for successful completion
-                if lines[-1].strip().startswith("Total wall time:"):
-                    return LammpsStatus.SUCCESS
-                    
-                return LammpsStatus.INCOMPLETE
-
-        except FileNotFoundError:
-            return LammpsStatus.NOT_FOUND
 
     def _plot_equilibration(self) -> None:
         """Generate equilibration diagnostic plots (volume, temperature, box dimensions)."""

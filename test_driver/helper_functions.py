@@ -1,6 +1,15 @@
 import subprocess
 from typing import List, Tuple
 import numpy as np
+from pathlib import Path
+from enum import Enum
+
+class LammpsStatus(Enum):
+    """Status of LAMMPS simulation completion."""
+    SUCCESS = "success"
+    MELTED = "melted"
+    NOT_FOUND = "not_found"
+    INCOMPLETE = "incomplete"
 
 def run_lammps(modelname: str, temperature_K: float, pressure_bar: float, timestep_ps: float, FL_switch_timesteps: int, FL_equil_timesteps: int,
                number_sampling_timesteps: int, species: List[str], msd_threshold_angstrom_squared_per_sampling_timesteps: float,
@@ -57,5 +66,37 @@ def run_lammps(modelname: str, temperature_K: float, pressure_bar: float, timest
         spring_constants[i] = np.loadtxt(f"{output_dir}/k{i}.dat")
     
     volume  = np.loadtxt(f"{output_dir}/volume.dat")
+
+    # Verify simulation completed successfully
+    lammps_status = _check_lammps_completion(lammps_log=f"{output_dir}/free_energy.log")
     
-    return log_filename, restart_filename, spring_constants, volume
+    return log_filename, restart_filename, spring_constants, volume, lammps_status
+
+def _check_lammps_completion(lammps_log: Path) -> LammpsStatus:
+        """Check if LAMMPS simulation completed successfully.
+        
+        Args:
+            lammps_log: Path to the LAMMPS log file.
+            
+        Returns:
+            LammpsStatus indicating the outcome of the simulation.
+        """
+        try:
+            with open(lammps_log, "r", encoding="utf-8") as file:
+                lines = file.readlines()
+
+                if not lines:
+                    return LammpsStatus.INCOMPLETE
+                
+                # Check second-to-last line for melting indicator
+                if len(lines) >= 2 and lines[-2].strip().startswith("Crystal melted or vaporized"):
+                    return LammpsStatus.MELTED
+
+                # Check last line for successful completion
+                if lines[-1].strip().startswith("Total wall time:"):
+                    return LammpsStatus.SUCCESS
+                    
+                return LammpsStatus.INCOMPLETE
+
+        except FileNotFoundError:
+            return LammpsStatus.NOT_FOUND
