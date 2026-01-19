@@ -549,17 +549,17 @@ class TestDriver(SingleCrystalTestDriver):
     def _plot_frenkel_ladd(self) -> None:
         """Generate Frenkel-Ladd switching plots."""
         # Forward switch (potential --> springs)
-        PE1, _, lamb1 = np.loadtxt(
+        pe1, _, lamb1 = np.loadtxt(
             f"{self.output_dir}/FL_switch1.dat", unpack=True
         )
         # Reverse switch (springs --> potential)
-        PE2, _, lamb2 = np.loadtxt(
+        pe2, _, lamb2 = np.loadtxt(
             f"{self.output_dir}/FL_switch2.dat", unpack=True
         )
 
         fig, ax = plt.subplots()
-        ax.plot(lamb1, PE1, color='blue', marker='none', ls='-', label='Forward')
-        ax.plot(lamb2, PE2, color='red', marker='none', ls='-', label='Reverse')
+        ax.plot(lamb1, pe1, color='blue', marker='none', ls='-', label='Forward')
+        ax.plot(lamb2, pe2, color='red', marker='none', ls='-', label='Reverse')
         ax.set_xlabel(r'$\lambda$')
         ax.set_ylabel('Potential Energy [eV/atom]')
         ax.legend(loc='best')
