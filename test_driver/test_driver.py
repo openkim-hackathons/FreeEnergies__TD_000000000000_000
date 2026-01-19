@@ -45,7 +45,7 @@ class TestDriver(SingleCrystalTestDriver):
         number_avePOS_timesteps: int = 30000,
         random_seed: int = 101010,
         rlc_N_every: int = 10,
-        rlc_inital_run_length: int = 1000,
+        rlc_initial_run_length: int = 1000,
         rlc_min_samples: int = 100,
         output_dir: str = "output",
         equilibration_plots: bool = True,
@@ -74,7 +74,7 @@ class TestDriver(SingleCrystalTestDriver):
         self.repeat = repeat
         self.lammps_command = lammps_command
         self.rlc_N_every = rlc_N_every
-        self.rlc_inital_run_length = rlc_inital_run_length
+        self.rlc_initial_run_length = rlc_initial_run_length
         self.rlc_min_samples = rlc_min_samples
         self.msd_threshold_angstrom_squared_per_sampling_timesteps = msd_threshold_angstrom_squared_per_sampling_timesteps
         self.number_msd_timesteps = number_msd_timesteps
@@ -473,7 +473,7 @@ class TestDriver(SingleCrystalTestDriver):
         # Set INITAL_RUN_LENGTH
         new_content = re.sub(
             r"INITIAL_RUN_LENGTH: int\s*=\s*.*",
-            f"INITIAL_RUN_LENGTH: int = {self.rlc_inital_run_length}",
+            f"INITIAL_RUN_LENGTH: int = {self.rlc_initial_run_length}",
             new_content
         )
 
