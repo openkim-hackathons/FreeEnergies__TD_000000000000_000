@@ -1,7 +1,7 @@
 import re
 from enum import Enum
 from pathlib import Path
-from typing import Sequence
+from typing import Optional, Sequence
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -57,9 +57,9 @@ class TestDriver(SingleCrystalTestDriver):
         FL_equil_timesteps: int = 10000,
         number_sampling_timesteps: int = 100,
         target_size: int = 10000,
-        target_radius: float = None,
+        target_radius: Optional[float] = None,
         repeat: Sequence[int] = (0, 0, 0),
-        lammps_command = "lmp",
+        lammps_command: str = "lmp",
         msd_threshold_angstrom_squared_per_sampling_timesteps: float = 0.1,
         number_msd_timesteps: int = 10000,
         number_avePOS_timesteps: int = 30000,
@@ -259,8 +259,8 @@ class TestDriver(SingleCrystalTestDriver):
             "specific-gibbs-free-energy", specific_free_energy, "eV/amu"
         )
 
-    def _validate_inputs(self):
-
+    def _validate_inputs(self) -> None:
+        """Validate all input parameters for the calculation."""
         if not self.temperature_K > 0.0:
             raise ValueError("Temperature has to be larger than zero.")
 
@@ -461,7 +461,8 @@ class TestDriver(SingleCrystalTestDriver):
         except FileNotFoundError:
             return LammpsStatus.NOT_FOUND
     
-    def _modify_run_length_control(self):
+    def _modify_run_length_control(self) -> None:
+        """Generate run_length_control.py with calculated accuracy values based on cell geometry."""
         # Start accuracy lists (temperature, volume, x, y, and z are normal)
         relative_accuracy = [self.DEFAULT_RELATIVE_ACCURACY] * 5
         absolute_accuracy = [None] * 5
@@ -514,8 +515,16 @@ class TestDriver(SingleCrystalTestDriver):
         with open(f"{self.output_dir}/run_length_control.py", 'w') as file:
             file.write(new_content)
 
-    def _reduce_average_and_verify_symmetry(self, atoms_npt: Path, reduced_atoms_save_path: Path):
-
+    def _reduce_average_and_verify_symmetry(self, atoms_npt: Path, reduced_atoms_save_path: Path) -> Atoms:
+        """Reduce supercell to unit cell and verify symmetry.
+        
+        Args:
+            atoms_npt: Path to LAMMPS data file with average positions.
+            reduced_atoms_save_path: Path to save the reduced atoms structure.
+            
+        Returns:
+            Reduced ASE Atoms object.
+        """
         # Read lammps data file of average positions
         atoms_npt = read(atoms_npt, format='lammps-data')
 
