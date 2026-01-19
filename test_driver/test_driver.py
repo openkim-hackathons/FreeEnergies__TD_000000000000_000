@@ -50,6 +50,7 @@ class TestDriver(SingleCrystalTestDriver):
     # Accuracy thresholds
     DEFAULT_RELATIVE_ACCURACY = 0.01
     ORTHOGONAL_THRESHOLD_DEGREES = 0.1
+
     def _calculate(
         self,
         timestep_ps: float = 0.001,
@@ -62,9 +63,9 @@ class TestDriver(SingleCrystalTestDriver):
         lammps_command: str = "lmp",
         msd_threshold_angstrom_squared_per_sampling_timesteps: float = 0.1,
         number_msd_timesteps: int = 10000,
-        number_avePOS_timesteps: int = 30000,
+        number_ave_pos_timesteps: int = 30000,
         random_seed: int = 101010,
-        rlc_N_every: int = 10,
+        rlc_n_every: int = 10,
         rlc_initial_run_length: int = 1000,
         rlc_min_samples: int = 100,
         output_dir: str = "output",
@@ -88,9 +89,9 @@ class TestDriver(SingleCrystalTestDriver):
             msd_threshold_angstrom_squared_per_sampling_timesteps: MSD threshold for
                 detecting melting/vaporization.
             number_msd_timesteps: Number of timesteps to monitor MSD for melting detection.
-            number_avePOS_timesteps: Number of timesteps for averaging atomic positions.
+            number_ave_pos_timesteps: Number of timesteps for averaging atomic positions.
             random_seed: Random seed for velocity initialization and Langevin thermostat.
-            rlc_N_every: Sampling frequency for run length control.
+            rlc_n_every: Sampling frequency for run length control.
             rlc_initial_run_length: Initial run length for convergence checking.
             rlc_min_samples: Minimum number of independent samples for convergence.
             output_dir: Directory for output files.
@@ -108,8 +109,8 @@ class TestDriver(SingleCrystalTestDriver):
             timestep_ps, fl_switch_timesteps, fl_equil_timesteps,
             number_sampling_timesteps, target_size, target_radius, repeat,
             lammps_command, msd_threshold_angstrom_squared_per_sampling_timesteps,
-            number_msd_timesteps, number_avePOS_timesteps, random_seed,
-            rlc_N_every, rlc_initial_run_length, rlc_min_samples, output_dir
+            number_msd_timesteps, number_ave_pos_timesteps, random_seed,
+            rlc_n_every, rlc_initial_run_length, rlc_min_samples, output_dir
         )
         
         # Run LAMMPS simulation
@@ -139,9 +140,9 @@ class TestDriver(SingleCrystalTestDriver):
         lammps_command: str,
         msd_threshold_angstrom_squared_per_sampling_timesteps: float,
         number_msd_timesteps: int,
-        number_avePOS_timesteps: int,
+        number_ave_pos_timesteps: int,
         random_seed: int,
-        rlc_N_every: int,
+        rlc_n_every: int,
         rlc_initial_run_length: int,
         rlc_min_samples: int,
         output_dir: str
@@ -163,12 +164,12 @@ class TestDriver(SingleCrystalTestDriver):
         self.target_radius = target_radius
         self.repeat = repeat
         self.lammps_command = lammps_command
-        self.rlc_N_every = rlc_N_every
+        self.rlc_n_every = rlc_n_every
         self.rlc_initial_run_length = rlc_initial_run_length
         self.rlc_min_samples = rlc_min_samples
         self.msd_threshold_angstrom_squared_per_sampling_timesteps = msd_threshold_angstrom_squared_per_sampling_timesteps
         self.number_msd_timesteps = number_msd_timesteps
-        self.number_avePOS_timesteps = number_avePOS_timesteps
+        self.number_ave_pos_timesteps = number_ave_pos_timesteps
         self.random_seed = random_seed
         self.output_dir = output_dir
         
@@ -200,8 +201,8 @@ class TestDriver(SingleCrystalTestDriver):
             self.timestep_ps, self.fl_switch_timesteps, self.fl_equil_timesteps,
             self.number_sampling_timesteps, species,
             self.msd_threshold_angstrom_squared_per_sampling_timesteps,
-            self.number_msd_timesteps, self.number_avePOS_timesteps,
-            self.rlc_N_every, self.lammps_command, self.random_seed, self.output_dir
+            self.number_msd_timesteps, self.number_ave_pos_timesteps,
+            self.rlc_n_every, self.lammps_command, self.random_seed, self.output_dir
         )
         
         # Verify simulation completed successfully
@@ -409,12 +410,7 @@ class TestDriver(SingleCrystalTestDriver):
         atoms_new.write(filename, format="lammps-data", masses=True, atom_style=self.atom_style)
         self.zero_k_structure_path = filename
 
-        # Check if the cell is triclinic by checking if any of the cell lengths or angles are different from the others.
-        # tol = 1e-2
-        # a, b, c, alpha, beta, gamma = cell_to_cellpar(self.atoms.cell)
-        # self.is_triclinic = all(abs(x - y) > 1e-2 for x, y in [(a, b), (b, c), (a, c), (alpha, beta), (beta, gamma), (alpha, gamma)]) or all(abs(x - 90) > tol for x in [alpha, beta, gamma])
-
-        # Treat all cells as triclinic for simplicity.
+        # Treat all cells as triclinic for simplicity
         self.is_triclinic = True
        
         return atoms_new
@@ -432,17 +428,14 @@ class TestDriver(SingleCrystalTestDriver):
         Hi_f, Hf_f, lamb_f = np.loadtxt(
             f"{self.output_dir}/FL_switch1.dat", unpack=True, skiprows=1
         )
-        W_forw = integrate.simpson(Hf_f - Hi_f, lamb_f) # Result: -19.14796 eV/atom
-        #W_forw = np.trapz(Hf_f - Hi_f, lamb_f) # Result: -19.14796 eV/atom
+        W_forw = integrate.simpson(Hf_f - Hi_f, lamb_f)
 
         Hf_b, Hi_b, lamb_b = np.loadtxt(
             f"{self.output_dir}/FL_switch2.dat", unpack=True, skiprows=1
         )
-        W_back = integrate.simpson(Hf_b - Hi_b, 1 - lamb_b) # Result: -19.14796 eV/atom
-        #W_back = np.trapz(Hf_b - Hi_b, 1 - lamb_b) # Result: -19.14796 eV/atom
+        W_back = integrate.simpson(Hf_b - Hi_b, 1 - lamb_b)
 
-        Work = (W_forw - W_back) / 2
-        Dissipation = (W_forw + W_back) / 2
+        work = (W_forw - W_back) / 2
 
         # array of omegas, one per component
         omega = (
@@ -451,7 +444,7 @@ class TestDriver(SingleCrystalTestDriver):
 
         natoms = len(self.supercell)
 
-        # array of harmoinc free energies, one per component
+        # array of harmonic free energies, one per component
         F_harm = (
             self.concentration
             * 3
@@ -469,9 +462,9 @@ class TestDriver(SingleCrystalTestDriver):
                 (natoms / self.volume)
                 * (
                     (2 * np.pi * KB * self.temperature_K)
-                    #/ (natoms * self.concentration * self.mass * omega**2)
+                    # Khanna 2021, J. Chem. Phys., eq. 10
                     / (np.sum(natoms * self.concentration * total_mass**2 * self.spring_constants * EV
-                              / (self.mass*MU)**2)) # Khanna 2021, J. Chem. Phys., eq. 10
+                              / (self.mass*MU)**2))
                 )
                 ** (3 / 2)
             )
@@ -482,7 +475,7 @@ class TestDriver(SingleCrystalTestDriver):
             self.pressure * self.BAR_TO_PA * self.volume * self.ANGSTROM3_TO_M3 * self.JOULE_TO_EV
         ) / natoms
 
-        free_energy = np.sum(F_harm) - Work + F_CM + PV_term
+        free_energy = np.sum(F_harm) - work + F_CM + PV_term
 
         return free_energy
 
@@ -552,11 +545,11 @@ class TestDriver(SingleCrystalTestDriver):
     def _plot_frenkel_ladd(self) -> None:
         """Generate Frenkel-Ladd switching plots."""
         # Forward switch (potential --> springs)
-        PE1, PE1_springs, lamb1 = np.loadtxt(
+        PE1, _, lamb1 = np.loadtxt(
             f"{self.output_dir}/FL_switch1.dat", unpack=True
         )
         # Reverse switch (springs --> potential)
-        PE2, PE2_springs, lamb2 = np.loadtxt(
+        PE2, _, lamb2 = np.loadtxt(
             f"{self.output_dir}/FL_switch2.dat", unpack=True
         )
 
@@ -621,7 +614,7 @@ class TestDriver(SingleCrystalTestDriver):
         # Get cell parameters and add appropriate values to accuracy lists
         # get_cell_lengths_and_angles() returns angles (in degrees) in place of tilt factors.
         # Angle = 90 --> tilt factor = 0.0.
-        [X_cell, Y_cell, Z_cell, YZ_cell, XZ_cell, XY_cell] = self.supercell.get_cell_lengths_and_angles()
+        [_, _, _, YZ_cell, XZ_cell, XY_cell] = self.supercell.get_cell_lengths_and_angles()
         
         # Process each cell angle and set appropriate accuracy values
         for angle in [XY_cell, XZ_cell, YZ_cell]:
