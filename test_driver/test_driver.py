@@ -228,7 +228,7 @@ class TestDriver(SingleCrystalTestDriver):
             free_energy_per_atom: Raw free energy per atom from Frenkel-Ladd integration.
         """
         # Reduce supercell and update crystal structure
-        reduced_atoms = self._reduce_average_and_verify_symmetry(
+        reduced_atoms = self._reduce_and_average_supercell(
             atoms_npt=f"{self.output_dir}/free_energy.data",
             reduced_atoms_save_path=f"{self.output_dir}/reduced_atoms.data"
         )
@@ -650,8 +650,8 @@ class TestDriver(SingleCrystalTestDriver):
         with open(f"{self.output_dir}/run_length_control.py", 'w') as file:
             file.write(new_content)
 
-    def _reduce_average_and_verify_symmetry(self, atoms_npt: Path, reduced_atoms_save_path: Path) -> Atoms:
-        """Reduce supercell to unit cell and verify symmetry.
+    def _reduce_and_average_supercell(self, atoms_npt: Path, reduced_atoms_save_path: Path) -> Atoms:
+        """Reduce supercell to unit cell by averaging equivalent atom positions.
         
         Args:
             atoms_npt: Path to LAMMPS data file with average positions.
