@@ -75,6 +75,33 @@ class TestDriver(SingleCrystalTestDriver):
         
         Uses a nonequilibrium thermodynamic integration method implemented in LAMMPS.
         Reference: doi = 10.1016/j.commatsci.2015.10.050
+        
+        Args:
+            timestep_ps: MD timestep in picoseconds.
+            FL_switch_timesteps: Number of timesteps for Frenkel-Ladd switching.
+            FL_equil_timesteps: Number of timesteps for equilibration before/after switching.
+            number_sampling_timesteps: Interval between data sampling in timesteps.
+            target_size: Target number of atoms for supercell (used if repeat not specified).
+            target_radius: Target radius for minimum image distance in Angstroms.
+            repeat: Explicit (nx, ny, nz) supercell repetitions. If (0,0,0), uses target_size.
+            lammps_command: Command to invoke LAMMPS executable.
+            msd_threshold_angstrom_squared_per_sampling_timesteps: MSD threshold for
+                detecting melting/vaporization.
+            number_msd_timesteps: Number of timesteps to monitor MSD for melting detection.
+            number_avePOS_timesteps: Number of timesteps for averaging atomic positions.
+            random_seed: Random seed for velocity initialization and Langevin thermostat.
+            rlc_N_every: Sampling frequency for run length control.
+            rlc_initial_run_length: Initial run length for convergence checking.
+            rlc_min_samples: Minimum number of independent samples for convergence.
+            output_dir: Directory for output files.
+            equilibration_plots: Whether to generate equilibration diagnostic plots.
+            FL_plots: Whether to generate Frenkel-Ladd switching plots.
+            **kwargs: Additional keyword arguments (unused).
+            
+        Raises:
+            ValueError: If input parameters are invalid.
+            RuntimeError: If simulation fails (melting, incomplete, etc.).
+            FileNotFoundError: If LAMMPS log file is not found.
         """
         # Initialize parameters and validate
         self._initialize_params(
@@ -250,7 +277,20 @@ class TestDriver(SingleCrystalTestDriver):
         )
 
     def _validate_inputs(self) -> None:
-        """Validate all input parameters for the calculation."""
+        """Validate all input parameters for the calculation.
+        
+        Checks that all simulation parameters have valid values and are
+        physically meaningful. Ensures mutual exclusivity of supercell
+        sizing options.
+        
+        Raises:
+            ValueError: If any parameter has an invalid value, including:
+                - Non-positive temperature, timestep, or random seed
+                - Invalid stress tensor (must be hydrostatic pressure)
+                - Invalid repeat tuple
+                - Multiple supercell sizing options specified
+                - MSD parameters inconsistent with sampling frequency
+        """
         if not self.temperature_K > 0.0:
             raise ValueError("Temperature has to be larger than zero.")
 
@@ -364,7 +404,15 @@ class TestDriver(SingleCrystalTestDriver):
         return atoms_new
     
     def _free_energy(self) -> float:
-
+        """Compute the Gibbs free energy per atom using Frenkel-Ladd integration.
+        
+        Integrates the work done during forward and backward switching between
+        the interatomic potential and harmonic reference system. Includes corrections
+        for harmonic free energy, center of mass constraint, and PV term.
+        
+        Returns:
+            Gibbs free energy per atom in eV (before subtracting isolated atom energies).
+        """
         Hi_f, Hf_f, lamb_f = np.loadtxt(
             f"{self.output_dir}/FL_switch1.dat", unpack=True, skiprows=1
         )
@@ -613,6 +661,43 @@ class TestDriver(SingleCrystalTestDriver):
             Reduced ASE Atoms object.
         """
         # Read lammps data file of average positions
+        atoms_npt = read(atoms_npt, format='lammps-data')
+
+        # Reduce to unit cell
+        reduced_atoms = reduce_and_avg(atoms_npt, self.repeat)
+
+        # Print reduced_atoms for verification
+        reduced_atoms.write(reduced_atoms_save_path, format='lammps-data', masses=True, atom_style=self.atom_style)
+
+        return reduced_atoms
+    
+    def _collect_isolated_atom_energies(self, reduced_atoms: Atoms) -> float:
+        """Compute the isolated atom energy per atom for the given structure.
+        
+        Args:
+            reduced_atoms: ASE Atoms object with the reduced unit cell.
+            
+        Returns:
+            Isolated atom energy per atom in eV.
+        """
+        # List of unique elements (strings) in the "reduced_atoms" ASE atoms object
+        element_list = list(dict.fromkeys(reduced_atoms.get_chemical_symbols()))
+
+        # stoichiometry is already set in _calculate, use it directly
+        # (prototype_label was set at the start of _calculate)
+        self.stoichiometry = get_stoich_reduced_list_from_prototype(self.prototype_label)
+        
+        # Compute total isolated energy for one formula unit
+        total_isolated_energy = sum(
+            stoich * get_isolated_energy_per_atom(self.kim_model_name, element)
+            for element, stoich in zip(element_list, self.stoichiometry)
+        )
+        
+        # Divide by total number of atoms in formula to get per-atom energy
+        num_atoms_in_formula = sum(self.stoichiometry)
+        isolated_atom_energy = total_isolated_energy / num_atoms_in_formula
+        
+        return isolated_atom_energy
         atoms_npt = read(atoms_npt, format='lammps-data')
 
         # Reduce to unit cell
