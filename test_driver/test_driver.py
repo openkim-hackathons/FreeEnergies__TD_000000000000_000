@@ -82,10 +82,17 @@ class TestDriver(SingleCrystalTestDriver):
             fl_switch_timesteps: Number of timesteps for Frenkel-Ladd switching.
             fl_equil_timesteps: Number of timesteps for equilibration before/after switching.
             number_sampling_timesteps: Interval between data sampling in timesteps.
-            target_size: Target number of atoms for supercell (used if repeat not specified).
-            target_radius: Target radius for minimum image distance in Angstroms.
-            repeat: Explicit (nx, ny, nz) supercell repetitions. If (0,0,0), uses target_size.
+            target_size: Target number of atoms for supercell. Mutually exclusive with
+                target_radius and repeat. Default: 10000.
+            target_radius: Target radius for minimum image distance in Angstroms. Good for
+                non-cubic cells. Mutually exclusive with target_size and repeat.
+            repeat: Explicit (nx, ny, nz) supercell repetitions. Mutually exclusive with
+                target_size and target_radius. Use (0,0,0) to use target_size instead.
             lammps_command: Command to invoke LAMMPS executable.
+            
+        Note:
+            Supercell sizing: Only ONE of target_size, target_radius, or repeat should be
+            specified. A ValueError is raised if more than one is set to a non-default value.
             msd_threshold_angstrom_squared_per_sampling_timesteps: MSD threshold for
                 detecting melting/vaporization.
             number_msd_timesteps: Number of timesteps to monitor MSD for melting detection.
