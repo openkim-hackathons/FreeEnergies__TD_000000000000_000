@@ -501,22 +501,30 @@ class TestDriver(SingleCrystalTestDriver):
 
         return reduced_atoms
     
-    def _collect_isolated_atom_energies(self,reduced_atoms):
-        isolated_atom_energy_list = []
-
+    def _collect_isolated_atom_energies(self, reduced_atoms: Atoms) -> float:
+        """Compute the isolated atom energy per atom for the given structure.
+        
+        Args:
+            reduced_atoms: ASE Atoms object with the reduced unit cell.
+            
+        Returns:
+            Isolated atom energy per atom in eV.
+        """
         # List of unique elements (strings) in the "reduced_atoms" ASE atoms object
         element_list = list(dict.fromkeys(reduced_atoms.get_chemical_symbols()))
 
-        # List of stoichiometric coefficients (should line up with "element_list" if everything is in alphabetical order)
-        self.prototype_label = self._get_nominal_crystal_structure_npt()["prototype-label"][
-            "source-value"
-        ]
+        # stoichiometry is already set in _calculate, use it directly
+        # (prototype_label was set at the start of _calculate)
         self.stoichiometry = get_stoich_reduced_list_from_prototype(self.prototype_label)
         
-        # Append correct number of each isolated atom energy according to stoichiometric coefficients
-        for element,stoich in zip(element_list,self.stoichiometry):
-            isolated_atom_energy_list.append(stoich * get_isolated_energy_per_atom(self.kim_model_name, element)) # appends as many as exist in one formula unit
-
-        # Take the mean of the energies to subtract from the per-atom free energy
-        isolated_atom_energy = np.mean(isolated_atom_energy_list)
+        # Compute total isolated energy for one formula unit
+        total_isolated_energy = sum(
+            stoich * get_isolated_energy_per_atom(self.kim_model_name, element)
+            for element, stoich in zip(element_list, self.stoichiometry)
+        )
+        
+        # Divide by total number of atoms in formula to get per-atom energy
+        num_atoms_in_formula = sum(self.stoichiometry)
+        isolated_atom_energy = total_isolated_energy / num_atoms_in_formula
+        
         return isolated_atom_energy
