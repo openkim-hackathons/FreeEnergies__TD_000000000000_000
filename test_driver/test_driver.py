@@ -57,7 +57,6 @@ class TestDriver(SingleCrystalTestDriver):
         target_size: int = 10000,
         repeat: Optional[Sequence[int]] = None,
         lammps_command: str = "lmp",
-        msd_threshold_angstrom_squared_per_sampling_timesteps: float = 0.1,
         number_msd_timesteps: int = 10000,
         number_ave_pos_timesteps: int = 30000,
         random_seed: int = 101010,
@@ -139,11 +138,9 @@ class TestDriver(SingleCrystalTestDriver):
         timestep_ps: float,
         fl_switch_timesteps: int,
         fl_equil_timesteps: int,
-        number_sampling_timesteps: int,
         target_size: int,
         repeat: Optional[Sequence[int]],
         lammps_command: str,
-        msd_threshold_angstrom_squared_per_sampling_timesteps: float,
         number_msd_timesteps: int,
         number_ave_pos_timesteps: int,
         random_seed: int,
@@ -164,7 +161,6 @@ class TestDriver(SingleCrystalTestDriver):
         self.timestep_ps = timestep_ps
         self.fl_switch_timesteps = fl_switch_timesteps
         self.fl_equil_timesteps = fl_equil_timesteps
-        self.number_sampling_timesteps = number_sampling_timesteps
         self.target_size = target_size
         self.repeat = repeat
         # If repeat is None, it will be set by compute_supercell_for_target_size
@@ -172,7 +168,6 @@ class TestDriver(SingleCrystalTestDriver):
         self.rlc_n_every = rlc_n_every
         self.rlc_initial_run_length = rlc_initial_run_length
         self.rlc_min_samples = rlc_min_samples
-        self.msd_threshold_angstrom_squared_per_sampling_timesteps = msd_threshold_angstrom_squared_per_sampling_timesteps
         self.number_msd_timesteps = number_msd_timesteps
         self.number_ave_pos_timesteps = number_ave_pos_timesteps
         self.random_seed = random_seed
@@ -324,10 +319,6 @@ class TestDriver(SingleCrystalTestDriver):
         if not self.number_msd_timesteps > 0:
             raise ValueError("The number of timesteps to monitor the mean-squared displacement has to be bigger than "
                              "zero.")
-
-        if not self.number_msd_timesteps % self.number_sampling_timesteps == 0:
-            raise ValueError("The number of timesteps to monitor the mean-squared displacement has to be a multiple of "
-                             "the number of sampling timesteps.")
 
         if not self.random_seed > 0:
             raise ValueError("The random seed has to be bigger than zero.")
