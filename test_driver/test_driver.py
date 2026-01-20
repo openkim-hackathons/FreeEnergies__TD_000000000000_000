@@ -19,10 +19,7 @@ from scipy import integrate
 
 from .helper_functions import run_lammps
 from .lammps_template import LammpsTemplate
-from .structure_utils import (
-    compute_supercell_reps_for_cutoff,
-    compute_supercell_reps_uniform_cubic,
-)
+from .structure_utils import compute_supercell_for_target_size
 
 # Physical constants from scipy
 EV = sc.value("electron volt")
@@ -57,9 +54,7 @@ class TestDriver(SingleCrystalTestDriver):
         fl_switch_timesteps: int = 50000,
         fl_equil_timesteps: int = 10000,
         number_sampling_timesteps: int = 100,
-        target_size: int = 1000,
-        target_radius: Optional[float] = None,
-        repeat: Sequence[int] = (0, 0, 0),
+        target_size: int = 10000,
         lammps_command: str = "lmp",
         msd_threshold_angstrom_squared_per_sampling_timesteps: float = 0.1,
         number_msd_timesteps: int = 10000,
@@ -81,17 +76,17 @@ class TestDriver(SingleCrystalTestDriver):
             fl_switch_timesteps: Number of timesteps for Frenkel-Ladd switching.
             fl_equil_timesteps: Number of timesteps for equilibration before/after switching.
             number_sampling_timesteps: Interval between data sampling in timesteps.
-            target_size: Target number of atoms for supercell. Mutually exclusive with
-                target_radius and repeat. Default: 10000.
-            target_radius: Target radius for minimum image distance in Angstroms. Good for
-                non-cubic cells. Mutually exclusive with target_size and repeat.
-            repeat: Explicit (nx, ny, nz) supercell repetitions. Mutually exclusive with
-                target_size and target_radius. Use (0,0,0) to use target_size instead.
+            target_size: Target number of atoms for supercell. Uses cutoff-based expansion
+                with target size constraint (good for non-cubic cells). The algorithm starts
+                with an 8Å cutoff radius and recursively decreases it until the supercell has
+                fewer atoms than target_size. Default: 10000.
             lammps_command: Command to invoke LAMMPS executable.
             
         Note:
-            Supercell sizing: Only ONE of target_size, target_radius, or repeat should be
-                specified. A ValueError is raised if more than one is set to a non-default value.
+            Supercell sizing: Uses cutoff-based expansion with target size constraint. This
+                method ensures the supercell stays below the target atom count while maintaining
+                appropriate minimum image distances, making it suitable for both cubic and
+                non-cubic crystal structures.
             msd_threshold_angstrom_squared_per_sampling_timesteps: MSD threshold for
                 detecting melting/vaporization.
             number_msd_timesteps: Number of timesteps to monitor MSD for melting detection.
@@ -113,7 +108,7 @@ class TestDriver(SingleCrystalTestDriver):
         # Initialize parameters and validate
         self._initialize_params(
             timestep_ps, fl_switch_timesteps, fl_equil_timesteps,
-            number_sampling_timesteps, target_size, target_radius, repeat,
+            number_sampling_timesteps, target_size,
             lammps_command, msd_threshold_angstrom_squared_per_sampling_timesteps,
             number_msd_timesteps, number_ave_pos_timesteps, random_seed,
             rlc_n_every, rlc_initial_run_length, rlc_min_samples, output_dir
@@ -141,8 +136,6 @@ class TestDriver(SingleCrystalTestDriver):
         fl_equil_timesteps: int,
         number_sampling_timesteps: int,
         target_size: int,
-        target_radius: Optional[float],
-        repeat: Sequence[int],
         lammps_command: str,
         msd_threshold_angstrom_squared_per_sampling_timesteps: float,
         number_msd_timesteps: int,
@@ -167,8 +160,7 @@ class TestDriver(SingleCrystalTestDriver):
         self.fl_equil_timesteps = fl_equil_timesteps
         self.number_sampling_timesteps = number_sampling_timesteps
         self.target_size = target_size
-        self.target_radius = target_radius
-        self.repeat = repeat
+        # self.repeat will be set by compute_supercell_for_target_size
         self.lammps_command = lammps_command
         self.rlc_n_every = rlc_n_every
         self.rlc_initial_run_length = rlc_initial_run_length
@@ -291,8 +283,6 @@ class TestDriver(SingleCrystalTestDriver):
             ValueError: If any parameter has an invalid value, including:
                 - Non-positive temperature, timestep, or random seed
                 - Invalid stress tensor (must be hydrostatic pressure)
-                - Invalid repeat tuple
-                - Multiple supercell sizing options specified
                 - MSD parameters inconsistent with sampling frequency
         """
         if not self.temperature_K > 0.0:
@@ -315,32 +305,6 @@ class TestDriver(SingleCrystalTestDriver):
         if not self.number_sampling_timesteps > 0:
             raise ValueError("Number of timesteps between sampling in Lammps has to be bigger than zero.")
 
-        if not len(self.repeat) == 3:
-            raise ValueError("The repeat argument has to be a tuple of three integers.")
-
-        if not all(r >= 0 for r in self.repeat):
-            raise ValueError("All number of repeats must be bigger than zero.")
-
-        # Validate mutually exclusive supercell sizing options
-        repeat_is_default = self.repeat == (0, 0, 0)
-        target_size_is_default = self.target_size == 10000
-        target_radius_is_default = self.target_radius is None
-        
-        num_specified = sum([
-            not repeat_is_default,
-            not target_size_is_default,
-            not target_radius_is_default
-        ])
-        
-        if num_specified > 1:
-            raise ValueError(
-                "Cannot specify more than one of 'target_size', 'target_radius', or 'repeat'. "
-                "Choose one method to control supercell size:\n"
-                "  - target_size: uniform cubic expansion to target atom count\n"
-                "  - target_radius: expansion based on minimum image distance (good for non-cubic cells)\n"
-                "  - repeat: explicit (nx, ny, nz) repetitions"
-            )
-
         if not self.msd_threshold_angstrom_squared_per_sampling_timesteps > 0.0:
             raise ValueError("The mean-squared displacement threshold has to be bigger than zero.")
 
@@ -358,9 +322,9 @@ class TestDriver(SingleCrystalTestDriver):
     def _setup_initial_structure(self, filename: str) -> Atoms:
         """Set up the initial supercell structure for the simulation.
         
-        Creates a supercell from the primitive cell based on the specified sizing
-        method (repeat, target_size, or target_radius). Determines species, masses,
-        and concentrations, then writes the structure to a LAMMPS data file.
+        Creates a supercell from the primitive cell using cutoff-based expansion
+        with target size constraint. Determines species, masses, and concentrations,
+        then writes the structure to a LAMMPS data file.
         
         Args:
             filename: Path to write the LAMMPS data file.
@@ -370,26 +334,16 @@ class TestDriver(SingleCrystalTestDriver):
             
         Note:
             Sets instance variables: species, mass, concentration, zero_k_structure_path,
-            is_triclinic. May modify self.repeat if it was (0,0,0).
+            is_triclinic, repeat.
         """
         # Copy original atoms so that their information does not get lost when the new atoms are modified.
-
         atoms_new = self.atoms.copy()
 
-        # Build supercell
-        if self.repeat == (0, 0, 0):
-            if self.target_radius is not None:
-                # Use cutoff-based expansion (good for non-cubic cells)
-                self.repeat = compute_supercell_reps_for_cutoff(
-                    self.atoms.get_cell(), self.target_radius
-                )
-            else:
-                # Use uniform cubic expansion to target atom count
-                self.repeat = compute_supercell_reps_uniform_cubic(
-                    len(self.atoms), self.target_size
-                )
-
-        atoms_new = atoms_new.repeat(self.repeat)
+        # Build supercell using cutoff-based expansion with target size constraint
+        # (good for non-cubic cells, ensures natoms < target_size)
+        atoms_new, self.repeat = compute_supercell_for_target_size(
+            self.atoms, self.target_size
+        )
 
         # This is how ASE obtains the species that are written to the initial configuration.
         # These species are passed to kim interactions.
