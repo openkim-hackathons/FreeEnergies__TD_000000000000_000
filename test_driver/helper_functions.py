@@ -12,9 +12,8 @@ class LammpsStatus(Enum):
     INCOMPLETE = "incomplete"
 
 def run_lammps(modelname: str, temperature_K: float, pressure_bar: float, timestep_ps: float, FL_switch_timesteps: int, FL_equil_timesteps: int,
-               number_sampling_timesteps: int, species: List[str], msd_threshold_angstrom_squared_per_sampling_timesteps: float,
-               number_msd_timesteps: int, number_avePOS_timesteps: int, rlc_N_every: int, lammps_command: str, random_seed: int,
-               output_dir: str) -> Tuple[str, str, list, float]:
+               species: List[str], number_msd_timesteps: int, number_avePOS_timesteps: int, rlc_N_every: int,
+               lammps_command: str, random_seed: int, output_dir: str) -> Tuple[str, str, list, float]:
     
     pdamp = timestep_ps * 1000.0
     tdamp = timestep_ps * 100.0
