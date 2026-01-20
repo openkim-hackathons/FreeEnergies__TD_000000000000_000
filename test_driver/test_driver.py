@@ -204,8 +204,7 @@ class TestDriver(SingleCrystalTestDriver):
         _, _, self.spring_constants, self.volume, self.lammps_status = run_lammps(
             self.kim_model_name, self.temperature_K, self.pressure,
             self.timestep_ps, self.fl_switch_timesteps, self.fl_equil_timesteps,
-            self.number_sampling_timesteps, species,
-            self.msd_threshold_angstrom_squared_per_sampling_timesteps,
+            species,
             self.number_msd_timesteps, self.number_ave_pos_timesteps,
             self.rlc_n_every, self.lammps_command, self.random_seed, self.output_dir
         )
