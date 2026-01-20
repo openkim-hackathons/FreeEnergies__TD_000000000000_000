@@ -56,12 +56,10 @@ class TestDriver(SingleCrystalTestDriver):
         timestep_ps: float = 0.001,
         fl_switch_timesteps: int = 50000,
         fl_equil_timesteps: int = 10000,
-        number_sampling_timesteps: int = 100,
         target_size: int = 1000,
         target_radius: Optional[float] = None,
         repeat: Sequence[int] = (0, 0, 0),
         lammps_command: str = "lmp",
-        msd_threshold_angstrom_squared_per_sampling_timesteps: float = 0.1,
         number_msd_timesteps: int = 10000,
         number_ave_pos_timesteps: int = 30000,
         random_seed: int = 101010,
@@ -80,7 +78,6 @@ class TestDriver(SingleCrystalTestDriver):
             timestep_ps: MD timestep in picoseconds.
             fl_switch_timesteps: Number of timesteps for Frenkel-Ladd switching.
             fl_equil_timesteps: Number of timesteps for equilibration before/after switching.
-            number_sampling_timesteps: Interval between data sampling in timesteps.
             target_size: Target number of atoms for supercell. Mutually exclusive with
                 target_radius and repeat. Default: 10000.
             target_radius: Target radius for minimum image distance in Angstroms. Good for
@@ -92,8 +89,6 @@ class TestDriver(SingleCrystalTestDriver):
         Note:
             Supercell sizing: Only ONE of target_size, target_radius, or repeat should be
                 specified. A ValueError is raised if more than one is set to a non-default value.
-            msd_threshold_angstrom_squared_per_sampling_timesteps: MSD threshold for
-                detecting melting/vaporization.
             number_msd_timesteps: Number of timesteps to monitor MSD for melting detection.
             number_ave_pos_timesteps: Number of timesteps for averaging atomic positions.
             random_seed: Random seed for velocity initialization and Langevin thermostat.
@@ -113,10 +108,9 @@ class TestDriver(SingleCrystalTestDriver):
         # Initialize parameters and validate
         self._initialize_params(
             timestep_ps, fl_switch_timesteps, fl_equil_timesteps,
-            number_sampling_timesteps, target_size, target_radius, repeat,
-            lammps_command, msd_threshold_angstrom_squared_per_sampling_timesteps,
-            number_msd_timesteps, number_ave_pos_timesteps, random_seed,
-            rlc_n_every, rlc_initial_run_length, rlc_min_samples, output_dir
+            target_size, target_radius, repeat, lammps_command, number_msd_timesteps,
+            number_ave_pos_timesteps, random_seed, rlc_n_every, rlc_initial_run_length,
+            rlc_min_samples, output_dir
         )
         
         # Run LAMMPS simulation
@@ -139,12 +133,10 @@ class TestDriver(SingleCrystalTestDriver):
         timestep_ps: float,
         fl_switch_timesteps: int,
         fl_equil_timesteps: int,
-        number_sampling_timesteps: int,
         target_size: int,
         target_radius: Optional[float],
         repeat: Sequence[int],
         lammps_command: str,
-        msd_threshold_angstrom_squared_per_sampling_timesteps: float,
         number_msd_timesteps: int,
         number_ave_pos_timesteps: int,
         random_seed: int,
@@ -165,7 +157,6 @@ class TestDriver(SingleCrystalTestDriver):
         self.timestep_ps = timestep_ps
         self.fl_switch_timesteps = fl_switch_timesteps
         self.fl_equil_timesteps = fl_equil_timesteps
-        self.number_sampling_timesteps = number_sampling_timesteps
         self.target_size = target_size
         self.target_radius = target_radius
         self.repeat = repeat
@@ -173,7 +164,6 @@ class TestDriver(SingleCrystalTestDriver):
         self.rlc_n_every = rlc_n_every
         self.rlc_initial_run_length = rlc_initial_run_length
         self.rlc_min_samples = rlc_min_samples
-        self.msd_threshold_angstrom_squared_per_sampling_timesteps = msd_threshold_angstrom_squared_per_sampling_timesteps
         self.number_msd_timesteps = number_msd_timesteps
         self.number_ave_pos_timesteps = number_ave_pos_timesteps
         self.random_seed = random_seed
@@ -205,9 +195,7 @@ class TestDriver(SingleCrystalTestDriver):
         _, _, self.spring_constants, self.volume, self.lammps_status = run_lammps(
             self.kim_model_name, self.temperature_K, self.pressure,
             self.timestep_ps, self.fl_switch_timesteps, self.fl_equil_timesteps,
-            self.number_sampling_timesteps, species,
-            self.msd_threshold_angstrom_squared_per_sampling_timesteps,
-            self.number_msd_timesteps, self.number_ave_pos_timesteps,
+            species, self.number_msd_timesteps, self.number_ave_pos_timesteps,
             self.rlc_n_every, self.lammps_command, self.random_seed, self.output_dir
         )
         
@@ -312,9 +300,6 @@ class TestDriver(SingleCrystalTestDriver):
         if not self.timestep_ps > 0.0:
             raise ValueError("Timestep has to be larger than zero.")
 
-        if not self.number_sampling_timesteps > 0:
-            raise ValueError("Number of timesteps between sampling in Lammps has to be bigger than zero.")
-
         if not len(self.repeat) == 3:
             raise ValueError("The repeat argument has to be a tuple of three integers.")
 
@@ -347,10 +332,6 @@ class TestDriver(SingleCrystalTestDriver):
         if not self.number_msd_timesteps > 0:
             raise ValueError("The number of timesteps to monitor the mean-squared displacement has to be bigger than "
                              "zero.")
-
-        if not self.number_msd_timesteps % self.number_sampling_timesteps == 0:
-            raise ValueError("The number of timesteps to monitor the mean-squared displacement has to be a multiple of "
-                             "the number of sampling timesteps.")
 
         if not self.random_seed > 0:
             raise ValueError("The random seed has to be bigger than zero.")
