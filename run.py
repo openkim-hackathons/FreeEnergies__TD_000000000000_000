@@ -10,11 +10,8 @@ from json import dump
 import subprocess
 
 calcs = [
-    ["EAM_Dynamo_ErcolessiAdams_1994_Al__MO_123629422045_006"],
+    ["Sim_LAMMPS_Buckingham_FreitasSantosColaco_2015_SiCaOAl__SM_154093256665_000"],
 ]
-
-# LJ_ElliottAkerson_2015_Universal__MO_959249795837_003
-# Sim_LAMMPS_ADP_StarikovGordeevLysogorskiy_2020_SiAuAl__SM_113843830602_000
 
 results = []
 with open("test_generator.json") as f:

@@ -11,9 +11,9 @@ class LammpsStatus(Enum):
     NOT_FOUND = "not_found"
     INCOMPLETE = "incomplete"
 
-def run_lammps(modelname: str, temperature_K: float, pressure_bar: float, timestep_ps: float, FL_switch_timesteps: int, FL_equil_timesteps: int,
-               species: List[str], number_msd_timesteps: int, number_avePOS_timesteps: int, rlc_N_every: int,
-               lammps_command: str, random_seed: int, output_dir: str) -> Tuple[str, str, list, float]:
+def run_lammps(modelname: str, temperature_K: float, pressure_bar: float, timestep_ps: float, fl_switch_timesteps: int, fl_equil_timesteps: int,
+               species: List[str], msd_threshold: float, msd_timesteps: int, thermo_sampling_period: int, ave_pos_timesteps: int,
+               rlc_n_every: int, lammps_command: str, random_seed: int, output_dir: str) -> Tuple[str, str, list, float]:
     
     pdamp = timestep_ps * 1000.0
     tdamp = timestep_ps * 100.0
@@ -28,13 +28,14 @@ def run_lammps(modelname: str, temperature_K: float, pressure_bar: float, timest
         "velocity_seed": random_seed,
         "langevin_seed": int(7*(random_seed)/5), # if random_seed is 101010 (default), this is 141414
         "pressure": pressure_bar,
-        "t_switch": FL_switch_timesteps,
-        "t_equil": FL_equil_timesteps,
-        "number_msd_timesteps": number_msd_timesteps,
-        "number_avePOS_timesteps": number_avePOS_timesteps,
-        "rlc_N_every": rlc_N_every,
+        "t_switch": fl_switch_timesteps,
+        "t_equil": fl_equil_timesteps,
+        "msd_timesteps": msd_timesteps,
+        "ave_pos_timesteps": ave_pos_timesteps,
+        "rlc_n_every": rlc_n_every,
         "pressure_damping": pdamp, # picoseconds
-        "msd_threshold": 0.1, # Angstrom^2 per 100 timesteps
+        "msd_threshold": msd_threshold, # Angstrom^2 per "msd_sampling_period" timesteps
+        "thermo_sampling_period": thermo_sampling_period,
         "timestep": timestep_ps,  # picoseconds
         "species": " ".join(species),
         "output_dir": f"{output_dir}",

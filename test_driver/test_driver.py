@@ -53,27 +53,44 @@ class TestDriver(SingleCrystalTestDriver):
         timestep_ps: float = 0.001,
         fl_switch_timesteps: int = 50000,
         fl_equil_timesteps: int = 10000,
-        target_size: int = 10000,
+        target_size: int = 200,
         repeat: Optional[Sequence[int]] = None,
         lammps_command: str = "lmp",
-        number_msd_timesteps: int = 20000,
-        number_ave_pos_timesteps: int = 50000,
+        msd_threshold: float = 0.1,
+        msd_timesteps: int = 20000,
+        thermo_sampling_period: int = 100,
+        ave_pos_timesteps: int = 50000,
         random_seed: int = 101010,
         rlc_n_every: int = 10,
-        rlc_initial_run_length: int = 1000,
-        rlc_min_samples: int = 100,
+        rlc_initial_run_length: int = 10000,
+        rlc_min_samples: int = 5,
         output_dir: str = "output",
         equilibration_plots: bool = True,
         fl_plots: bool = True,
         **kwargs) -> None:
-        """Compute Gibbs free energy using Frenkel-Ladd thermodynamic integration.
-        
-        Uses a nonequilibrium thermodynamic integration method implemented in LAMMPS.
+        """Compute Gibbs free energy at constant temperature and hydrostatic pressure using a nonequilibrium
+        thermodynamic integration method implemented in LAMMPS.
+
+        This test driver repeats the unit cell of the zero-temperature crystal structure to build a supercell and then
+        runs molecular-dynamics simulations in the NVT and NPT ensembles using LAMMPS.
+
+        This test driver uses kim_convergence to detect equilibrated molecular-dynamics simulations. It checks for the
+        convergence of the volume, temperature, and cell shape parameters at a set frequency.
+
+        After the molecular-dynamics NVT simulation, the symmetry of the equilibrium time-averaged structure is checked
+        to ensure that it did not change in comparison to the initial structure. Also, it is ensured that replicated atoms
+        in replicated unit atoms are not too far away from the average atomic positions.
+
+        The crystal might melt or vaporize during the simulations. In that case, kim-convergence would only detect
+        equilibration after unnecessarily long simulations. Therefore, this test driver initially checks for melting or
+        vaporization during short initial simulations. During these initial runs, the mean-squared displacement (MSD) of
+        atoms during the simulations is monitored. If the average time-derivative of MSD exceeds a given threshold value
+        (msd_threshold), an error is raised.
         
         Args:
             timestep_ps: MD timestep in picoseconds.
             fl_switch_timesteps: Number of timesteps for Frenkel-Ladd switching.
-            fl_equil_timesteps: Number of timesteps for equilibration before/after switching.
+            fl_equil_timesteps: Number of timesteps for equilibration before switching.
             target_size: Target number of atoms for supercell. Uses cutoff-based expansion
                 with target size constraint (good for non-cubic cells). The algorithm starts
                 with an 8Å cutoff radius and recursively decreases it until the supercell has
@@ -82,15 +99,10 @@ class TestDriver(SingleCrystalTestDriver):
                 precedence over target_size and the supercell is created with these exact
                 repetitions. Default: None (uses target_size instead).
             lammps_command: Command to invoke LAMMPS executable.
-            
-        Note:
-            Supercell sizing: If repeat is specified, uses those exact repetitions. Otherwise,
-                uses cutoff-based expansion with target size constraint. This method ensures
-                the supercell stays below the target atom count while maintaining appropriate
-                minimum image distances, making it suitable for both cubic and non-cubic
-                crystal structures.
-            number_msd_timesteps: Number of timesteps to monitor MSD for melting detection.
-            number_ave_pos_timesteps: Number of timesteps for averaging atomic positions.
+            msd_threshold: MSD threshold for detecting melting/vaporization. Has units of angstrom^2 per timestep.
+            thermo_sampling_period: Number of timesteps between thermodynamic data measurements.
+            msd_timesteps: Number of timesteps to monitor MSD for melting detection.
+            ave_pos_timesteps: Number of timesteps for averaging atomic positions after run_length_control/kim-convergence ends.
             random_seed: Random seed for velocity initialization and Langevin thermostat.
             rlc_n_every: Sampling frequency for run length control.
             rlc_initial_run_length: Initial run length for convergence checking.
@@ -100,6 +112,13 @@ class TestDriver(SingleCrystalTestDriver):
             fl_plots: Whether to generate Frenkel-Ladd switching plots.
             **kwargs: Additional keyword arguments (unused).
             
+        Note:
+            Supercell sizing: If repeat is specified, uses those exact repetitions. Otherwise,
+                uses cutoff-based expansion with target size constraint. This method ensures
+                the supercell stays below the target atom count while maintaining appropriate
+                minimum image distances, making it suitable for both cubic and non-cubic
+                crystal structures.
+            
         Raises:
             ValueError: If input parameters are invalid.
             RuntimeError: If simulation fails (melting, incomplete, etc.).
@@ -108,8 +127,8 @@ class TestDriver(SingleCrystalTestDriver):
         # Initialize parameters and validate
         self._initialize_params(
             timestep_ps, fl_switch_timesteps, fl_equil_timesteps, target_size, repeat,
-            lammps_command, number_msd_timesteps, number_ave_pos_timesteps, random_seed,
-            rlc_n_every, rlc_initial_run_length, rlc_min_samples, output_dir
+            lammps_command, msd_threshold, msd_timesteps, thermo_sampling_period, ave_pos_timesteps,
+            random_seed, rlc_n_every, rlc_initial_run_length, rlc_min_samples, output_dir
         )
         
         # Run LAMMPS simulation
@@ -135,8 +154,10 @@ class TestDriver(SingleCrystalTestDriver):
         target_size: int,
         repeat: Optional[Sequence[int]],
         lammps_command: str,
-        number_msd_timesteps: int,
-        number_ave_pos_timesteps: int,
+        msd_threshold: int,
+        msd_timesteps: int,
+        thermo_sampling_period: int,
+        ave_pos_timesteps: int,
         random_seed: int,
         rlc_n_every: int,
         rlc_initial_run_length: int,
@@ -159,12 +180,14 @@ class TestDriver(SingleCrystalTestDriver):
         self.repeat = repeat
         # If repeat is None, it will be set by compute_supercell_for_target_size
         self.lammps_command = lammps_command
+        self.msd_threshold = msd_threshold
+        self.msd_timesteps = msd_timesteps
+        self.thermo_sampling_period = thermo_sampling_period
+        self.ave_pos_timesteps = ave_pos_timesteps
+        self.random_seed = random_seed
         self.rlc_n_every = rlc_n_every
         self.rlc_initial_run_length = rlc_initial_run_length
         self.rlc_min_samples = rlc_min_samples
-        self.number_msd_timesteps = number_msd_timesteps
-        self.number_ave_pos_timesteps = number_ave_pos_timesteps
-        self.random_seed = random_seed
         self.output_dir = output_dir
         
         self.atom_style = self._get_supported_lammps_atom_style()
@@ -193,9 +216,9 @@ class TestDriver(SingleCrystalTestDriver):
         _, _, self.spring_constants, self.volume, self.lammps_status = run_lammps(
             self.kim_model_name, self.temperature_K, self.pressure,
             self.timestep_ps, self.fl_switch_timesteps, self.fl_equil_timesteps,
-            species,
-            self.number_msd_timesteps, self.number_ave_pos_timesteps,
-            self.rlc_n_every, self.lammps_command, self.random_seed, self.output_dir
+            species, self.msd_threshold, self.msd_timesteps, self.thermo_sampling_period,
+            self.ave_pos_timesteps, self.rlc_n_every, self.lammps_command, self.random_seed,
+            self.output_dir
         )
         
         # Verify simulation completed successfully
@@ -281,35 +304,62 @@ class TestDriver(SingleCrystalTestDriver):
                 - MSD parameters inconsistent with sampling frequency
         """
         if not self.temperature_K > 0.0:
-            raise ValueError("Temperature has to be larger than zero.")
+            raise ValueError("Temperature must be greater than zero.")
 
         if not len(self.cauchy_stress) == 6:
             raise ValueError("Specify all six (x, y, z, xy, xz, yz) entries of the cauchy stress tensor.")
 
         if not (self.cauchy_stress[0] == self.cauchy_stress[1] == self.cauchy_stress[2]):
-            raise ValueError("The diagonal entries of the stress tensor have to be equal so that a hydrostatic "
+            raise ValueError("The diagonal entries of the stress tensor must be equal so that a hydrostatic "
                              "pressure is used.")
 
         if not (self.cauchy_stress[3] == self.cauchy_stress[4] == self.cauchy_stress[5] == 0.0):
-            raise ValueError("The off-diagonal entries of the stress tensor have to be zero so that a hydrostatic "
+            raise ValueError("The off-diagonal entries of the stress tensor must be zero so that a hydrostatic "
                              "pressure is used.")
 
         if not self.timestep_ps > 0.0:
-            raise ValueError("Timestep has to be larger than zero.")
+            raise ValueError("Timestep must be greater than zero.")
+
+        if not self.fl_switch_timesteps > 0:
+            raise ValueError("The number of timesteps for Frenkel-Ladd switching must be greater than 0.")
+
+        if not self.fl_equil_timesteps > 0:
+            raise ValueError("The number of timesteps for equilibration before Frenkel-Ladd switching must be greater than 0.")
 
         # Validate repeat if provided
         if self.repeat is not None:
             if not len(self.repeat) == 3:
-                raise ValueError("The repeat argument has to be a tuple of three integers.")
+                raise ValueError("The repeat argument must be a tuple of three integers.")
             if not all(r > 0 for r in self.repeat):
-                raise ValueError("All number of repeats must be bigger than zero.")
+                raise ValueError("All number of repeats must be greater than zero.")
+        
+        if not self.msd_threshold > 0.0:
+            raise ValueError("The mean-squared displacement slope threshold must be greater than zero.")
 
-        if not self.number_msd_timesteps > 0:
-            raise ValueError("The number of timesteps to monitor the mean-squared displacement has to be bigger than "
-                             "zero.")
+        if not self.msd_timesteps > 0:
+            raise ValueError("The number of timesteps to monitor the mean-squared displacement must be greater than zero.")
+        
+        if not self.thermo_sampling_period > 0:
+            raise ValueError("The number of timesteps between thermo samples must be greater than zero.")
+
+        if not self.msd_timesteps % self.thermo_sampling_period == 0:
+            raise ValueError("The number of timesteps over which to monitor the mean-squared displacement must be "
+                             "an integer multiple of the number of timesteps between mean-squared displacement samples.")
+        
+        if not self.ave_pos_timesteps > 0:
+            raise ValueError("The number of timesteps for averaging atomic positions must be greater than zero.")
+        
+        if not self.rlc_n_every > 0:
+            raise ValueError("The number of timesteps between rlc samples must be greater than zero.")
+        
+        if not self.rlc_initial_run_length > 0:
+            raise ValueError("The number of timesteps between run_length_control equilbration checks must be greater than zero.")
+        
+        if not self.rlc_min_samples > 0:
+            raise ValueError("The minimum number of uncorrelated samples required to determine equilibration must be greater than zero.")
 
         if not self.random_seed > 0:
-            raise ValueError("The random seed has to be bigger than zero.")
+            raise ValueError("The random seed must be greater than zero.")
 
     def _setup_initial_structure(self, filename: str) -> Atoms:
         """Set up the initial supercell structure for the simulation.
