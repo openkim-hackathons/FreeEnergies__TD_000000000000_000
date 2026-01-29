@@ -1,6 +1,6 @@
 """Utility functions for structure manipulation and supercell generation."""
 
-from typing import Tuple
+from typing import Tuple, Optional
 
 import numpy as np
 from ase import Atoms
@@ -65,15 +65,16 @@ def compute_supercell_reps_uniform_cubic(
 def compute_supercell_for_target_size(
     atoms: Atoms,
     target_size: int = 10000,
-    initial_radius: float = 20.0,
-    radius_step: float = 0.5,
+    current_radius: float = 20.0,
+    previous_radius: Optional[float] = None,
+    radius_step: float = 0.1,
     min_radius: float = 1.0
 ) -> Tuple[Atoms, Tuple[int, int, int]]:
     """Compute supercell using cutoff-based approach with target size constraint.
 
     Creates a supercell by iteratively adjusting the cutoff radius until the
-    resulting supercell has fewer atoms than the target size. Starts with
-    initial_radius and decreases it recursively until the target is met.
+    resulting supercell has the minimum number of atoms that is still greater
+    than the target size.
 
     This approach is particularly useful for non-cubic cells where uniform
     expansion would be suboptimal, but you still want to control the total
@@ -82,37 +83,76 @@ def compute_supercell_for_target_size(
     Args:
         atoms: Primitive unit cell as ASE Atoms object.
         target_size: Maximum number of atoms in the supercell. Default: 10000.
-        initial_radius: Starting cutoff radius in Å. Default: 8.0.
+        current_radius: Starting cutoff radius in Å. Default: 20.0.
+        previous_radius: Cutoff radius in Å of the previous iteration. Optional. Default: None.
         radius_step: Amount to decrease radius by in each iteration (Å). Default: 0.5.
         min_radius: Minimum radius to try before giving up (Å). Default: 1.0.
 
     Returns:
         Tuple of (supercell Atoms object, repeat tuple (n_a, n_b, n_c)).
-        The supercell has natoms < target_size.
+        The supercell has natoms >= target_size.
 
     Raises:
         ValueError: If unable to find a supercell below target_size even at min_radius.
     """
-    # Compute repetitions for current radius
-    repeat = compute_supercell_reps_for_cutoff(atoms.get_cell(), initial_radius)
-    
-    # Create supercell
-    supercell = atoms.repeat(repeat)
-    natoms = len(supercell)
-    
-    # Base case: if we're below target size, return the supercell and repeat
-    if natoms < target_size:
-        return supercell, repeat
-    
     # If we've hit the minimum radius, raise an error
-    if initial_radius <= min_radius:
+    if current_radius <= min_radius:
         raise ValueError(
             f"Unable to find supercell below target_size={target_size} atoms. "
             f"Even at min_radius={min_radius}Å, got {natoms} atoms."
         )
     
-    # Recursive case: decrease radius and try again
-    new_radius = max(min_radius, initial_radius - radius_step)
-    return compute_supercell_for_target_size(
-        atoms, target_size, new_radius, radius_step, min_radius
-    )
+    # Compute repetitions for current/new radius
+    current_repeat = compute_supercell_reps_for_cutoff(atoms.get_cell(), current_radius)
+    
+    # Create new supercell
+    current_supercell = atoms.repeat(current_repeat)
+    current_natoms = len(current_supercell)
+
+    if previous_radius is not None:
+        # Compute repetitions for previous radius
+        previous_repeat = compute_supercell_reps_for_cutoff(atoms.get_cell(), previous_radius)
+
+        # Re-create previous supercell
+        previous_supercell = atoms.repeat(previous_repeat)
+        previous_natoms = len(previous_supercell)
+    
+        # Radius decreased
+        if current_radius < previous_radius:
+
+            if current_natoms < target_size:
+                # Increase radius and try again
+                new_radius = max(min_radius, current_radius + radius_step)
+                return compute_supercell_for_target_size(
+                    atoms, target_size, new_radius, current_radius, radius_step, min_radius
+                )
+
+            elif current_natoms >= target_size:
+                # Decrease radius and try again
+                new_radius = max(min_radius, current_radius - radius_step)
+                return compute_supercell_for_target_size(
+                    atoms, target_size, new_radius, current_radius, radius_step, min_radius
+                )
+
+        # Radius increased
+        if current_radius > previous_radius:
+
+            if current_natoms < target_size:
+                # Increase radius and try again
+                new_radius = max(min_radius, current_radius + radius_step)
+                return compute_supercell_for_target_size(
+                    atoms, target_size, new_radius, current_radius, radius_step, min_radius
+                )
+            
+            elif current_natoms >= target_size:
+                # Return previous supercell and repeat
+                return current_supercell, current_repeat
+    
+    else:
+        
+        # As a first step, decrease the radius
+        new_radius = max(min_radius, current_radius - radius_step)
+        return compute_supercell_for_target_size(
+            atoms, target_size, new_radius, current_radius, radius_step, min_radius
+        )
+

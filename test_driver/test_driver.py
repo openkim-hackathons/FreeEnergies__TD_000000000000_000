@@ -388,7 +388,7 @@ class TestDriver(SingleCrystalTestDriver):
             atoms_new = atoms_new.repeat(self.repeat)
         else:
             # Use cutoff-based expansion with target size constraint
-            # (good for non-cubic cells, ensures natoms < target_size)
+            # (good for non-cubic cells, ensures natoms >= target_size)
             atoms_new, self.repeat = compute_supercell_for_target_size(
                 self.atoms, self.target_size
             )
