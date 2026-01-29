@@ -99,7 +99,8 @@ class TestDriver(SingleCrystalTestDriver):
                 precedence over target_size and the supercell is created with these exact
                 repetitions. Default: None (uses target_size instead).
             lammps_command: Command to invoke LAMMPS executable.
-            msd_threshold: MSD threshold for detecting melting/vaporization. Has units of angstrom^2 per timestep.
+            msd_threshold: MSD threshold for detecting melting/vaporization. Has units of angstrom^2 per
+                "thermo_sampling_period" timesteps.
             thermo_sampling_period: Number of timesteps between thermodynamic data measurements.
             msd_timesteps: Number of timesteps to monitor MSD for melting detection.
             ave_pos_timesteps: Number of timesteps for averaging atomic positions after run_length_control/kim-convergence ends.
