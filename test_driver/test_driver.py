@@ -279,7 +279,7 @@ class TestDriver(SingleCrystalTestDriver):
 
         # Write free energy properties
         self._add_property_instance_and_common_crystal_genome_keys(
-            "free-energy", write_stress=True, write_temp=self.temperature_K
+            "gibbs-free-energy-crystal", write_stress=True, write_temp=self.temperature_K
         )
         self._add_key_to_current_property_instance(
             "gibbs-free-energy-per-atom", free_energy_per_atom, "eV"
