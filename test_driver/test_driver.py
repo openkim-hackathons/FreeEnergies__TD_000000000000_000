@@ -15,6 +15,7 @@ from kim_tools import (
 )
 from kim_tools.symmetry_util.core import reduce_and_avg
 from kim_tools.test_driver import SingleCrystalTestDriver
+from kim_tools.kimunits import convert_units
 from scipy import integrate
 
 from .helper_functions import run_lammps
@@ -38,12 +39,14 @@ class LammpsStatus(Enum):
 
 class TestDriver(SingleCrystalTestDriver):
     """Test driver for computing Gibbs free energy using Frenkel-Ladd method."""
-    
+
     # Unit conversion constants
     BAR_TO_PA = 1e5
     ANGSTROM3_TO_M3 = 1e-30
-    JOULE_TO_EV = 6.2415e18
-    
+    JOULE_TO_EV = convert_units(
+        from_value=1, from_unit="J", wanted_unit="eV", suppress_unit=True
+        )
+
     # Accuracy thresholds
     DEFAULT_RELATIVE_ACCURACY = 0.01
     ORTHOGONAL_THRESHOLD_DEGREES = 0.1
@@ -279,7 +282,7 @@ class TestDriver(SingleCrystalTestDriver):
 
         # Write free energy properties
         self._add_property_instance_and_common_crystal_genome_keys(
-            "free-energy", write_stress=True, write_temp=self.temperature_K
+            "gibbs-free-energy-crystal", write_stress=True, write_temp=self.temperature_K
         )
         self._add_key_to_current_property_instance(
             "gibbs-free-energy-per-atom", free_energy_per_atom, "eV"
