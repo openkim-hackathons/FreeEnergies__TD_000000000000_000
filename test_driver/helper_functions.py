@@ -13,7 +13,7 @@ class LammpsStatus(Enum):
 
 def run_lammps(modelname: str, temperature_K: float, pressure_bar: float, timestep_ps: float, fl_switch_timesteps: int, fl_equil_timesteps: int,
                species: List[str], msd_threshold: float, msd_timesteps: int, thermo_sampling_period: int, ave_pos_timesteps: int,
-               rlc_n_every: int, lammps_command: str, random_seed: int, output_dir: str) -> Tuple[str, str, list, float]:
+               rlc_n_every: int, lammps_command: str, random_seed: int, output_dir: str, k_factor: float) -> Tuple[str, str, list, float]:
     
     pdamp = timestep_ps * 1000.0
     tdamp = timestep_ps * 100.0
@@ -48,6 +48,7 @@ def run_lammps(modelname: str, temperature_K: float, pressure_bar: float, timest
         "switch1_output_file": f"{output_dir}/FL_switch1.dat",
         "switch2_output_file": f"{output_dir}/FL_switch2.dat",
         "run_length_control": f"{output_dir}/run_length_control.py",
+        "k_factor": k_factor,
     }
     
     # Construct base LAMMPS command

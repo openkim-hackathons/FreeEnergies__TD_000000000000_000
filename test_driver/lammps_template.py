@@ -388,7 +388,7 @@ class LammpsTemplate:
 
         k_template = """
         variable      {variable_name_1} equal f_AVG[{avg_i}]*(v__u_distance)^2
-        variable      {variable_name_2} equal $(3*v_kB*v_temp_converted/(v_{variable_name_1}))
+        variable      {variable_name_2} equal $(v_k_factor*3*v_kB*v_temp_converted/(v_{variable_name_1}))
         """
 
         k_entries = [

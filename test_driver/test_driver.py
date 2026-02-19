@@ -72,6 +72,7 @@ class TestDriver(SingleCrystalTestDriver):
         output_dir: str = "output",
         equilibration_plots: bool = True,
         fl_plots: bool = True,
+        k_factor: float = 1.0,
         **kwargs) -> None:
         """Compute Gibbs free energy at constant temperature and hydrostatic pressure using a nonequilibrium
         thermodynamic integration method implemented in LAMMPS.
@@ -116,6 +117,9 @@ class TestDriver(SingleCrystalTestDriver):
             output_dir: Directory for output files.
             equilibration_plots: Whether to generate equilibration diagnostic plots.
             fl_plots: Whether to generate Frenkel-Ladd switching plots.
+            k_factor: Multiply calculated spring constants by this value before running Frenkel-Ladd switching.
+                Values greater than unity alleviate lost-atoms error caused by unrealistic coordination of atoms
+                during the switching procedure.
             **kwargs: Additional keyword arguments (unused).
             
         Note:
@@ -134,7 +138,7 @@ class TestDriver(SingleCrystalTestDriver):
         self._initialize_params(
             timestep_ps, fl_switch_timesteps, fl_equil_timesteps, target_size, repeat,
             lammps_command, msd_threshold, msd_timesteps, thermo_sampling_period, ave_pos_timesteps,
-            random_seed, rlc_n_every, rlc_initial_run_length, rlc_min_samples, output_dir
+            random_seed, rlc_n_every, rlc_initial_run_length, rlc_min_samples, output_dir, k_factor
         )
         
         # Run LAMMPS simulation
@@ -168,7 +172,8 @@ class TestDriver(SingleCrystalTestDriver):
         rlc_n_every: int,
         rlc_initial_run_length: int,
         rlc_min_samples: int,
-        output_dir: str
+        output_dir: str,
+        k_factor: float
     ) -> None:
         """Initialize calculation parameters and instance variables."""
         # Get crystal structure info
@@ -195,6 +200,7 @@ class TestDriver(SingleCrystalTestDriver):
         self.rlc_initial_run_length = rlc_initial_run_length
         self.rlc_min_samples = rlc_min_samples
         self.output_dir = output_dir
+        self.k_factor = k_factor
         
         self.atom_style = self._get_supported_lammps_atom_style()
         
@@ -224,7 +230,7 @@ class TestDriver(SingleCrystalTestDriver):
             self.timestep_ps, self.fl_switch_timesteps, self.fl_equil_timesteps,
             species, self.msd_threshold, self.msd_timesteps, self.thermo_sampling_period,
             self.ave_pos_timesteps, self.rlc_n_every, self.lammps_command, self.random_seed,
-            self.output_dir
+            self.output_dir, self.k_factor
         )
         
         # Verify simulation completed successfully
@@ -366,6 +372,9 @@ class TestDriver(SingleCrystalTestDriver):
 
         if not self.random_seed > 0:
             raise ValueError("The random seed must be greater than zero.")
+        
+        if not self.k_factor > 0:
+            raise ValueError("The k_factor must be greater than zero.")
 
     def _setup_initial_structure(self, filename: str) -> Atoms:
         """Set up the initial supercell structure for the simulation.
