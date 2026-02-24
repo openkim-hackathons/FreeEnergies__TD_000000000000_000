@@ -158,6 +158,10 @@ class TestDriver(SingleCrystalTestDriver):
 
                 else:
                     self.k_factor = tuple(x + 0.5 for x in self.k_factor)
+
+                    if any(x > 10 for x in self.k_factor):
+                        raise KIMTestDriverError('k_factor(s) have been increased to 10, which is very high. Perhaps an issue other than loose springs is causing lost atoms.')
+                    
                     print(f'Atoms were lost during the previous run, tightening springs (increasing k_factors to {self.k_factor}) and trying again.')
 
         else:
