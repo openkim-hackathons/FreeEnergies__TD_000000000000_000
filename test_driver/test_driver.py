@@ -14,13 +14,14 @@ from ase.io import read
 from kim_tools import (
     get_isolated_energy_per_atom,
     get_stoich_reduced_list_from_prototype,
+    KIMTestDriverError,
 )
 from kim_tools.symmetry_util.core import reduce_and_avg
 from kim_tools.test_driver import SingleCrystalTestDriver
 from kim_tools.kimunits import convert_units
 from scipy import integrate
 
-from .helper_functions import run_lammps
+from .helper_functions import run_lammps, LammpsStatus
 from .lammps_template import LammpsTemplate
 from .structure_utils import compute_supercell_for_target_size
 
@@ -29,14 +30,6 @@ EV = sc.value("electron volt")
 MU = sc.value("atomic mass constant")
 HBAR = sc.value("Planck constant in eV/Hz") / (2 * np.pi)
 KB = sc.value("Boltzmann constant in eV/K")
-
-
-class LammpsStatus(Enum):
-    """Status of LAMMPS simulation completion."""
-    SUCCESS = "success"
-    MELTED = "melted"
-    NOT_FOUND = "not_found"
-    INCOMPLETE = "incomplete"
 
 
 class TestDriver(SingleCrystalTestDriver):
@@ -51,7 +44,7 @@ class TestDriver(SingleCrystalTestDriver):
 
     # Accuracy thresholds
     DEFAULT_RELATIVE_ACCURACY = 0.01
-    ORTHOGONAL_THRESHOLD_DEGREES = 0.1
+    ORTHOGONAL_THRESHOLD_DEGREES = 1
 
     def _calculate(
         self,
@@ -67,11 +60,13 @@ class TestDriver(SingleCrystalTestDriver):
         ave_pos_timesteps: int = 50000,
         random_seed: int = 101010,
         rlc_n_every: int = 10,
-        rlc_initial_run_length: int = 10000,
+        rlc_initial_run_length: int = 500,
         rlc_min_samples: int = 5,
         output_dir: str = "output",
         equilibration_plots: bool = True,
         fl_plots: bool = True,
+        k: Optional[Sequence[float]] = None,
+        k_factor: Optional[Sequence[float]] = None,
         **kwargs) -> None:
         """Compute Gibbs free energy at constant temperature and hydrostatic pressure using a nonequilibrium
         thermodynamic integration method implemented in LAMMPS.
@@ -116,6 +111,14 @@ class TestDriver(SingleCrystalTestDriver):
             output_dir: Directory for output files.
             equilibration_plots: Whether to generate equilibration diagnostic plots.
             fl_plots: Whether to generate Frenkel-Ladd switching plots.
+            k: Spring constants of the Einstein crystal during Frenkel-Ladd switching. Providing values for this variable disables
+                the adaptive spring-constant calculation procedure. In this case, if the simulation loses atoms during a run, it will NOT
+                be re-run with tighter spring constants and will raise a KIMTestDriverError. The order of this sequence corresponds to
+                the order of atoms types. The default is 'None'.
+            k_factor: Multiply calculated spring constants by the corresponding value before running Frenkel-Ladd switching.
+                Values greater than unity alleviate lost-atoms error caused by unrealistic coordination of atoms
+                during the switching procedure. The order of this sequence corresponds to the order of atoms types. The default is
+                a sequence of '1.0'.
             **kwargs: Additional keyword arguments (unused).
             
         Note:
@@ -127,19 +130,47 @@ class TestDriver(SingleCrystalTestDriver):
             
         Raises:
             ValueError: If input parameters are invalid.
-            RuntimeError: If simulation fails (melting, incomplete, etc.).
+            KIMTestDriverError: If the crystal melts/varpoizes, if atoms are lost during the run, or if the simulation failed to complete for another reason.
             FileNotFoundError: If LAMMPS log file is not found.
         """
+
         # Initialize parameters and validate
         self._initialize_params(
             timestep_ps, fl_switch_timesteps, fl_equil_timesteps, target_size, repeat,
             lammps_command, msd_threshold, msd_timesteps, thermo_sampling_period, ave_pos_timesteps,
-            random_seed, rlc_n_every, rlc_initial_run_length, rlc_min_samples, output_dir
+            random_seed, rlc_n_every, rlc_initial_run_length, rlc_min_samples, output_dir, k, k_factor
         )
+
+        if all(x is None for x in self.k):
+            self.adaptive = True
+            print('Spring constants (k) were not provided by the user or the user provided all None; performing adaptive spring constant procedure.')
+
+            lost_atoms = True
         
-        # Run LAMMPS simulation
-        self._run_simulation()
-        
+            while lost_atoms:
+
+                # Run LAMMPS simulation
+                self._run_simulation()
+
+                if self.lammps_status != LammpsStatus.LOST_ATOMS:
+                    lost_atoms = False
+                    print('No atoms were lost during the previous run, proceeding with current data.')
+
+                else:
+                    self.k_factor = tuple(x + 0.5 for x in self.k_factor)
+
+                    if any(x > 10 for x in self.k_factor):
+                        raise KIMTestDriverError('k_factor(s) have been increased to 10, which is very high. Perhaps an issue other than loose springs is causing lost atoms.')
+                    
+                    print(f'Atoms were lost during the previous run, tightening springs (increasing k_factors to {self.k_factor}) and trying again.')
+
+        else:
+            self.adaptive = False
+            print('One or more spring constants (k) were provided by the user; bypassing adaptive spring constant procedure.')
+
+            # Run LAMMPS simulation
+            self._run_simulation()
+
         # Compute free energy
         free_energy_per_atom = self._free_energy()
 
@@ -168,7 +199,9 @@ class TestDriver(SingleCrystalTestDriver):
         rlc_n_every: int,
         rlc_initial_run_length: int,
         rlc_min_samples: int,
-        output_dir: str
+        output_dir: str,
+        k: Optional[Sequence[float]],
+        k_factor: Optional[Sequence[float]]
     ) -> None:
         """Initialize calculation parameters and instance variables."""
         # Get crystal structure info
@@ -177,6 +210,11 @@ class TestDriver(SingleCrystalTestDriver):
         self.cauchy_stress = self._get_cell_cauchy_stress(unit='bars')
         self.pressure = -self.cauchy_stress[0]
         self.atoms = self._get_atoms()
+
+        # Get species list
+        symbols = self.atoms.get_chemical_symbols()
+        self.species = sorted(set(symbols))
+        self.nspecies = len(self.species)
         
         # Store simulation parameters
         self.timestep_ps = timestep_ps
@@ -195,6 +233,15 @@ class TestDriver(SingleCrystalTestDriver):
         self.rlc_initial_run_length = rlc_initial_run_length
         self.rlc_min_samples = rlc_min_samples
         self.output_dir = output_dir
+
+        if k is None: # set default tuple
+            self.k = tuple(None for _ in range(self.nspecies))
+        else:
+            self.k = k
+        if (k_factor is None) or all(x is None for x in k_factor): # set default tuple
+            self.k_factor = tuple(0.5 for _ in range(self.nspecies))
+        else:
+            self.k_factor = k_factor
         
         self.atom_style = self._get_supported_lammps_atom_style()
         
@@ -211,35 +258,37 @@ class TestDriver(SingleCrystalTestDriver):
         self._modify_run_length_control()
         self.templates = LammpsTemplate(root=f"{self.output_dir}/")
         self.templates._write_lammps_file(
-            nspecies=len(self.species), is_triclinic=self.is_triclinic
+            nspecies=self.nspecies, is_triclinic=self.is_triclinic
         )
-        
-        # Get species list for LAMMPS
-        symbols = self.atoms.get_chemical_symbols()
-        species = sorted(set(symbols))
         
         # Run LAMMPS
         _, _, self.spring_constants, self.volume, self.lammps_status = run_lammps(
             self.kim_model_name, self.temperature_K, self.pressure,
             self.timestep_ps, self.fl_switch_timesteps, self.fl_equil_timesteps,
-            species, self.msd_threshold, self.msd_timesteps, self.thermo_sampling_period,
+            self.species, self.msd_threshold, self.msd_timesteps, self.thermo_sampling_period,
             self.ave_pos_timesteps, self.rlc_n_every, self.lammps_command, self.random_seed,
-            self.output_dir
+            self.output_dir, self.k, self.k_factor
         )
-        
+
         # Verify simulation completed successfully
         self._verify_lammps_completion()
 
     def _verify_lammps_completion(self) -> None:
         """Verify that LAMMPS simulation completed successfully."""
+
         if self.lammps_status == LammpsStatus.MELTED:
-            raise RuntimeError("Crystal melted or vaporized")
+            raise KIMTestDriverError(f"Crystal melted or vaporized during simulation at temperature {self.temperature_K}K.")
+
         elif self.lammps_status == LammpsStatus.NOT_FOUND:
             raise FileNotFoundError(
                 f"LAMMPS log file not found: {self.output_dir}/free_energy.log"
             )
+
         elif self.lammps_status == LammpsStatus.INCOMPLETE:
-            raise RuntimeError("LAMMPS simulation did not complete successfully")
+            raise KIMTestDriverError("LAMMPS simulation did not complete successfully.")
+
+        elif (self.lammps_status == LammpsStatus.LOST_ATOMS) and not self.adaptive:
+            raise KIMTestDriverError("Lost atoms, probably due to loose springs.")
 
     def _finalize_and_report_results(self, free_energy_per_atom: float) -> None:
         """Process results, compute derived quantities, and write properties.
@@ -336,6 +385,7 @@ class TestDriver(SingleCrystalTestDriver):
         if self.repeat is not None:
             if not len(self.repeat) == 3:
                 raise ValueError("The repeat argument must be a tuple of three integers.")
+
             if not all(r > 0 for r in self.repeat):
                 raise ValueError("All number of repeats must be greater than zero.")
         
@@ -366,6 +416,22 @@ class TestDriver(SingleCrystalTestDriver):
 
         if not self.random_seed > 0:
             raise ValueError("The random seed must be greater than zero.")
+        
+        if not all(x is not None for x in self.k):
+            if not len(self.k) == self.nspecies:
+                raise ValueError("The length of the k tuple must be equal to the number of species.")
+
+            if not all(x > 0 for x in self.k if x is not None):
+                raise ValueError("All elements of the k tuple must be greater than zero.")
+
+        if not len(self.k_factor) == self.nspecies:
+            raise ValueError("The length of the k_factor tuple must be equal to the number of species.")
+        
+        if not (all(x is None for x in self.k_factor) or all(x is not None for x in self.k_factor)):
+            raise ValueError("k_factor cannot be a mix of None and non-None elements. Must be all None or all non-None.")
+
+        if not all(x > 0 for x in self.k_factor):
+            raise ValueError("All elements of the k_factor tuple must be greater than zero.")
 
     def _setup_initial_structure(self, filename: str) -> Atoms:
         """Set up the initial supercell structure for the simulation.
