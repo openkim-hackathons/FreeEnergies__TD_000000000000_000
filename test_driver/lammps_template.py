@@ -216,11 +216,7 @@ class LammpsTemplate:
 
         print '#================================== Frenkel-Ladd NETI ==================================#'
 
-        # Compute mean squared displacement
-        compute msd all msd com yes
-
-        fix msd_vector all vector 100 c_msd[4]
-        variable msd_slope equal slope(f_msd_vector)
+        print "$(v_vol_metal:%.10f)" file ${output_dir}/volume.dat
 
         # print data to logfile every 1000 timesteps
         variable      etotal_metal equal etotal/${_u_energy}
@@ -228,8 +224,9 @@ class LammpsTemplate:
         variable      P_metal equal press/${_u_pressure}
 
         # Thermodynamic output
-        thermo_style custom temp press vol etotal v_pe_per_atom c_msd[4] v_msd_slope step
+        thermo_style custom temp press vol etotal v_pe_per_atom step
         thermo ${thermo_sampling_period}
+        thermo_modify lost warn
 
         # set NVE ensemble
         fix ensemble all nve
@@ -243,10 +240,6 @@ class LammpsTemplate:
         # run equil 1
         run ${t_equil}
 
-        if "${msd_slope} > $(v_msd_threshold*(v__u_distance^2))" then "write_dump all atom ${melted_crystal_output}" &
-                                      "print 'Crystal melted or vaporized'" &
-                                      "quit"
-
         # run switch 1
         {record_template}
                     screen no file ${switch1_output_file}
@@ -256,24 +249,15 @@ class LammpsTemplate:
         # run equil 2
         run ${t_equil}
 
-        variable msd_slope equal slope(f_msd_vector)
-
-        if "${msd_slope} > $(v_msd_threshold*(v__u_distance^2))" then "write_dump all atom ${melted_crystal_output}" &
-                                      "print 'Crystal melted or vaporized'" &
-                                      "quit"
-
         # run switch 2
         {record_template}
                     screen no file ${switch2_output_file}
         run ${t_switch}
         unfix record
 
-        print "$(v_vol_metal:%.10f)" file ${output_dir}/volume.dat
-
         write_restart ${write_restart_filename}
 
         print '#================================== LAMMPS finished ==================================#'
-        quit 0
         """
 
     def _add_fl_fix_for_multicomponent(self, nspecies: int):
@@ -388,13 +372,18 @@ class LammpsTemplate:
 
         k_template = """
         variable      {variable_name_1} equal f_AVG[{avg_i}]*(v__u_distance)^2
-        variable      {variable_name_2} equal $(v_k_factor*3*v_kB*v_temp_converted/(v_{variable_name_1}))
+        if "$({variable_name_3}) == 0" then &
+        "variable      {variable_name_2} equal $({variable_name_4}*3*v_kB*v_temp_converted/(v_{variable_name_1}))" &
+        else &
+        "variable      {variable_name_2} equal {variable_name_3}"
         """
 
         k_entries = [
             {
                 "variable_name_1": f"MSD{i}",
                 "variable_name_2": f"spring_constant_{i}",
+                "variable_name_3": f"v_k{i}",
+                "variable_name_4": f"v_k_factor{i}",
                 "avg_i": f"{i+7}",
             }
             for i in range(nspecies)

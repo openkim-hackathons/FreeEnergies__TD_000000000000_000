@@ -8,18 +8,21 @@ class LammpsStatus(Enum):
     """Status of LAMMPS simulation completion."""
     SUCCESS = "success"
     MELTED = "melted"
+    LOST_ATOMS = "lost_atoms"
     NOT_FOUND = "not_found"
     INCOMPLETE = "incomplete"
 
 def run_lammps(modelname: str, temperature_K: float, pressure_bar: float, timestep_ps: float, fl_switch_timesteps: int, fl_equil_timesteps: int,
                species: List[str], msd_threshold: float, msd_timesteps: int, thermo_sampling_period: int, ave_pos_timesteps: int,
-               rlc_n_every: int, lammps_command: str, random_seed: int, output_dir: str, k_factor: float) -> Tuple[str, str, list, float]:
+               rlc_n_every: int, lammps_command: str, random_seed: int, output_dir: str, k: Tuple[float], k_factor: Tuple[float]) -> Tuple[str, str, list, float]:
     
     pdamp = timestep_ps * 1000.0
     tdamp = timestep_ps * 100.0
 
     log_filename = f"{output_dir}/free_energy.log"
     restart_filename = f"{output_dir}/free_energy.restart"
+
+    k_new = tuple(0.0 if x is None else x for x in k)
 
     variables = {
         "modelname": modelname,
@@ -48,13 +51,16 @@ def run_lammps(modelname: str, temperature_K: float, pressure_bar: float, timest
         "switch1_output_file": f"{output_dir}/FL_switch1.dat",
         "switch2_output_file": f"{output_dir}/FL_switch2.dat",
         "run_length_control": f"{output_dir}/run_length_control.py",
-        "k_factor": k_factor,
     }
     
     # Construct base LAMMPS command
     command = (
         f"{lammps_command} "
         + " ".join(f"-var {key} '{item}'" for key, item in variables.items())
+        + " "
+        + " ".join(f"-var k{i} '{v}'" for i, v in enumerate(k_new))
+        + " "
+        + " ".join(f"-var k_factor{i} '{v}'" for i, v in enumerate(k_factor))
         + f" -log {log_filename}"
         + f" -in {output_dir}/in.lammps")
 
@@ -64,9 +70,19 @@ def run_lammps(modelname: str, temperature_K: float, pressure_bar: float, timest
     # Read spring constants from file written by lammps
     spring_constants = np.zeros(len(species))
     for i in range(len(species)):
-        spring_constants[i] = np.loadtxt(f"{output_dir}/k{i}.dat")
-    
-    volume  = np.loadtxt(f"{output_dir}/volume.dat")
+        try:
+            spring_constants[i] = np.loadtxt(f"{output_dir}/k{i}.dat")
+        except:
+            # Reading spring constants will fail if the crystal fails the melt-check.
+            spring_constants[i] = None
+
+    # Read volume from file written by lammps
+    try:
+        volume  = np.loadtxt(f"{output_dir}/volume.dat")
+    except:
+        # If reading volume.dat failed, the simulation was probably incomplete.
+        # But volume should still be defined so that this function can return its values.
+        volume = None
 
     # Verify simulation completed successfully
     lammps_status = _check_lammps_completion(lammps_log=f"{output_dir}/free_energy.log")
@@ -89,13 +105,16 @@ def _check_lammps_completion(lammps_log: Path) -> LammpsStatus:
                 if not lines:
                     return LammpsStatus.INCOMPLETE
                 
-                # Check second-to-last line for melting indicator
-                if len(lines) >= 2 and lines[-2].strip().startswith("Crystal melted or vaporized"):
-                    return LammpsStatus.MELTED
+                for line in lines:
 
-                # Check last line for successful completion
-                if lines[-1].strip().startswith("Total wall time:"):
-                    return LammpsStatus.SUCCESS
+                    if line.startswith("Crystal melted or vaporized"):
+                        return LammpsStatus.MELTED
+                
+                    if line.startswith("WARNING: Lost atoms"):
+                        return LammpsStatus.LOST_ATOMS
+
+                    if line.startswith("Total wall time:"):
+                        return LammpsStatus.SUCCESS
                     
                 return LammpsStatus.INCOMPLETE
 
